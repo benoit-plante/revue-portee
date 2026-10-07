@@ -84,7 +84,7 @@
   4. Apache-2.0 — comme MIT, avec une clause de brevets; mêmes inconvénients que MIT pour notre objectif.
 - **Justification** : la revue de portée est une méthode d'intérêt public; la version hébergée possible est précisément le cas visé par l'AGPL; Benoit, seul titulaire des droits, conserve la possibilité d'offrir lui-même d'autres licences (double licence) s'il le souhaite.
 - **Conséquences** :
-  - fichier `LICENSE` (texte officiel AGPL-3.0, ajouté au jalon 0) et mention SPDX `AGPL-3.0-or-later` dans `pyproject.toml`;
+  - fichier `LICENSE` (texte officiel AGPL-3.0, gabarit GitHub, ajouté le 2026-10-07) et mention SPDX `AGPL-3.0-or-later` dans `pyproject.toml`;
   - dépendances compatibles (MIT, BSD, Apache-2.0, LGPL, GPL-3, AGPL); **PyMuPDF (AGPL) devient utilisable** pour la conversion des PDF (V2);
   - si des contributions externes sont acceptées, prévoir un accord de contribution (CLA ou DCO) pour préserver la possibilité de double licence.
 - **Renvois** : ENF-LIC-01, ENF-LIC-02; [03-architecture.md §2](03-architecture.md#2-pile-technique).

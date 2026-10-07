@@ -30,7 +30,7 @@
 | `config/secrets.py` + filtre de journalisation | Test : une clé factice chargée n'apparaît dans aucune sortie de journal ni `repr` |
 | Test anti-secrets sur `tests/` | Test qui échoue si un motif de clé (`sk-ant-`, en-tête d'authentification, paramètre `api_key=`) ou l'adresse réelle de `CONTACT_EMAIL` apparaît dans un fichier versionné de `tests/` |
 | `FakeProvider` et interface `ModelProvider` | Un test exécute une tâche factice de bout en bout |
-| Licence appliquée (D-004) | Fichier `LICENSE` contenant le texte officiel intégral de la GNU AGPL-3.0; `license = "AGPL-3.0-or-later"` dans `pyproject.toml` |
+| Licence appliquée (D-004) | `LICENSE` (texte officiel AGPL-3.0) déjà présent depuis le 2026-10-07 : ne pas le modifier; `license = "AGPL-3.0-or-later"` dans `pyproject.toml` |
 | CI GitHub Actions (facultatif) | Si ajoutée : ruff + pytest sur chaque demande de fusion, sans secret |
 
 ---
