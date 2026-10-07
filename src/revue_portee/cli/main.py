@@ -115,6 +115,39 @@ def check_journal(
     )
 
 
+@app.command("protocole", help=_("Write the protocol (Markdown and DOCX) in the exports folder."))
+def export_protocol(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    langue: Annotated[
+        str, typer.Option("--langue", help=_("Language of the protocol: fr or en."))
+    ] = "fr",
+) -> None:
+    from revue_portee.i18n import EXPORT_LANGUAGES
+    from revue_portee.protocol.document import ExportFormat
+    from revue_portee.protocol.document import export_protocol as write
+
+    if langue not in EXPORT_LANGUAGES:
+        raise _fail(_("Unsupported language: {language} (fr or en).").format(language=langue))
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        for export_format in ExportFormat:
+            path = write(
+                folder,
+                language=langue,
+                format=export_format,
+                now=utc_now,
+                tool_version=tool_version(),
+            )
+            typer.echo(_("Protocol written: {path}").format(path=path))
+    finally:
+        folder.close()
+
+
 @app.command("serve", help=_("Open the web interface of a project on 127.0.0.1."))
 def serve(
     dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],

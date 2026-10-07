@@ -7,6 +7,7 @@ use the French catalog through :func:`french`, whatever the interface locale.
 """
 
 import io
+from collections.abc import Callable
 from functools import cache
 from importlib.resources import files
 
@@ -14,10 +15,22 @@ from babel.messages.mofile import write_mo
 from babel.messages.pofile import read_po
 from babel.support import Translations
 
-__all__ = ["DEFAULT_LOCALE", "DOMAIN", "french", "gettext", "ngettext", "translations"]
+__all__ = [
+    "DEFAULT_LOCALE",
+    "DOMAIN",
+    "EXPORT_LANGUAGES",
+    "french",
+    "gettext",
+    "ngettext",
+    "translations",
+    "translator",
+]
 
 DOMAIN = "messages"
 DEFAULT_LOCALE = "fr"
+# Publication exports exist in French and English (ENF-LAN-04); English is the
+# language of the message identifiers, so it needs no catalog.
+EXPORT_LANGUAGES = ("fr", "en")
 
 
 @cache
@@ -44,3 +57,12 @@ def ngettext(singular: str, plural: str, count: int) -> str:
 def french(message: str) -> str:
     """Translate ``message`` into French (journal summaries, publication exports)."""
     return translations("fr").gettext(message)
+
+
+def translator(language: str) -> Callable[[str], str]:
+    """Translation function for a publication export in ``language`` (fr or en)."""
+    if language not in EXPORT_LANGUAGES:
+        raise ValueError(f"unsupported export language: {language}")
+    if language == "en":
+        return lambda message: message
+    return translations(language).gettext

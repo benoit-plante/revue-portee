@@ -7,7 +7,17 @@
   <dt>{{ _("Status") }}</dt><dd>{{ status_labels()[version.status] }}</dd>
   <dt>{{ _("In force since") }}</dt><dd>{{ version.activated_at.strftime("%Y-%m-%d %H:%M") }} UTC</dd>
   {% if version.rationale %}<dt>{{ _("Rationale") }}</dt><dd>{{ version.rationale }}</dd>{% endif %}
+  {% if version.after_protocol_registration %}<dt>{{ _("Protocol") }}</dt><dd>{{ _("Deviation from the registered protocol") }}</dd>{% endif %}
 </dl>
+{% if changes %}
+{% set labels = change_labels() %}
+<h2>{{ _("Qualified changes") }}</h2>
+<ul>
+  {% for c in changes %}
+  <li>{{ _("%(code)s: %(type)s (proposed by %(who)s, confirmed by the reviewer)", code=c.code, type=labels[c.change_type], who=(_("the AI") if c.proposed_by == "ai" else _("the reviewer"))) }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
 {{ criteria_table(version) }}
 {% if version.number > 1 %}<p><a href="/criteres/differentiel?de={{ version.number - 1 }}&amp;a={{ version.number }}">{{ _("Differences with version %(number)s", number=version.number - 1) }}</a></p>{% endif %}
 <p><a href="/criteres">{{ _("Back to the criteria") }}</a></p>

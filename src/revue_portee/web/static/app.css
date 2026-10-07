@@ -33,3 +33,11 @@ table.criteria th, table.criteria td { border: 1px solid #ccc; padding: .5rem; t
 .small { font-size: .875rem; color: var(--muted); }
 .inline-form label, .inline-form select { display: inline-block; width: auto; margin-right: .5rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+input[type="text"], input[type="date"] { width: 100%; font: inherit; padding: .4rem; border: 1px solid #767676; border-radius: 4px; }
+ol.suggestions > li { margin: 1rem 0; padding: .5rem 1rem; border: 1px solid #ccc; border-radius: 4px; }
+ol.suggestions button { margin-right: .5rem; }
+.outcome { font-weight: 600; }
+dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
+dl.meta dt { font-weight: 600; }
+dl.meta dd { margin: 0; }
+table.criteria th[scope="row"] { white-space: nowrap; }

@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import (
     CriterionKind,
     ImmutableVersionError,
@@ -97,7 +98,11 @@ def test_modifying_a_criterion_creates_version_2(setup: tuple[ProjectFolder, Clo
     with pytest.raises(MissingRationaleError):
         criteria.activate_draft(folder, rationale=" ", now=clock, tool_version=TOOL_VERSION)
     v2 = criteria.activate_draft(
-        folder, rationale="Élargir à l'adolescence", now=clock, tool_version=TOOL_VERSION
+        folder,
+        rationale="Élargir à l'adolescence",
+        qualifications={"P1": ChangeType.BROADENING},
+        now=clock,
+        tool_version=TOOL_VERSION,
     )
     assert (v2.number, v2.parent_id, v2.status) == (2, v1.id, VersionStatus.ACTIVE)
 
@@ -215,7 +220,13 @@ def test_every_action_is_journaled_and_chain_verifies(setup: tuple[ProjectFolder
     criteria.update_criterion(
         folder, "C2", kind=EXC, text="Autre", now=clock, tool_version=TOOL_VERSION
     )
-    criteria.activate_draft(folder, rationale="Clarifier C2", now=clock, tool_version=TOOL_VERSION)
+    criteria.activate_draft(
+        folder,
+        rationale="Clarifier C2",
+        qualifications={"C2": ChangeType.NARROWING},
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
     notes.add_note(folder, "Réunion d'équipe : C2 reformulé", now=clock, tool_version=TOOL_VERSION)
 
     types = [e.entry_type for e in notes.journal_entries(folder)]
@@ -228,12 +239,18 @@ def test_every_action_is_journaled_and_chain_verifies(setup: tuple[ProjectFolder
         EntryType.CRITERIA_VERSION_CREATED,
         EntryType.CRITERIA_DRAFT_STARTED,
         EntryType.CRITERIA_DRAFT_EDITED,
+        EntryType.CRITERIA_CHANGE_QUALIFIED,
         EntryType.CRITERIA_VERSION_CREATED,
         EntryType.NOTE_ADDED,
     ]
     entries = notes.journal_entries(folder)
     version_2 = entries[-2]
-    assert version_2.payload["changes"] == {"added": [], "removed": [], "modified": ["C2"]}
+    assert version_2.payload["changes"] == {
+        "added": [],
+        "removed": [],
+        "modified": ["C2"],
+        "qualifications": {"C2": "narrowing"},
+    }
     assert version_2.payload["rationale"] == "Clarifier C2"
     assert version_2.summary_fr == "Version 2 des critères en vigueur"
     assert all(e.actor_reviewer_id == folder.reviewer_id for e in entries)

@@ -5,7 +5,7 @@ Changing a criterion never touches the version in force: the change goes into a 
 next version. Every action is recorded in the journal, in the same transaction.
 """
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -13,6 +13,7 @@ from pydantic import JsonValue
 from sqlalchemy import Connection
 
 from revue_portee.domain import criteria as dom
+from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import (
     CriteriaDiff,
     CriteriaVersion,
@@ -24,9 +25,11 @@ from revue_portee.domain.ids import new_ulid, next_criterion_code
 from revue_portee.domain.journal import EntryType
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
+from revue_portee.protocol.qualification import record_changes
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as repo
 from revue_portee.storage.repositories import journal
+from revue_portee.storage.repositories import protocol as protocol_repo
 
 __all__ = [
     "CriteriaState",
@@ -332,31 +335,61 @@ def discard_draft(folder: ProjectFolder, *, now: Clock, tool_version: str) -> No
 
 
 def activate_draft(
-    folder: ProjectFolder, *, rationale: str, now: Clock, tool_version: str
+    folder: ProjectFolder,
+    *,
+    rationale: str,
+    qualifications: Mapping[str, ChangeType] | None = None,
+    now: Clock,
+    tool_version: str,
 ) -> CriteriaVersion:
-    """Make the draft the version in force; the previous active version is superseded."""
+    """Make the draft the version in force; the previous active version is superseded.
+
+    From version 2 on, ``qualifications`` gives the confirmed type of each modified
+    criterion (EF-VER-03); added and removed criteria are qualified automatically. A
+    version activated after the protocol was registered is a deviation from the
+    protocol (EF-CAD-08).
+    """
     with folder.write() as connection:
         moment = now()
         draft = repo.get_draft_version(connection)
         if draft is None:
             raise NoDraftError
         activated = dom.activate(draft, rationale=rationale, now=moment)
+        registration = protocol_repo.latest_registration(connection)
+        activated = activated.model_copy(
+            update={"after_protocol_registration": registration is not None}
+        )
         previous = repo.get_active_version(connection)
         changes: dict[str, JsonValue] = {}
         if previous is not None:
+            confirmed = record_changes(
+                connection,
+                folder,
+                previous=previous,
+                draft=draft,
+                choices=qualifications or {},
+                moment=moment,
+                tool_version=tool_version,
+            )
             repo.update_version_status(connection, dom.supersede(previous))
             delta = dom.diff_versions(previous, activated)
             changes = {
                 "added": [c.code for c in delta.added],
                 "removed": [c.code for c in delta.removed],
                 "modified": [m.code for m in delta.modified],
+                "qualifications": {c.code: c.change_type.value for c in confirmed},
             }
+        summary = french("Criteria version {number} in force").format(number=activated.number)
+        if activated.after_protocol_registration:
+            summary = french(
+                "Criteria version {number} in force (deviation from the registered protocol)"
+            ).format(number=activated.number)
         entry_id = _journal(
             connection,
             folder,
             moment,
             EntryType.CRITERIA_VERSION_CREATED,
-            french("Criteria version {number} in force").format(number=activated.number),
+            summary,
             activated,
             tool_version,
             {
@@ -365,6 +398,8 @@ def activate_draft(
                 "rationale": activated.rationale,
                 "criteria": [_criterion_json(c) for c in activated.sorted_criteria()],
                 "changes": changes,
+                "after_protocol_registration": activated.after_protocol_registration,
+                "protocol_doi": None if registration is None else registration.doi,
             },
         )
         repo.update_version_status(connection, activated, journal_entry_id=entry_id)

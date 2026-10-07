@@ -37,6 +37,15 @@ class EntryType:
     CRITERIA_DRAFT_EDITED = "criteria.draft_edited"
     CRITERIA_DRAFT_DISCARDED = "criteria.draft_discarded"
     CRITERIA_VERSION_CREATED = "criteria.version_created"
+    CRITERIA_CHANGE_PROPOSED = "criteria.change_proposed"
+    CRITERIA_CHANGE_QUALIFIED = "criteria.change_qualified"
+    AI_CONFIG_RECORDED = "ai.config_recorded"
+    AI_CALL_FAILED = "ai.call_failed"
+    AI_RESULT_UNUSABLE = "ai.result_unusable"
+    FRAMING_SUGGESTIONS_RECEIVED = "framing.suggestions_received"
+    FRAMING_SUGGESTION_REVIEWED = "framing.suggestion_reviewed"
+    PROTOCOL_TEXT_UPDATED = "protocol.text_updated"
+    PROTOCOL_REGISTERED = "protocol.registered"
 
 
 class JournalEntry(BaseModel):

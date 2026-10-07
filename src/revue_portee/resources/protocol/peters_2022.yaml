@@ -1,0 +1,109 @@
+# Elements of a scoping review protocol (EF-CAD-06).
+# Every item names the protocol section that covers it; tests check that the
+# generated protocol contains 100 % of the items.
+id: peters-2022
+version: "1"
+source: >-
+  Peters MDJ, Godfrey C, McInerney P, Khalil H, Larsen P, Marnie C, Pollock D,
+  Tricco AC, Munn Z. Best practice guidance and reporting items for the development
+  of scoping review protocols. JBI Evid Synth. 2022;20(4):953-968.
+  doi:10.11124/JBIES-21-00242
+# The article is not open access and could not be read from the development
+# environment: the list follows the structure of the JBI scoping review protocol
+# template described in the article and must be checked against its checklist.
+verified: false
+items:
+  - id: PETERS-01
+    section: title
+    en: Title
+    fr: Titre
+  - id: PETERS-02
+    section: abstract
+    en: Abstract (objective, introduction, inclusion criteria, methods)
+    fr: Résumé (objectif, introduction, critères d'inclusion, méthode)
+  - id: PETERS-03
+    section: background
+    en: Introduction - rationale and what is already known
+    fr: Introduction - justification et état des connaissances
+  - id: PETERS-04
+    section: existing_reviews
+    en: Introduction - preliminary search for existing or ongoing reviews
+    fr: Introduction - recherche préliminaire de revues existantes ou en cours
+  - id: PETERS-05
+    section: objectives
+    en: Review objective(s)
+    fr: Objectif(s) de la revue
+  - id: PETERS-06
+    section: questions
+    en: Review question(s)
+    fr: Question(s) de la revue
+  - id: PETERS-07
+    section: participants
+    en: Inclusion criteria - participants (population)
+    fr: Critères d'inclusion - participants (population)
+  - id: PETERS-08
+    section: concept
+    en: Inclusion criteria - concept
+    fr: Critères d'inclusion - concept
+  - id: PETERS-09
+    section: context
+    en: Inclusion criteria - context
+    fr: Critères d'inclusion - contexte
+  - id: PETERS-10
+    section: sources
+    en: Types of sources of evidence
+    fr: Types de sources de données probantes
+  - id: PETERS-11
+    section: methods_framework
+    en: Methods - methodological framework, reporting guideline and registration
+    fr: Méthode - cadre méthodologique, ligne directrice de déclaration et enregistrement
+  - id: PETERS-12
+    section: search
+    en: Search strategy (steps, draft search of one database, language and date limits)
+    fr: Stratégie de recherche (étapes, ébauche pour une base, limites de langue et de date)
+  - id: PETERS-13
+    section: information_sources
+    en: Information sources (databases, grey literature)
+    fr: Sources d'information (bases de données, littérature grise)
+  - id: PETERS-14
+    section: selection
+    en: Source of evidence selection (reviewers, pilot test, disagreements, software, flow diagram)
+    fr: Sélection des sources (réviseurs, essai pilote, désaccords, logiciel, diagramme de flux)
+  - id: PETERS-15
+    section: extraction
+    en: Data extraction (charting tool, pilot, modifications)
+    fr: Extraction des données (grille, essai pilote, modifications)
+  - id: PETERS-16
+    section: analysis
+    en: Data analysis and presentation
+    fr: Analyse et présentation des données
+  - id: PETERS-17
+    section: appraisal
+    en: Critical appraisal of sources (if planned, with justification)
+    fr: Évaluation critique des sources (si prévue, avec justification)
+    optional: true
+  - id: PETERS-18
+    section: consultation
+    en: Consultation with knowledge users (if planned)
+    fr: Consultation des utilisateurs de connaissances (si prévue)
+    optional: true
+  - id: PETERS-19
+    section: acknowledgements
+    en: Acknowledgements
+    fr: Remerciements
+  - id: PETERS-20
+    section: funding
+    en: Funding
+    fr: Financement
+  - id: PETERS-21
+    section: conflicts
+    en: Conflicts of interest
+    fr: Conflits d'intérêts
+  - id: PETERS-22
+    section: references
+    en: References
+    fr: Références
+  - id: PETERS-23
+    section: appendices
+    en: Appendices (search strategy, data extraction instrument)
+    fr: Annexes (stratégie de recherche, grille d'extraction)

@@ -110,6 +110,7 @@ def update_version_status(
         "status": version.status.value,
         "activated_at": version.activated_at,
         "rationale": version.rationale,
+        "after_protocol_registration": version.after_protocol_registration,
     }
     if journal_entry_id is not None:
         values["journal_entry_id"] = journal_entry_id

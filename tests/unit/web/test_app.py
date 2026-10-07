@@ -119,8 +119,18 @@ def test_criteria_workflow_to_version_2(client: TestClient, folder: ProjectFolde
     refused = post(client, "/criteres/activer", justification=" ")
     assert refused.status_code == 422  # type: ignore[attr-defined]
     assert "Une justification est obligatoire" in html_text(refused)
-    done = post(client, "/criteres/activer", justification="Inclure les adolescents")
-    assert done.headers["location"] == "/criteres/versions/2"  # type: ignore[attr-defined]
+    unqualified = post(client, "/criteres/activer", justification="Inclure les adolescents")
+    assert unqualified.status_code == 422  # type: ignore[attr-defined]
+    assert "Confirmez le type de changement" in html_text(unqualified)
+    done = client.post(
+        "/criteres/activer",
+        data={
+            "csrf_token": token(client),
+            "justification": "Inclure les adolescents",
+            "qualification-P1": "broadening",
+        },
+    )
+    assert done.headers["location"] == "/criteres/versions/2"
 
     version_1 = html_text(client.get("/criteres/versions/1"))
     assert "0 à 12 ans" in version_1

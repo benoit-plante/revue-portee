@@ -1,0 +1,78 @@
+# OSF "Generalized Systematic Review Registration" form (EF-CAD-06): its 65 items and
+# the protocol sections that provide their content. An item without section is filled
+# directly in the OSF form (dates, review stage) or does not apply to most scoping
+# reviews; the correspondence table says so.
+id: osf-gsrr
+version: "1.00"
+source: >-
+  van den Akker OR, Peters GJY, Bakker CJ, et al. Increasing the transparency of
+  systematic reviews: presenting a generalized registration form. Syst Rev.
+  2023;12:170. doi:10.1186/s13643-023-02281-7 (form version v1.00, items GSRRF-1 to
+  GSRRF-65, read in PMC10514995 on 2026-10-07).
+verified: true
+items:
+  - {id: GSRRF-1, en: "Title", fr: "Titre", sections: [title]}
+  - {id: GSRRF-2, en: "Contributors", fr: "Contributeurs", sections: [team]}
+  - {id: GSRRF-3, en: "Subjects", fr: "Disciplines", sections: []}
+  - {id: GSRRF-4, en: "Tasks and roles", fr: "Tâches et rôles", sections: [team]}
+  - {id: GSRRF-5, en: "Type of review", fr: "Type de revue", sections: [methods_framework]}
+  - {id: GSRRF-6, en: "Review stages", fr: "Étapes de la revue", sections: [methods_framework]}
+  - {id: GSRRF-7, en: "Current review stage", fr: "Étape en cours", sections: []}
+  - {id: GSRRF-8, en: "Start date", fr: "Date de début", sections: []}
+  - {id: GSRRF-9, en: "End date", fr: "Date de fin", sections: []}
+  - {id: GSRRF-10, en: "Background", fr: "Contexte", sections: [background, existing_reviews]}
+  - {id: GSRRF-11, en: "Primary research question(s)", fr: "Question(s) de recherche principale(s)", sections: [questions]}
+  - {id: GSRRF-12, en: "Secondary research question(s)", fr: "Question(s) de recherche secondaire(s)", sections: [questions]}
+  - {id: GSRRF-13, en: "Expectations / hypotheses", fr: "Attentes / hypothèses", sections: [objectives]}
+  - {id: GSRRF-14, en: "Dependent variable(s) / outcome(s) / main variables", fr: "Variables dépendantes / résultats / variables principales", sections: [concept]}
+  - {id: GSRRF-15, en: "Independent variable(s) / intervention(s) / treatment(s)", fr: "Variables indépendantes / interventions / traitements", sections: [concept]}
+  - {id: GSRRF-16, en: "Additional variable(s) / covariate(s)", fr: "Variables supplémentaires / covariables", sections: [extraction]}
+  - {id: GSRRF-17, en: "Software", fr: "Logiciels", sections: [selection, ai_use]}
+  - {id: GSRRF-18, en: "Funding", fr: "Financement", sections: [funding]}
+  - {id: GSRRF-19, en: "Conflicts of interest", fr: "Conflits d'intérêts", sections: [conflicts]}
+  - {id: GSRRF-20, en: "Overlapping authorships", fr: "Chevauchement des auteurs", sections: [conflicts]}
+  - {id: GSRRF-21, en: "Databases", fr: "Bases de données", sections: [information_sources]}
+  - {id: GSRRF-22, en: "Interfaces", fr: "Interfaces", sections: [information_sources]}
+  - {id: GSRRF-23, en: "Grey literature", fr: "Littérature grise", sections: [information_sources]}
+  - {id: GSRRF-24, en: "Inclusion and exclusion criteria", fr: "Critères d'inclusion et d'exclusion", sections: [participants, concept, context, sources]}
+  - {id: GSRRF-25, en: "Query strings", fr: "Requêtes", sections: [search, appendices]}
+  - {id: GSRRF-26, en: "Search validation procedure", fr: "Validation de la recherche", sections: [search]}
+  - {id: GSRRF-27, en: "Other search strategies", fr: "Autres stratégies de recherche", sections: [search]}
+  - {id: GSRRF-28, en: "Procedures to contact authors", fr: "Prise de contact avec les auteurs", sections: [search]}
+  - {id: GSRRF-29, en: "Results of contacting authors", fr: "Résultats des prises de contact", sections: []}
+  - {id: GSRRF-30, en: "Search expiration and repetition", fr: "Péremption et répétition de la recherche", sections: [search]}
+  - {id: GSRRF-31, en: "Search strategy justification", fr: "Justification de la stratégie de recherche", sections: [search]}
+  - {id: GSRRF-32, en: "Miscellaneous search strategy details", fr: "Autres précisions sur la recherche", sections: [search]}
+  - {id: GSRRF-33, en: "Screening stages", fr: "Étapes du tri", sections: [selection, ai_use]}
+  - {id: GSRRF-34, en: "Screened fields / blinding", fr: "Champs examinés / insu", sections: [selection]}
+  - {id: GSRRF-35, en: "Used exclusion criteria", fr: "Critères d'exclusion appliqués", sections: [participants, concept, context, sources]}
+  - {id: GSRRF-36, en: "Screener instructions", fr: "Consignes aux réviseurs", sections: [appendices]}
+  - {id: GSRRF-37, en: "Screening reliability", fr: "Fiabilité du tri", sections: [selection]}
+  - {id: GSRRF-38, en: "Screening reconciliation procedure", fr: "Réconciliation du tri", sections: [selection]}
+  - {id: GSRRF-39, en: "Sampling and sample size", fr: "Échantillonnage et taille d'échantillon", sections: [selection]}
+  - {id: GSRRF-40, en: "Screening procedure justification", fr: "Justification de la procédure de tri", sections: [selection, ai_use]}
+  - {id: GSRRF-41, en: "Data management and sharing (screening)", fr: "Gestion et partage des données (tri)", sections: [selection]}
+  - {id: GSRRF-42, en: "Miscellaneous screening details", fr: "Autres précisions sur le tri", sections: [ai_use]}
+  - {id: GSRRF-43, en: "Entities to extract", fr: "Éléments à extraire", sections: [extraction]}
+  - {id: GSRRF-44, en: "Extraction stages", fr: "Étapes de l'extraction", sections: [extraction]}
+  - {id: GSRRF-45, en: "Extractor instructions", fr: "Consignes d'extraction", sections: [extraction]}
+  - {id: GSRRF-46, en: "Extractor blinding", fr: "Insu des personnes qui extraient", sections: [extraction]}
+  - {id: GSRRF-47, en: "Extraction reliability", fr: "Fiabilité de l'extraction", sections: [extraction]}
+  - {id: GSRRF-48, en: "Extraction reconciliation procedure", fr: "Réconciliation de l'extraction", sections: [extraction]}
+  - {id: GSRRF-49, en: "Extraction procedure justification", fr: "Justification de la procédure d'extraction", sections: [extraction]}
+  - {id: GSRRF-50, en: "Data management and sharing (extraction)", fr: "Gestion et partage des données (extraction)", sections: [extraction]}
+  - {id: GSRRF-51, en: "Miscellaneous extraction details", fr: "Autres précisions sur l'extraction", sections: [extraction]}
+  - {id: GSRRF-52, en: "Planned data transformations", fr: "Transformations prévues des données", sections: [analysis]}
+  - {id: GSRRF-53, en: "Missing data", fr: "Données manquantes", sections: [analysis]}
+  - {id: GSRRF-54, en: "Data validation", fr: "Validation des données", sections: [analysis]}
+  - {id: GSRRF-55, en: "Quality assessment", fr: "Évaluation de la qualité", sections: [appraisal]}
+  - {id: GSRRF-56, en: "Synthesis plan", fr: "Plan de synthèse", sections: [analysis]}
+  - {id: GSRRF-57, en: "Criteria for conclusions / inference criteria", fr: "Critères de conclusion / d'inférence", sections: [analysis]}
+  - {id: GSRRF-58, en: "Synthesist blinding", fr: "Insu des personnes qui synthétisent", sections: [analysis]}
+  - {id: GSRRF-59, en: "Synthesis reliability", fr: "Fiabilité de la synthèse", sections: [analysis]}
+  - {id: GSRRF-60, en: "Synthesis reconciliation procedure", fr: "Réconciliation de la synthèse", sections: [analysis]}
+  - {id: GSRRF-61, en: "Publication bias analyses", fr: "Analyses du biais de publication", sections: []}
+  - {id: GSRRF-62, en: "Sensitivity analyses / robustness checks", fr: "Analyses de sensibilité / de robustesse", sections: []}
+  - {id: GSRRF-63, en: "Synthesis procedure justification", fr: "Justification de la procédure de synthèse", sections: [analysis]}
+  - {id: GSRRF-64, en: "Synthesis data management and sharing", fr: "Gestion et partage des données (synthèse)", sections: [analysis]}
+  - {id: GSRRF-65, en: "Miscellaneous synthesis details", fr: "Autres précisions sur la synthèse", sections: [analysis]}

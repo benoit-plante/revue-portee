@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue
 
 from revue_portee.i18n import gettext as _
 
@@ -19,11 +19,13 @@ __all__ = [
     "CostEstimate",
     "ModelProvider",
     "PromptRef",
+    "ProviderCallError",
     "TaskInput",
     "TaskOutput",
     "TaskResult",
     "TaskSpec",
     "UnsupportedTaskError",
+    "result_type",
     "utc_now",
 ]
 
@@ -42,9 +44,13 @@ class TaskInput(BaseModel):
 
 
 class TaskOutput(BaseModel):
-    """Base class for structured task outputs (validated against the task schema)."""
+    """Base class for structured task outputs (validated against the task schema).
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    Text is stripped before validation, so that a blank answer fails a length
+    constraint and the call is recorded as invalid.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
 
 
 class PromptRef(BaseModel):
@@ -78,7 +84,10 @@ class AICallRecord(BaseModel):
 
     provider: str
     model_requested: str
-    model_returned: str = Field(description="Exact model identifier returned by the API.")
+    model_returned: str | None = Field(
+        description="Exact model identifier returned by the API; None when the call failed "
+        "before any model answered."
+    )
     provider_request_id: str | None = None
     prompt_template_id: str
     prompt_template_version: str
@@ -99,7 +108,11 @@ class AICallRecord(BaseModel):
 
 
 class TaskResult[OutputT: TaskOutput](BaseModel):
-    """Validated output of a task for one input, with its call record."""
+    """Validated output of a task for one input, with its call record.
+
+    ``raw_response`` is the provider's response as returned, to be stored in the
+    project (ENF-TRA-03) by the service that records the call.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -107,6 +120,26 @@ class TaskResult[OutputT: TaskOutput](BaseModel):
     output: OutputT
     raw_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     call: AICallRecord
+    raw_response: JsonValue = None
+
+
+def result_type[OutputT: TaskOutput](output_model: type[OutputT]) -> type[TaskResult[OutputT]]:
+    """``TaskResult`` parametrized with the concrete schema, so that serialization keeps
+    every field of the output."""
+    return TaskResult[output_model]  # type: ignore[valid-type]
+
+
+class ProviderCallError(RuntimeError):
+    """A model call that did not produce a valid output. The failed call is recorded
+    like any other (``call.status == "error"``), with the raw response if any."""
+
+    def __init__(
+        self, message: str, *, item_id: str, call: AICallRecord, raw_response: JsonValue = None
+    ) -> None:
+        self.item_id = item_id
+        self.call = call
+        self.raw_response = raw_response
+        super().__init__(message)
 
 
 class CostEstimate(BaseModel):

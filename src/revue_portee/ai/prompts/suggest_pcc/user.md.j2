@@ -1,0 +1,10 @@
+Current framing of the review:
+
+Main question: {{ question }}
+Population: {{ population or "(not specified)" }}
+Concept: {{ concept or "(not specified)" }}
+Context: {{ context or "(not specified)" }}
+Secondary questions:
+{% for q in secondary_questions %}- {{ q }}
+{% else %}(none)
+{% endfor %}

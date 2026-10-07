@@ -9,14 +9,17 @@ for code that bypasses the repositories.
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
     Column,
     Connection,
+    Date,
     Dialect,
     Engine,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -33,16 +36,25 @@ from sqlalchemy import (
 from sqlalchemy.pool import ConnectionPoolEntry
 
 __all__ = [
+    "DecimalText",
     "UTCDateTime",
+    "ai_call",
+    "ai_config",
+    "ai_suggestion",
     "create_project_engine",
     "criteria_version",
     "criterion",
+    "criterion_change",
     "criterion_code",
     "framing_version",
     "journal_entry",
     "metadata",
     "project",
+    "protocol_registration",
+    "protocol_text_version",
+    "qualification_proposal",
     "reviewer",
+    "suggestion_review",
     "write_transaction",
 ]
 
@@ -62,6 +74,19 @@ class UTCDateTime(TypeDecorator[datetime]):
 
     def process_result_value(self, value: str | None, dialect: Dialect) -> datetime | None:
         return None if value is None else datetime.fromisoformat(value)
+
+
+class DecimalText(TypeDecorator[Decimal]):
+    """Exact decimal amount (costs) stored as text."""
+
+    impl = String(32)
+    cache_ok = True
+
+    def process_bind_param(self, value: Decimal | None, dialect: Dialect) -> str | None:
+        return None if value is None else str(value)
+
+    def process_result_value(self, value: str | None, dialect: Dialect) -> Decimal | None:
+        return None if value is None else Decimal(value)
 
 
 metadata = MetaData()
@@ -174,6 +199,138 @@ criterion_code = Table(
     Column("pcc_element", String(16), nullable=False),
     Column("first_version_id", String(26), nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
+)
+
+
+# --- AI configuration and calls (docs/03-architecture.md §5.1, §5.6) -------------------
+
+ai_config = Table(
+    "ai_config",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("task", String(64), nullable=False),
+    Column("provider", String(32), nullable=False),
+    Column("model_requested", Text, nullable=False),
+    Column("prompt_template_id", String(64), nullable=False),
+    Column("prompt_template_version", String(16), nullable=False),
+    Column("params_json", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+ai_call = Table(
+    "ai_call",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("ai_config_id", String(26), ForeignKey("ai_config.id"), nullable=False),
+    Column("task", String(64), nullable=False),
+    Column("item_id", Text, nullable=False),
+    Column("provider", String(32), nullable=False),
+    Column("model_requested", Text, nullable=False),
+    Column("model_returned", Text, nullable=True),
+    Column("provider_request_id", Text, nullable=True),
+    Column("prompt_template_id", String(64), nullable=False),
+    Column("prompt_template_version", String(16), nullable=False),
+    Column("prompt_sha256", String(64), nullable=False),
+    Column("params_json", Text, nullable=False),
+    Column("input_tokens", Integer, nullable=False),
+    Column("output_tokens", Integer, nullable=False),
+    Column("cache_read_tokens", Integer, nullable=False),
+    Column("cache_write_tokens", Integer, nullable=False),
+    Column("cost_estimate", DecimalText, nullable=False),
+    Column("currency", String(3), nullable=False),
+    Column("latency_ms", Integer, nullable=False),
+    Column("batch_id", Text, nullable=True),
+    Column("response_path", Text, nullable=True),
+    Column("status", String(8), nullable=False),
+    Column("error_code", Text, nullable=True),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+# --- Framing suggestions (EF-CAD-02) ------------------------------------------------
+
+ai_suggestion = Table(
+    "ai_suggestion",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=False),
+    Column("position", Integer, nullable=False),
+    Column("kind", String(32), nullable=False),
+    Column("text", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+suggestion_review = Table(
+    "suggestion_review",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    # One human decision per suggestion, never changed.
+    Column(
+        "suggestion_id", String(26), ForeignKey("ai_suggestion.id"), nullable=False, unique=True
+    ),
+    Column("outcome", String(16), nullable=False),
+    Column("final_text", Text, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("framing_version_id", String(26), ForeignKey("framing_version.id"), nullable=True),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+# --- Qualification of criteria changes (EF-VER-03) ----------------------------------
+
+# No foreign key to the draft: a discarded draft is deleted, its proposals stay.
+qualification_proposal = Table(
+    "qualification_proposal",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("draft_version_id", String(26), nullable=False),
+    Column("code", String(16), nullable=False),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=False),
+    Column("change_type", String(16), nullable=False),
+    Column("confidence", Float, nullable=True),
+    Column("rationale", Text, nullable=False),
+    Column("after_json", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+criterion_change = Table(
+    "criterion_change",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("from_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("to_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("code", String(16), nullable=False),
+    Column("change_type", String(16), nullable=False),
+    Column("proposed_by", String(8), nullable=False),
+    Column("proposal_id", String(26), ForeignKey("qualification_proposal.id"), nullable=True),
+    Column("confirmed_by", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+# --- Protocol (EF-CAD-06 to 08) -----------------------------------------------------
+
+protocol_text_version = Table(
+    "protocol_text_version",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, nullable=False, unique=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("author_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("sections_json", Text, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+protocol_registration = Table(
+    "protocol_registration",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("doi", Text, nullable=False),
+    Column("registered_on", Date, nullable=False),
+    Column("criteria_version_id", String(26), ForeignKey("criteria_version.id"), nullable=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
 )
 
 

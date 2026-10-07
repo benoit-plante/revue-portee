@@ -3,7 +3,8 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from sqlalchemy import text
+from alembic.runtime.migration import MigrationContext
+from sqlalchemy import inspect, text
 
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.framing import Framing
@@ -274,3 +275,34 @@ def test_concurrent_writers_keep_a_valid_chain(tmp_path: Path) -> None:
     assert len(notes.journal_entries(folder)) == 1 + 6 * 8
     assert notes.verify_journal(folder).valid
     folder.close()
+
+
+def test_project_of_tranche_1_1_is_migrated_after_a_backup(tmp_path: Path) -> None:
+    folder = new_project(tmp_path)
+    folder.close()
+    new_tables = (
+        "protocol_registration",
+        "protocol_text_version",
+        "criterion_change",
+        "qualification_proposal",
+        "suggestion_review",
+        "ai_suggestion",
+        "ai_call",
+        "ai_config",
+    )
+    with raw_sqlite(folder.path / DATABASE_FILE) as connection:
+        for table in new_tables:
+            connection.execute(f"DROP TABLE {table}")
+        connection.execute("UPDATE alembic_version SET version_num = '0001'")
+    reopened = open_project_folder(folder.path, now=make_clock(), tool_version=TOOL_VERSION)
+    try:
+        backups = list(folder.path.glob(f"{DATABASE_FILE}.sauvegarde-*"))
+        assert len(backups) == 1
+        with reopened.engine.connect() as connection:
+            assert MigrationContext.configure(connection).get_current_revision() == "0002"
+            tables = set(inspect(connection).get_table_names())
+        assert set(new_tables) <= tables
+        entry = notes.journal_entries(reopened)[-1]
+        assert entry.payload == {"migrated_from": "0001"}
+    finally:
+        reopened.close()
