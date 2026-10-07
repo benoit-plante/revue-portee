@@ -81,6 +81,7 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
+pythonpath = ["tests"]
 # Integration tests (real services, costs, quotas) are excluded by default and
 # cassettes are read-only: no ordinary test can reach the network.
 # Override explicitly: `uv run pytest -m integration [--record-mode=once]`.
@@ -99,6 +100,13 @@ markers = [
     "integration: calls real services (network, costs, quotas); excluded by default, run only on explicit request",
 ]
 xfail_strict = true
+# Per-package coverage threshold (ENF-QUA-04), enforced by tests/_plugins/coverage_gate.py.
+coverage_gate_packages = [
+    "domain",
+    "dedup",
+    "reporting",
+]
+coverage_gate_fail_under = "90"
 
 [tool.coverage.run]
 branch = true
@@ -115,6 +123,9 @@ exclude_also = [
 [tool.mypy]
 python_version = "3.12"
 files = ["src", "tests"]
+# Test modules are resolved from tests/ (pytest's `pythonpath`), e.g. `_plugins.coverage_gate`.
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]

@@ -24,13 +24,5 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      # Also enforces the per-package coverage threshold (tests/_plugins/coverage_gate.py).
       - run: uv run pytest
-      - name: Coverage >= 90% per core package (ENF-QUA-04)
-        run: |
-          status=0
-          for package in domain dedup reporting; do
-            echo "::group::$package"
-            uv run coverage report --include="src/revue_portee/$package/*" --fail-under=90 || status=1
-            echo "::endgroup::"
-          done
-          exit $status

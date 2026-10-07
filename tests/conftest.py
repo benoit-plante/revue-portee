@@ -4,6 +4,8 @@
   (pytest-recording ``block_network``); cassettes are read-only (``--record-mode=none``).
 - Cassettes are recorded with credentials and contact parameters replaced by
   fictitious values (ENF-SEC-04).
+- A full run fails when a package listed in ``coverage_gate_packages`` is below
+  ``coverage_gate_fail_under`` (see ``tests/_plugins/coverage_gate.py``).
 """
 
 from collections.abc import Iterator
@@ -12,6 +14,8 @@ from typing import Any
 import pytest
 
 from revue_portee.config.secrets import forget_loaded_secrets
+
+pytest_plugins = ["_plugins.coverage_gate"]
 
 FAKE_TOKEN = "DUMMY"
 FAKE_EMAIL = "contact@example.org"

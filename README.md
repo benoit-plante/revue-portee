@@ -32,13 +32,7 @@ uv run ruff format .                                  # formatage
 uv run mypy                                           # vérification des types (mode strict)
 ```
 
-Le rapport de couverture (pytest-cov, branches comprises) s'affiche à la fin de `pytest`; il ne liste que les fichiers incomplètement couverts. Les paquets `domain`, `dedup` et `reporting` doivent chacun être couverts à au moins 90 % (ENF-QUA-04) ; après `pytest`, vérifier avec :
-
-```bash
-for package in domain dedup reporting; do
-  uv run coverage report --include="src/revue_portee/$package/*" --fail-under=90
-done
-```
+Le rapport de couverture (pytest-cov, branches comprises) s'affiche à la fin de `pytest`; il ne liste que les fichiers incomplètement couverts. Les paquets `domain`, `dedup` et `reporting` doivent chacun être couverts à au moins 90 % (ENF-QUA-04) : `uv run pytest` le vérifie automatiquement et échoue sinon. Le seuil n'est vérifié que sur la suite complète ; il est ignoré, avec un avertissement, quand on lance seulement une partie des tests (chemin explicite, `-k`, `-m`, `--lf`) ou avec `--no-cov`. Les paquets et le seuil se règlent dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
 Les tests ordinaires n'appellent jamais les vraies API : ils utilisent des réponses enregistrées et un fournisseur d'IA factice, et l'accès au réseau y est bloqué. Les tests d'intégration, qui appellent de vrais services, sont exclus par défaut et se lancent seulement volontairement :
 
