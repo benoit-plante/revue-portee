@@ -11,6 +11,8 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
+from revue_portee.i18n import gettext as _
+
 __all__ = [
     "AICallRecord",
     "CallStatus",
@@ -125,7 +127,9 @@ class UnsupportedTaskError(ValueError):
         self.provider = provider
         self.task = task
         super().__init__(
-            f"Le fournisseur « {provider} » ne prend pas en charge la tâche « {task} »."
+            _("The provider “{provider}” does not support the task “{task}”.").format(
+                provider=provider, task=task
+            )
         )
 
 

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, criteria_table, criterion_fields with context %}
+{% block title %}{{ _("Criteria") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Eligibility criteria") }}</h1>
+
+<section aria-labelledby="en-vigueur">
+  <h2 id="en-vigueur">{{ _("Version in force") }}</h2>
+  {% if state.active %}
+    <p>{{ _("Version %(number)s, in force since %(date)s UTC.", number=state.active.number, date=state.active.activated_at.strftime("%Y-%m-%d %H:%M")) }}</p>
+    {{ criteria_table(state.active) }}
+  {% else %}
+    <p>{{ _("No version of the criteria is in force yet.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="brouillon-titre" id="brouillon">
+  <h2 id="brouillon-titre">{{ _("Draft") }}</h2>
+  {% if state.draft %}
+    <p>{{ _("Draft of version %(number)s. Changes stay in the draft until you activate it.", number=state.draft.number) }}</p>
+    {{ criteria_table(state.draft, editable=true) }}
+
+    {% if draft_diff %}
+    <h3>{{ _("Changes compared with version %(number)s", number=state.active.number) }}</h3>
+    {% if draft_diff.is_empty %}<p>{{ _("No change yet.") }}</p>{% else %}
+    <ul class="diff-summary">
+      {% for c in draft_diff.added %}<li class="added">{{ _("Added: %(code)s", code=c.code) }}</li>{% endfor %}
+      {% for c in draft_diff.removed %}<li class="removed">{{ _("Removed: %(code)s", code=c.code) }}</li>{% endfor %}
+      {% for m in draft_diff.modified %}<li class="modified">{{ _("Modified: %(code)s", code=m.code) }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% endif %}
+
+    <h3 id="ajouter">{{ _("Add a criterion") }}</h3>
+    <form method="post" action="/criteres/brouillon/ajouter">
+      {{ csrf() }}
+      <label for="element">{{ _("PCC element") }}</label>
+      <select id="element" name="element">
+        {% for element, label in pcc_labels().items() %}<option value="{{ element.value }}">{{ label }}</option>{% endfor %}
+      </select>
+      {{ criterion_fields() }}
+      <button type="submit">{{ _("Add the criterion") }}</button>
+    </form>
+
+    <h3>{{ _("Activate the draft") }}</h3>
+    <form method="post" action="/criteres/activer">
+      {{ csrf() }}
+      <label for="justification">{{ _("Rationale for the change") }}{% if state.draft.number > 1 %} {{ _("(required)") }}{% endif %}</label>
+      <textarea id="justification" name="justification" rows="2" {% if state.draft.number > 1 %}required{% endif %}></textarea>
+      <button type="submit">{{ _("Activate version %(number)s", number=state.draft.number) }}</button>
+    </form>
+    <form method="post" action="/criteres/abandonner">
+      {{ csrf() }}
+      <button type="submit" class="secondary">{{ _("Discard the draft") }}</button>
+    </form>
+  {% else %}
+    <form method="post" action="/criteres/brouillon">
+      {{ csrf() }}
+      <button type="submit">{% if state.active %}{{ _("Change the criteria (new draft)") }}{% else %}{{ _("Start the criteria") }}{% endif %}</button>
+    </form>
+  {% endif %}
+</section>
+
+{% if state.versions %}
+<section aria-labelledby="historique">
+  <h2 id="historique">{{ _("Versions") }}</h2>
+  {% set statuses = status_labels() %}
+  <ol class="history">
+    {% for v in state.versions | reverse %}
+    <li><a href="/criteres/versions/{{ v.number }}">{{ _("Version %(number)s", number=v.number) }}</a> — {{ statuses[v.status] }}{% if v.rationale %} — {{ v.rationale }}{% endif %}</li>
+    {% endfor %}
+  </ol>
+  {% if state.versions | length > 1 %}
+  <form method="get" action="/criteres/differentiel" class="inline-form">
+    <label for="de">{{ _("Compare version") }}</label>
+    <select id="de" name="de">{% for v in state.versions %}<option value="{{ v.number }}" {% if loop.revindex == 2 %}selected{% endif %}>{{ v.number }}</option>{% endfor %}</select>
+    <label for="a">{{ _("with version") }}</label>
+    <select id="a" name="a">{% for v in state.versions %}<option value="{{ v.number }}" {% if loop.last %}selected{% endif %}>{{ v.number }}</option>{% endfor %}</select>
+    <button type="submit">{{ _("Show the differences") }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

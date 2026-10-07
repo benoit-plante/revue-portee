@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Journal") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Project journal") }}</h1>
+{% if check.valid %}
+<div class="message success" role="status">{{ ngettext("Journal intact: %(num)s entry, hash chain verified.", "Journal intact: %(num)s entries, hash chain verified.", check.checked) }}</div>
+{% else %}
+<div class="message error" role="alert">{{ _("Journal altered: the hash chain breaks at entry %(position)s.", position=check.first_invalid_index + 1) }}</div>
+{% endif %}
+<h2>{{ _("Add a note") }}</h2>
+<form method="post" action="/journal/notes">
+  {{ csrf() }}
+  <label for="note">{{ _("Note (for example, minutes of a team meeting)") }}</label>
+  <textarea id="note" name="note" rows="3" required></textarea>
+  <button type="submit">{{ _("Add the note") }}</button>
+</form>
+<h2>{{ _("Entries") }}</h2>
+<ol class="journal" reversed>
+  {% for e in entries %}
+  <li>
+    <p><time datetime="{{ e.created_at.isoformat() }}">{{ e.created_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC</time> — {{ e.summary_fr }}</p>
+    {% if e.entry_type == "note.added" %}<blockquote>{{ e.payload.text }}</blockquote>{% endif %}
+    <p class="small"><code>{{ e.entry_type }}</code> · {{ e.tool_version }} · <span title="{{ e.hash }}">{{ e.hash[:12] }}</span></p>
+  </li>
+  {% endfor %}
+</ol>
+{% endblock %}

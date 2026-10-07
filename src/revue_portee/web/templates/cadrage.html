@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Framing") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Framing of the review question") }}</h1>
+<p>{{ _("Describe the question with the PCC framework: Population, Concept and Context (JBI).") }}</p>
+{% if saved %}<div class="message success" role="status">{{ _("Framing saved.") }}</div>{% endif %}
+{% set f = current.framing if current else none %}
+<form method="post" action="/cadrage">
+  {{ csrf() }}
+  <label for="question">{{ _("Main question") }}</label>
+  <textarea id="question" name="question" rows="3" required>{{ f.question if f else "" }}</textarea>
+  <label for="population">{{ _("Population") }}</label>
+  <textarea id="population" name="population" rows="2">{{ f.population if f else "" }}</textarea>
+  <label for="concept">{{ _("Concept") }}</label>
+  <textarea id="concept" name="concept" rows="2">{{ f.concept if f else "" }}</textarea>
+  <label for="contexte">{{ _("Context") }}</label>
+  <textarea id="contexte" name="contexte" rows="2">{{ f.context if f else "" }}</textarea>
+  <label for="questions_secondaires">{{ _("Secondary questions (one per line)") }}</label>
+  <textarea id="questions_secondaires" name="questions_secondaires" rows="3">{{ f.secondary_questions | join("\n") if f else "" }}</textarea>
+  <button type="submit">{{ _("Save the framing") }}</button>
+</form>
+{% if history %}
+<h2>{{ _("History") }}</h2>
+<ol class="history">
+  {% for v in history | reverse %}
+  <li>{{ _("Version %(number)s, %(date)s UTC", number=v.number, date=v.created_at.strftime("%Y-%m-%d %H:%M")) }}</li>
+  {% endfor %}
+</ol>
+{% endif %}
+{% endblock %}

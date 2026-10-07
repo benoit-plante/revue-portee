@@ -1,0 +1,74 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endmacro %}
+
+{% macro criterion_details(c) %}
+  <p class="criterion-text">{{ c.text }}</p>
+  {% if c.guidance %}<p><span class="label">{{ _("Guidance:") }}</span> {{ c.guidance }}</p>{% endif %}
+  {% if c.examples %}
+    <p class="label">{{ _("Examples:") }}</p>
+    <ul>{% for e in c.examples %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if c.counterexamples %}
+    <p class="label">{{ _("Counterexamples:") }}</p>
+    <ul>{% for e in c.counterexamples %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+{% endmacro %}
+
+{% macro criteria_table(version, editable=false) %}
+  {% set labels = pcc_labels() %}
+  {% set kinds = kind_labels() %}
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Criteria of version %(number)s", number=version.number) }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ _("Code") }}</th>
+        <th scope="col">{{ _("PCC element") }}</th>
+        <th scope="col">{{ _("Kind") }}</th>
+        <th scope="col">{{ _("Criterion") }}</th>
+        {% if editable %}<th scope="col">{{ _("Actions") }}</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in version.sorted_criteria() %}
+      <tr id="critere-{{ c.code }}">
+        <th scope="row"><code>{{ c.code }}</code></th>
+        <td>{{ labels[c.pcc_element] }}</td>
+        <td>{{ kinds[c.kind] }}</td>
+        <td>{{ criterion_details(c) }}</td>
+        {% if editable %}
+        <td class="actions">
+          <a href="/criteres/brouillon/{{ c.code }}">{{ _("Edit %(code)s", code=c.code) }}</a>
+          <form method="post" action="/criteres/brouillon/{{ c.code }}/retirer">
+            {{ csrf() }}
+            <button type="submit" class="secondary">{{ _("Remove %(code)s", code=c.code) }}</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ 5 if editable else 4 }}">{{ _("No criterion yet.") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endmacro %}
+
+{% macro criterion_fields(c=None) %}
+  {% set kinds = kind_labels() %}
+  <fieldset>
+    <legend>{{ _("Kind") }}</legend>
+    {% for kind in CriterionKind %}
+    <label class="inline">
+      <input type="radio" name="nature" value="{{ kind.value }}"
+             {% if (c and c.kind == kind) or (not c and loop.first) %}checked{% endif %}>
+      {{ kinds[kind] }}
+    </label>
+    {% endfor %}
+  </fieldset>
+  <label for="texte">{{ _("Wording") }}</label>
+  <textarea id="texte" name="texte" rows="3" required>{{ c.text if c else "" }}</textarea>
+  <label for="consignes">{{ _("Guidance (optional)") }}</label>
+  <textarea id="consignes" name="consignes" rows="2">{{ c.guidance if c else "" }}</textarea>
+  <label for="exemples">{{ _("Examples (one per line)") }}</label>
+  <textarea id="exemples" name="exemples" rows="3">{{ c.examples | join("\n") if c else "" }}</textarea>
+  <label for="contre_exemples">{{ _("Counterexamples (one per line)") }}</label>
+  <textarea id="contre_exemples" name="contre_exemples" rows="3">{{ c.counterexamples | join("\n") if c else "" }}</textarea>
+{% endmacro %}

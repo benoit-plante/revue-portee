@@ -1,0 +1,537 @@
+# French translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-07 15:51+0000\n"
+"PO-Revision-Date: 2026-10-07 15:36+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "(required)"
+msgstr "(obligatoire)"
+
+msgid "A note cannot be empty."
+msgstr "Une note ne peut pas être vide."
+
+msgid "A rationale is required to create a new version of the criteria."
+msgstr "Une justification est obligatoire pour créer une nouvelle version des critères."
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Activate the draft"
+msgstr "Activer le brouillon"
+
+#, python-format
+msgid "Activate version %(number)s"
+msgstr "Activer la version %(number)s"
+
+msgid "Add a criterion"
+msgstr "Ajouter un critère"
+
+msgid "Add a note"
+msgstr "Ajouter une note"
+
+msgid "Add at least one criterion before activating."
+msgstr "Ajoutez au moins un critère avant d'activer la version."
+
+msgid "Add the criterion"
+msgstr "Ajouter le critère"
+
+msgid "Add the note"
+msgstr "Ajouter la note"
+
+msgid "Added criteria"
+msgstr "Critères ajoutés"
+
+#, python-format
+msgid "Added: %(code)s"
+msgstr "Ajouté : %(code)s"
+
+msgid "Anthropic API key, used by the AI reviewer"
+msgstr "clé d'API Anthropic, utilisée par le réviseur IA"
+
+msgid "Back to the criteria"
+msgstr "Retour aux critères"
+
+msgid "Back to the framing"
+msgstr "Retour au cadrage"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Change the criteria (new draft)"
+msgstr "Modifier les critères (nouveau brouillon)"
+
+#, python-format
+msgid "Changes compared with version %(number)s"
+msgstr "Changements par rapport à la version %(number)s"
+
+msgid "Check the hash chain of the project journal."
+msgstr "Vérifier la chaîne d'empreintes du journal du projet."
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Compare version"
+msgstr "Comparer la version"
+
+msgid "Concept"
+msgstr "Concept"
+
+msgid "Context"
+msgstr "Contexte"
+
+msgid "Counterexamples"
+msgstr "Contre-exemples"
+
+msgid "Counterexamples (one per line)"
+msgstr "Contre-exemples (un par ligne)"
+
+msgid "Counterexamples:"
+msgstr "Contre-exemples :"
+
+msgid "Create a review project folder (.revue)."
+msgstr "Créer un dossier de projet de revue (.revue)."
+
+msgid "Criteria"
+msgstr "Critères"
+
+#, python-format
+msgid "Criteria of version %(number)s"
+msgstr "Critères de la version %(number)s"
+
+#, python-brace-format
+msgid "Criteria version {number} in force"
+msgstr "Version {number} des critères en vigueur"
+
+#, python-format
+msgid "Criteria, version %(number)s"
+msgstr "Critères, version %(number)s"
+
+msgid "Criterion"
+msgstr "Critère"
+
+#, python-brace-format
+msgid "Criterion {code} added to the draft"
+msgstr "Critère {code} ajouté au brouillon"
+
+#, python-brace-format
+msgid "Criterion {code} modified in the draft"
+msgstr "Critère {code} modifié dans le brouillon"
+
+#, python-brace-format
+msgid "Criterion {code} removed from the draft"
+msgstr "Critère {code} retiré du brouillon"
+
+msgid "Cross-cutting (source type, language, period, design)"
+msgstr "Transversal (type de source, langue, période, devis)"
+
+msgid "Describe the question with the PCC framework: Population, Concept and Context (JBI)."
+msgstr "Décrivez la question selon le cadre PCC : Population, Concept et Contexte (JBI)."
+
+msgid "Differences"
+msgstr "Différences"
+
+#, python-format
+msgid "Differences between version %(old)s and version %(new)s"
+msgstr "Différences entre la version %(old)s et la version %(new)s"
+
+#, python-format
+msgid "Differences with version %(number)s"
+msgstr "Différences avec la version %(number)s"
+
+msgid "Discard the draft"
+msgstr "Abandonner le brouillon"
+
+msgid "Draft"
+msgstr "Brouillon"
+
+#, python-brace-format
+msgid "Draft of criteria version {number} discarded"
+msgstr "Brouillon de la version {number} des critères abandonné"
+
+#, python-brace-format
+msgid "Draft of criteria version {number} started"
+msgstr "Brouillon de la version {number} des critères commencé"
+
+#, python-format
+msgid "Draft of version %(number)s. Changes stay in the draft until you activate it."
+msgstr ""
+"Brouillon de la version %(number)s. Les modifications restent dans le brouillon tant que vous ne "
+"l'activez pas."
+
+#, python-format
+msgid "Edit %(code)s"
+msgstr "Modifier %(code)s"
+
+#, python-format
+msgid "Edit criterion %(code)s"
+msgstr "Modifier le critère %(code)s"
+
+msgid "Eligibility criteria"
+msgstr "Critères d'admissibilité"
+
+msgid "Entries"
+msgstr "Entrées"
+
+msgid "Error"
+msgstr "Erreur"
+
+#, python-format
+msgid "Error %(status)s"
+msgstr "Erreur %(status)s"
+
+msgid "Examples"
+msgstr "Exemples"
+
+msgid "Examples (one per line)"
+msgstr "Exemples (un par ligne)"
+
+msgid "Examples:"
+msgstr "Exemples :"
+
+msgid "Exclusion"
+msgstr "Exclusion"
+
+msgid "Folder to create (.revue is added)."
+msgstr "Dossier à créer (l'extension .revue est ajoutée)."
+
+msgid "Forbidden host."
+msgstr "Hôte refusé."
+
+msgid "Forbidden origin."
+msgstr "Origine refusée."
+
+msgid "Framing"
+msgstr "Cadrage"
+
+msgid "Framing of the review question"
+msgstr "Cadrage de la question de recherche"
+
+msgid "Framing saved."
+msgstr "Cadrage enregistré."
+
+msgid "Guidance"
+msgstr "Consignes"
+
+msgid "Guidance (optional)"
+msgstr "Consignes (facultatif)"
+
+msgid "Guidance:"
+msgstr "Consignes :"
+
+msgid "History"
+msgstr "Historique"
+
+msgid "In force since"
+msgstr "En vigueur depuis"
+
+msgid "Inclusion"
+msgstr "Inclusion"
+
+msgid "Invalid form token."
+msgstr "Jeton de formulaire invalide. Rechargez la page et recommencez."
+
+#, python-brace-format
+msgid "Invalid output for the task “{task}”."
+msgstr "Sortie invalide pour la tâche « {task} »."
+
+msgid "Journal"
+msgstr "Journal"
+
+#, python-format
+msgid "Journal altered: the hash chain breaks at entry %(position)s."
+msgstr "Journal altéré : la chaîne d'empreintes est rompue à l'entrée %(position)s."
+
+#, python-brace-format
+msgid "Journal altered: the hash chain breaks at entry {position}."
+msgstr "Journal altéré : la chaîne d'empreintes est rompue à l'entrée {position}."
+
+#, python-format
+msgid "Journal intact: %(num)s entry, hash chain verified."
+msgid_plural "Journal intact: %(num)s entries, hash chain verified."
+msgstr[0] "Journal intègre : %(num)s entrée, chaîne d'empreintes vérifiée."
+msgstr[1] "Journal intègre : %(num)s entrées, chaîne d'empreintes vérifiée."
+
+#, python-brace-format
+msgid "Journal intact: {count} entry, hash chain verified."
+msgid_plural "Journal intact: {count} entries, hash chain verified."
+msgstr[0] "Journal intègre : {count} entrée, chaîne d'empreintes vérifiée."
+msgstr[1] "Journal intègre : {count} entrées, chaîne d'empreintes vérifiée."
+
+msgid "Kind"
+msgstr "Nature"
+
+msgid "Local port."
+msgstr "Port local."
+
+msgid "Main language (ISO code)."
+msgstr "Langue principale (code ISO)."
+
+msgid "Main navigation"
+msgstr "Navigation principale"
+
+msgid "Main question"
+msgstr "Question principale"
+
+#, python-brace-format
+msgid ""
+"Missing environment variable: {names} ({description}). Set it in the environment settings, then "
+"run the command again."
+msgstr ""
+"Variable d'environnement manquante : {names} ({description}). Définissez-la dans les réglages de "
+"l'environnement, puis relancez la commande."
+
+msgid "Modified criteria"
+msgstr "Critères modifiés"
+
+#, python-format
+msgid "Modified: %(code)s"
+msgstr "Modifié : %(code)s"
+
+msgid "Name of the human reviewer."
+msgstr "Nom du réviseur humain."
+
+msgid "No change yet."
+msgstr "Aucun changement pour l'instant."
+
+msgid "No criterion yet."
+msgstr "Aucun critère pour l'instant."
+
+msgid "No version of the criteria is in force yet."
+msgstr "Aucune version des critères n'est encore en vigueur."
+
+msgid "Note (for example, minutes of a team meeting)"
+msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
+
+msgid "Note added to the journal"
+msgstr "Note ajoutée au journal"
+
+#, python-brace-format
+msgid "Open http://{host}:{port}/ in your browser (Ctrl+C to stop)."
+msgstr "Ouvrez http://{host}:{port}/ dans votre navigateur (Ctrl+C pour arrêter)."
+
+msgid "Open the web interface of a project on 127.0.0.1."
+msgstr "Ouvrir l'interface web d'un projet sur 127.0.0.1."
+
+msgid ""
+"OpenAlex API key, required by OpenAlex since February 2026 unless a network proxy adds it to the "
+"requests"
+msgstr ""
+"clé d'API OpenAlex, exigée par OpenAlex depuis février 2026 sauf si un mandataire réseau l'ajoute"
+" aux requêtes"
+
+msgid "PCC element"
+msgstr "Élément PCC"
+
+#, python-format
+msgid "PCC element: %(element)s. The code and the PCC element of a criterion never change."
+msgstr "Élément PCC : %(element)s. Le code et l'élément PCC d'un critère ne changent jamais."
+
+msgid "Population"
+msgstr "Population"
+
+#, python-brace-format
+msgid "Project created: {folder}"
+msgstr "Projet créé : {folder}"
+
+#, python-brace-format
+msgid "Project created: {title}"
+msgstr "Projet créé : {title}"
+
+msgid "Project folder (.revue)."
+msgstr "Dossier de projet (.revue)."
+
+msgid "Project journal"
+msgstr "Journal du projet"
+
+#, python-brace-format
+msgid "Project opened with revue-portee {version}"
+msgstr "Projet ouvert avec revue-portee {version}"
+
+msgid "Rationale"
+msgstr "Justification"
+
+msgid "Rationale for the change"
+msgstr "Justification du changement"
+
+#, python-format
+msgid "Remove %(code)s"
+msgstr "Retirer %(code)s"
+
+msgid "Removed criteria"
+msgstr "Critères retirés"
+
+#, python-format
+msgid "Removed: %(code)s"
+msgstr "Retiré : %(code)s"
+
+#, python-brace-format
+msgid "Review question framed (version {number})"
+msgstr "Question de recherche cadrée (version {number})"
+
+msgid "Save in the draft"
+msgstr "Enregistrer dans le brouillon"
+
+msgid "Save the framing"
+msgstr "Enregistrer le cadrage"
+
+msgid "Saving will start a draft of the next version; the version in force stays unchanged."
+msgstr ""
+"L'enregistrement commencera un brouillon de la prochaine version ; la version en vigueur reste "
+"inchangée."
+
+msgid "Scoping review (JBI, PRISMA-ScR) with AI as a traceable second reviewer."
+msgstr "Revue de portée (JBI, PRISMA-ScR) avec l'IA comme second réviseur traçable."
+
+msgid "Secondary questions (one per line)"
+msgstr "Questions secondaires (une par ligne)"
+
+msgid "Short description."
+msgstr "Courte description."
+
+msgid "Show the differences"
+msgstr "Afficher les différences"
+
+msgid "Show the version and exit."
+msgstr "Afficher la version et quitter."
+
+msgid "Skip to content"
+msgstr "Aller au contenu"
+
+msgid "Start the criteria"
+msgstr "Commencer les critères"
+
+msgid "Status"
+msgstr "Statut"
+
+#, python-brace-format
+msgid "The file {file} is unreadable."
+msgstr "Le fichier {file} est illisible."
+
+#, python-brace-format
+msgid "The folder {folder} already exists and is not empty."
+msgstr "Le dossier {folder} existe déjà et n'est pas vide."
+
+msgid "The main question is required."
+msgstr "La question principale est obligatoire."
+
+msgid "The main reviewer of the project is missing."
+msgstr "Le réviseur principal du projet est introuvable."
+
+#, python-brace-format
+msgid "The project has an unknown database schema ({revision}); a backup copy was made before any change."
+msgstr ""
+"Le projet a un schéma de base de données inconnu ({revision}) ; une copie de sauvegarde a été "
+"faite avant toute modification."
+
+#, python-brace-format
+msgid "The provider “{provider}” does not support the task “{task}”."
+msgstr "Le fournisseur « {provider} » ne prend pas en charge la tâche « {task} »."
+
+#, python-brace-format
+msgid "The provider “{provider}” returned inconsistent results for the task “{task}”: {mismatch}."
+msgstr ""
+"Le fournisseur « {provider} » a renvoyé des résultats incohérents pour la tâche « {task} » : "
+"{mismatch}."
+
+msgid "The two versions have the same criteria."
+msgstr "Les deux versions ont les mêmes critères."
+
+msgid "The wording of the criterion is required."
+msgstr "Le libellé du critère est obligatoire."
+
+msgid "There is no draft of the criteria."
+msgstr "Il n'y a aucun brouillon des critères."
+
+msgid "Title of the review."
+msgstr "Titre de la revue."
+
+#, python-format
+msgid "Unchanged: %(codes)s"
+msgstr "Inchangés : %(codes)s"
+
+#, python-brace-format
+msgid "Unknown criteria version: {number}."
+msgstr "Version des critères inconnue : {number}."
+
+#, python-brace-format
+msgid "Unknown criterion: {code}."
+msgstr "Critère inconnu : {code}."
+
+#, python-brace-format
+msgid "Unsupported project format: {version}."
+msgstr "Format de projet non pris en charge : {version}."
+
+#, python-format
+msgid "Version %(number)s"
+msgstr "Version %(number)s"
+
+#, python-format
+msgid "Version %(number)s, %(date)s UTC"
+msgstr "Version %(number)s, %(date)s UTC"
+
+#, python-format
+msgid "Version %(number)s, in force since %(date)s UTC."
+msgstr "Version %(number)s, en vigueur depuis le %(date)s UTC."
+
+msgid "Version in force"
+msgstr "Version en vigueur"
+
+msgid "Versions"
+msgstr "Versions"
+
+msgid "Wording"
+msgstr "Libellé"
+
+#, python-format
+msgid "changed: %(fields)s"
+msgstr "modifié : %(fields)s"
+
+msgid "contact address sent to the bibliographic APIs"
+msgstr "adresse de contact transmise aux API bibliographiques"
+
+msgid "draft"
+msgstr "brouillon"
+
+msgid "in force"
+msgstr "en vigueur"
+
+msgid "missing:"
+msgstr "manquants :"
+
+msgid "or"
+msgstr "ou"
+
+msgid "repeated:"
+msgstr "en double :"
+
+msgid "superseded"
+msgstr "remplacée"
+
+msgid "unexpected:"
+msgstr "inattendus :"
+
+msgid "with version"
+msgstr "avec la version"
+
+#, python-brace-format
+msgid "{file} and the database describe different projects."
+msgstr "{file} et la base de données décrivent des projets différents."
+
+#, python-brace-format
+msgid "{folder} is not a revue-portee project folder."
+msgstr "{folder} n'est pas un dossier de projet revue-portee."
+
