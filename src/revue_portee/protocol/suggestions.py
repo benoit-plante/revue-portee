@@ -170,7 +170,7 @@ def list_suggestions(folder: ProjectFolder) -> list[SuggestionView]:
         suggestions = ai_repo.list_suggestions(connection)
         reviews = ai_repo.list_reviews(connection)
         models = {
-            call.id: call.record.model_returned
+            call.id: call.record.model_returned or ""
             for call in ai_repo.list_calls(connection, task=SUGGEST_PCC.name)
         }
     return [
@@ -223,7 +223,9 @@ def review_suggestion(
                 tool_version=tool_version,
                 payload={"suggestion_id": suggestion.id},
             )
-            framing_version_id = version.id
+            # Only a version created by this review is linked to it (an accepted
+            # suggestion may leave the framing unchanged).
+            framing_version_id = None if version.id == current.id else version.id
         review = SuggestionReview(
             id=new_ulid(moment),
             suggestion_id=suggestion.id,

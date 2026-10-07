@@ -44,9 +44,13 @@ class TaskInput(BaseModel):
 
 
 class TaskOutput(BaseModel):
-    """Base class for structured task outputs (validated against the task schema)."""
+    """Base class for structured task outputs (validated against the task schema).
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    Text is stripped before validation, so that a blank answer fails a length
+    constraint and the call is recorded as invalid.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
 
 
 class PromptRef(BaseModel):
@@ -80,7 +84,10 @@ class AICallRecord(BaseModel):
 
     provider: str
     model_requested: str
-    model_returned: str = Field(description="Exact model identifier returned by the API.")
+    model_returned: str | None = Field(
+        description="Exact model identifier returned by the API; None when the call failed "
+        "before any model answered."
+    )
     provider_request_id: str | None = None
     prompt_template_id: str
     prompt_template_version: str

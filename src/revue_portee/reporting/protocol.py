@@ -14,6 +14,7 @@ The team's own text is reproduced as written.
 
 from collections.abc import Callable, Iterable
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
@@ -45,6 +46,7 @@ __all__ = [
     "Deviation",
     "ProtocolData",
     "build_protocol",
+    "change_labels",
     "checklist_status",
 ]
 
@@ -156,15 +158,21 @@ def _element_label(_: Translate, element: PccElement) -> str:
     return labels[element]
 
 
-def _change_label(_: Translate, change: ChangeType) -> str:
-    labels = {
+def change_labels(_: Translate) -> dict[ChangeType, str]:
+    """Names of the change types (shared with the web interface)."""
+    return {
         ChangeType.BROADENING: _("broadening"),
         ChangeType.NARROWING: _("narrowing"),
         ChangeType.CLARIFICATION: _("clarification"),
         ChangeType.ADDED: _("added"),
         ChangeType.REMOVED: _("removed"),
     }
-    return labels[change]
+
+
+def _number(value: Decimal, language: str) -> str:
+    """Decimal in the notation of the export language (0,95 in French)."""
+    text = str(value)
+    return text.replace(".", ",") if language == "fr" else text
 
 
 def _criteria_of(data: ProtocolData, element: PccElement) -> list[Criterion]:
@@ -354,7 +362,7 @@ def _task_label(_: Translate, task: str) -> str:
     return labels.get(task, task)
 
 
-def _ai_use(_: Translate, data: ProtocolData) -> list[Block]:
+def _ai_use(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     ai: AISettings = data.ai
     rows = tuple(
         (
@@ -390,7 +398,7 @@ def _ai_use(_: Translate, data: ProtocolData) -> list[Block]:
                 ).format(size=supervision.pilot_sample_size, method=supervision.calibration_method),
                 _(
                     "Decision thresholds favour sensitivity, with a target of at least {target}."
-                ).format(target=supervision.target_sensitivity),
+                ).format(target=_number(supervision.target_sensitivity, language)),
                 _(
                     "Every AI suggestion is accepted, modified or rejected explicitly by a human "
                     "reviewer, and every change of the criteria is qualified by a human."
@@ -428,7 +436,7 @@ def _selection_generated(_: Translate, data: ProtocolData) -> list[Block]:
     ]
 
 
-def _methods(_: Translate, data: ProtocolData) -> list[Block]:
+def _methods(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     framework: list[Block] = [
         Paragraph(
             text=_(
@@ -478,7 +486,7 @@ def _methods(_: Translate, data: ProtocolData) -> list[Block]:
             "",
             _selection_generated(_, data),
         ),
-        *_ai_use(_, data),
+        *_ai_use(_, data, language),
         *_section(
             _,
             data,
@@ -527,7 +535,7 @@ def _deviations(_: Translate, data: ProtocolData) -> list[Block]:
     ]
     for deviation in data.deviations:
         changes = ", ".join(
-            f"{c.code} ({_change_label(_, c.change_type)})" for c in deviation.changes
+            f"{c.code} ({change_labels(_)[c.change_type]})" for c in deviation.changes
         )
         blocks.append(
             Paragraph(
@@ -694,7 +702,7 @@ def build_protocol(
         *_introduction(_, data),
         *_questions(_, data),
         *_eligibility(_, data),
-        *_methods(_, data),
+        *_methods(_, data, language),
         *_deviations(_, data),
         *_closing(_, data),
         *_appendices(_, data),

@@ -164,7 +164,9 @@ def test_ai_section_comes_from_the_project_configuration() -> None:
     )
     assert "| Second réviseur au tri des titres et résumés | à déterminer | prévue |" in text
     assert f"échantillon aléatoire de {settings.supervision.pilot_sample_size} références" in text
-    assert f"au moins {settings.supervision.target_sensitivity}" in text
+    target = str(settings.supervision.target_sensitivity)
+    assert f"au moins {target.replace('.', ',')}." in text
+    assert f"at least {target}." in render_markdown(build(data(), "en"))
     assert "n'exclut jamais une référence à elle seule" in text
 
 
@@ -289,3 +291,14 @@ def test_sections_follow_the_document_order() -> None:
     document = build(FULL)
     order = [s for s, _ in section_blocks(list(document.blocks))]
     assert order == [s.value for s in ProtocolSection]
+
+
+def test_text_under_a_plain_heading_belongs_to_no_section() -> None:
+    # Criteria in force but no framing: the "Criteria version…" paragraph under the
+    # "Eligibility criteria" heading must not fill the review question.
+    statuses = {
+        s.item_id: s
+        for s in checklist_status(build(data(criteria=CRITERIA)).blocks, peters_checklist())
+    }
+    assert not statuses["PETERS-06"].filled
+    assert statuses["PETERS-07"].filled  # P1 is listed under Participants

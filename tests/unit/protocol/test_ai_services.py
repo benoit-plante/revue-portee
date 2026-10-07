@@ -634,3 +634,78 @@ def test_protocol_text_is_versioned(setup: tuple[ProjectFolder, Clock]) -> None:
     assert registration.current_protocol_text(folder) == second
     entry = notes.journal_entries(folder)[-1]
     assert entry.payload["changed_sections"] == ["conflicts", "funding"]
+
+
+def test_unusable_answer_keeps_the_call_recorded(
+    setup: tuple[ProjectFolder, Clock], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder, clock = setup
+    frame(folder, clock)
+
+    def broken(_connection: object, _suggestions: object) -> None:
+        raise ValueError("cannot store")
+
+    monkeypatch.setattr(ai_repo, "insert_suggestions", broken)
+
+    def factory(config: AITaskConfig) -> ModelProvider:
+        return RawProvider(FACTORY(config))
+
+    with pytest.raises(AITaskError, match="n'a pas pu être exploitée") as raised:
+        suggestions.request_suggestions(
+            folder, now=clock, tool_version=TOOL_VERSION, factory=factory
+        )
+    with folder.engine.connect() as connection:
+        call = ai_repo.get_call(connection, raised.value.call_id)
+    assert call is not None
+    assert call.record.status == "ok"  # the call itself succeeded and was paid for
+    assert call.record.response_path is not None
+    assert (folder.path / call.record.response_path).is_file()
+    assert types(folder)[-1] == EntryType.AI_RESULT_UNUSABLE
+    assert notes.journal_entries(folder)[-1].payload["error"] == "ValueError"
+    assert suggestions.list_suggestions(folder) == []
+    assert notes.verify_journal(folder).valid
+
+
+def test_raw_response_is_removed_when_the_call_cannot_be_recorded(
+    setup: tuple[ProjectFolder, Clock], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder, clock = setup
+    frame(folder, clock)
+
+    def broken(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(ai_repo, "insert_call", broken)
+
+    def factory(config: AITaskConfig) -> ModelProvider:
+        return RawProvider(FACTORY(config))
+
+    with pytest.raises(RuntimeError, match="disk full"):
+        suggestions.request_suggestions(
+            folder, now=clock, tool_version=TOOL_VERSION, factory=factory
+        )
+    assert list((folder.path / "brut" / "ia").rglob("*.json.gz")) == []
+    assert EntryType.AI_CONFIG_RECORDED not in types(folder)  # rolled back as a whole
+
+
+def test_review_without_effect_creates_no_framing_version(
+    setup: tuple[ProjectFolder, Clock],
+) -> None:
+    folder, clock = setup
+    framing.save_framing(
+        folder,
+        Framing(question="Quelles interventions existent ?", population="Parents"),
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
+    reformulation, *_ = suggestions.request_suggestions(
+        folder, now=clock, tool_version=TOOL_VERSION, factory=FACTORY
+    )
+    review = suggestions.review_suggestion(
+        folder, reformulation.id, SuggestionOutcome.ACCEPTED, now=clock, tool_version=TOOL_VERSION
+    )
+    assert review.framing_version_id is None
+    current = framing.current_framing(folder)
+    assert current is not None
+    assert current.number == 1
+    assert notes.journal_entries(folder)[-1].payload["framing_version_id"] is None

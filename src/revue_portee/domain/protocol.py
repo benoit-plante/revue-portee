@@ -115,19 +115,17 @@ class ProtocolTextVersion(BaseModel):
 
 # DOI syntax (Crossref recommendation): "10." + registrant code + "/" + suffix.
 DOI_PATTERN = re.compile(r"^10\.\d{4,9}/\S+$")
-_DOI_PREFIXES = ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "doi:")
+# Resolver and label prefixes accepted in front of a DOI.
+_DOI_PREFIX = re.compile(r"^(?:(?:https?://)?(?:dx\.|www\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 
 
 def normalize_doi(value: str) -> str:
     """DOI without resolver prefix, upper-cased (DOIs are case-insensitive).
 
-    Raises ValueError if the text is not a DOI.
+    Accepts ``10.…``, ``doi:10.…`` (with or without a space), ``doi.org/…`` and
+    ``http(s)://(dx.|www.)doi.org/…``. Raises ValueError if the text is not a DOI.
     """
-    doi = value.strip()
-    for prefix in _DOI_PREFIXES:
-        if doi.lower().startswith(prefix):
-            doi = doi[len(prefix) :]
-            break
+    doi = _DOI_PREFIX.sub("", value.strip(), count=1).strip()
     if not DOI_PATTERN.match(doi):
         raise ValueError("not a DOI")
     return doi.upper()

@@ -2,8 +2,9 @@
 
 Prices come from the dated file ``resources/model_prices.yaml``. Before a call, the
 number of input tokens is estimated from the rendered prompt (about four characters
-per token, rounded up: a deliberate over-estimate for French text) and the output
-from the task configuration; after the call, the actual cost is computed from the
+per token, rounded up: a deliberate over-estimate for French text), the instructions
+being priced as written to the prompt cache, and the output from the task
+configuration; after the call, the actual cost is computed from the
 token counts returned by the provider.
 """
 
@@ -86,11 +87,23 @@ def estimate(
     *,
     input_tokens: int,
     output_tokens: int,
+    cacheable_tokens: int = 0,
 ) -> CostEstimate:
-    """Cost before a call, without any cache discount (an upper estimate)."""
+    """Cost before a call, in the most expensive case for the model asked for.
+
+    ``cacheable_tokens`` (part of ``input_tokens``) are the instructions sent with a
+    cache marker: they are priced as written to the cache, the dearer of the two prices,
+    and no cache read discount is assumed. A server-side fallback to another model is
+    priced at that model's rates once the call is made.
+    """
+    if not 0 <= cacheable_tokens <= input_tokens:
+        raise ValueError("cacheable tokens are part of the input tokens")
     price = table.price(provider, model)
-    amount = _amount(input_tokens, price.input, table.per_tokens) + _amount(
-        output_tokens, price.output, table.per_tokens
+    per = table.per_tokens
+    amount = (
+        _amount(input_tokens - cacheable_tokens, price.input, per)
+        + _amount(cacheable_tokens, max(price.cache_write, price.input), per)
+        + _amount(output_tokens, price.output, per)
     )
     return CostEstimate(
         input_tokens=input_tokens,

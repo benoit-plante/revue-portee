@@ -3,9 +3,10 @@
 The cost of a call is always estimated and shown before the call is made: the
 interface first calls :func:`preview`, then :func:`run_and_record` once the person has
 confirmed. The model call happens outside any write transaction (it can take a
-while); its result is then recorded in one transaction with its journal entries:
-configuration (if new), call with its raw response, and whatever the use case derives
-from the output.
+while). The call is then recorded in its own transaction (configuration if new, call,
+raw response), so that a paid call is never lost; what the use case derives from the
+output is stored in a second transaction. If that second step fails, the call stays
+recorded and the failure is written to the journal.
 """
 
 from collections.abc import Callable, Sequence
@@ -32,9 +33,10 @@ from revue_portee.ai.settings import AITaskConfig
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.i18n import french
+from revue_portee.i18n import gettext as _
 from revue_portee.resources import price_table
 from revue_portee.storage.project_folder import ProjectFolder
-from revue_portee.storage.raw import write_raw_response
+from revue_portee.storage.raw import remove_raw_response, write_raw_response
 from revue_portee.storage.repositories import ai as ai_repo
 from revue_portee.storage.repositories import journal
 from revue_portee.storage.repositories.ai import StoredCall
@@ -119,13 +121,49 @@ def _call_summary(call: AICallRecord) -> dict[str, JsonValue]:
 
 
 def _record_call(
-    connection: Connection,
     folder: ProjectFolder,
     *,
     task: str,
     item_id: str,
     call: AICallRecord,
     raw_response: JsonValue,
+    now: Clock,
+    tool_version: str,
+) -> StoredCall:
+    """Record one call in its own transaction (a raw response written for a
+    transaction that fails is removed)."""
+    call_id = new_ulid(call.created_at)
+    response_path = None
+    if raw_response is not None:
+        response_path = write_raw_response(folder.path, call_id, call.created_at, raw_response)
+    try:
+        with folder.write() as connection:
+            return _insert_call(
+                connection,
+                folder,
+                task=task,
+                item_id=item_id,
+                call=call,
+                call_id=call_id,
+                response_path=response_path,
+                now=now,
+                tool_version=tool_version,
+            )
+    except BaseException:
+        if response_path is not None:
+            remove_raw_response(folder.path, response_path)
+        raise
+
+
+def _insert_call(
+    connection: Connection,
+    folder: ProjectFolder,
+    *,
+    task: str,
+    item_id: str,
+    call: AICallRecord,
+    call_id: str,
+    response_path: str | None,
     now: Clock,
     tool_version: str,
 ) -> StoredCall:
@@ -161,10 +199,6 @@ def _record_call(
                 "params": call.params,
             },
         )
-    call_id = new_ulid(call.created_at)
-    response_path = None
-    if raw_response is not None:
-        response_path = write_raw_response(folder.path, call_id, call.created_at, raw_response)
     stored = ai_repo.insert_call(
         connection,
         call_id=call_id,
@@ -211,9 +245,9 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
 ) -> list[StoredCall]:
     """Run ``task`` on each input, one call at a time, recording each call as it ends.
 
-    ``on_result`` stores what the use case derives from a valid output, in the same
-    transaction as the call. A failed call is recorded, then :class:`AITaskError` is
-    raised; the calls already made stay recorded.
+    ``on_result`` stores what the use case derives from a valid output, in a
+    transaction of its own. A failed call, or an output that cannot be used, is
+    recorded, then :class:`AITaskError` is raised; the calls already made stay recorded.
     """
     _config, provider = _provider(folder, task, factory)
     stored_calls: list[StoredCall] = []
@@ -221,29 +255,52 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
         try:
             (result,) = run_task(provider, task, [item])
         except ProviderCallError as error:
-            with folder.write() as connection:
-                failed = _record_call(
-                    connection,
-                    folder,
-                    task=task.name,
-                    item_id=error.item_id,
-                    call=error.call,
-                    raw_response=error.raw_response,
-                    now=now,
-                    tool_version=tool_version,
-                )
-            raise AITaskError(str(error), call_id=failed.id) from error
-        with folder.write() as connection:
-            stored = _record_call(
-                connection,
+            failed = _record_call(
                 folder,
                 task=task.name,
-                item_id=result.item_id,
-                call=result.call,
-                raw_response=result.raw_response,
+                item_id=error.item_id,
+                call=error.call,
+                raw_response=error.raw_response,
                 now=now,
                 tool_version=tool_version,
             )
-            on_result(connection, stored, result)
+            raise AITaskError(str(error), call_id=failed.id) from error
+        stored = _record_call(
+            folder,
+            task=task.name,
+            item_id=result.item_id,
+            call=result.call,
+            raw_response=result.raw_response,
+            now=now,
+            tool_version=tool_version,
+        )
+        try:
+            with folder.write() as connection:
+                on_result(connection, stored, result)
+        except Exception as error:
+            _record_unusable(folder, stored, error, now=now, tool_version=tool_version)
+            raise AITaskError(
+                _("The answer of the model could not be used; the call is recorded."),
+                call_id=stored.id,
+            ) from error
         stored_calls.append(stored)
     return stored_calls
+
+
+def _record_unusable(
+    folder: ProjectFolder, stored: StoredCall, error: Exception, *, now: Clock, tool_version: str
+) -> None:
+    with folder.write() as connection:
+        journal.append_entry(
+            connection,
+            now=now(),
+            actor_reviewer_id=folder.reviewer_id,
+            entry_type=EntryType.AI_RESULT_UNUSABLE,
+            subject_type="ai_call",
+            subject_id=stored.id,
+            summary_fr=french("AI answer recorded but not usable for the task {task}").format(
+                task=stored.task
+            ),
+            tool_version=tool_version,
+            payload=call_summary(stored) | {"error": type(error).__name__},
+        )

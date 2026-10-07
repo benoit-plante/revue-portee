@@ -73,14 +73,23 @@ class Document(BaseModel):
 
 
 def section_blocks(blocks: Sequence[Block]) -> Iterator[tuple[str, list[Block]]]:
-    """``(section, blocks)`` for every section heading, in document order."""
+    """``(section, blocks)`` for every section heading, in document order.
+
+    A section ends at the next section heading, or at a heading without section of the
+    same or a higher level (e.g. "Methods" after a level-3 section): the blocks that
+    follow such a heading belong to no section.
+    """
     current: str | None = None
+    level = 0
     content: list[Block] = []
     for block in blocks:
+        starts = isinstance(block, Heading) and block.section is not None
+        ends = isinstance(block, Heading) and block.level <= level
+        if current is not None and (starts or ends):
+            yield current, content
+            current, level, content = None, 0, []
         if isinstance(block, Heading) and block.section is not None:
-            if current is not None:
-                yield current, content
-            current, content = block.section, []
+            current, level = block.section, block.level
         elif current is not None:
             content.append(block)
     if current is not None:

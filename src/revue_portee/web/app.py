@@ -46,6 +46,7 @@ from revue_portee.protocol import criteria, framing, notes, qualification, regis
 from revue_portee.protocol.ai_assist import AITaskError, CostPreview, default_provider_factory
 from revue_portee.protocol.document import protocol_document
 from revue_portee.reporting.document import render_docx, render_markdown
+from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.resources import peters_checklist
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
@@ -155,13 +156,7 @@ def outcome_labels() -> dict[str, str]:
 
 
 def change_labels() -> dict[str, str]:
-    return {
-        ChangeType.BROADENING: _("broadening"),
-        ChangeType.NARROWING: _("narrowing"),
-        ChangeType.CLARIFICATION: _("clarification"),
-        ChangeType.ADDED: _("added"),
-        ChangeType.REMOVED: _("removed"),
-    }
+    return {change.value: label for change, label in report_change_labels(_).items()}
 
 
 def section_labels() -> dict[str, str]:

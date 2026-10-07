@@ -41,6 +41,7 @@ class EntryType:
     CRITERIA_CHANGE_QUALIFIED = "criteria.change_qualified"
     AI_CONFIG_RECORDED = "ai.config_recorded"
     AI_CALL_FAILED = "ai.call_failed"
+    AI_RESULT_UNUSABLE = "ai.result_unusable"
     FRAMING_SUGGESTIONS_RECEIVED = "framing.suggestions_received"
     FRAMING_SUGGESTION_REVIEWED = "framing.suggestion_reviewed"
     PROTOCOL_TEXT_UPDATED = "protocol.text_updated"

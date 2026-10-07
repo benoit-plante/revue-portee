@@ -35,6 +35,11 @@ NOW = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
         "http://doi.org/10.17605/osf.io/abcde",
         "https://dx.doi.org/10.17605/OSF.IO/ABCDE",
         "doi:10.17605/OSF.IO/ABCDE",
+        "doi: 10.17605/OSF.IO/ABCDE",
+        "DOI:10.17605/osf.io/abcde",
+        "doi.org/10.17605/OSF.IO/ABCDE",
+        "https://www.doi.org/10.17605/OSF.IO/ABCDE",
+        "http://dx.doi.org/10.17605/OSF.IO/ABCDE",
     ],
 )
 def test_doi_is_normalized(value: str) -> None:

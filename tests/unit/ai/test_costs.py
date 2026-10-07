@@ -88,3 +88,14 @@ def test_price_file_is_dated_and_complete() -> None:
         for price in prices.values():
             assert price.output >= price.input >= price.cache_read
             assert price.cache_write == price.input * Decimal("1.25")
+
+
+def test_cacheable_instructions_are_priced_as_cache_writes() -> None:
+    # 1 000 instructions * 5 + 500 other input * 4 + 100 output * 20 = 9 000 $/M.
+    result = estimate(
+        TABLE, "acme", "model-a", input_tokens=1_500, output_tokens=100, cacheable_tokens=1_000
+    )
+    assert result.amount == Decimal("0.009000")
+    assert result.input_tokens == 1_500
+    with pytest.raises(ValueError, match="part of the input"):
+        estimate(TABLE, "acme", "model-a", input_tokens=1, output_tokens=0, cacheable_tokens=2)

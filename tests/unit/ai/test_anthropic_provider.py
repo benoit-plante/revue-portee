@@ -250,6 +250,7 @@ def test_unusable_answers_are_recorded_as_failed_calls(
 
 
 REQUEST = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+ERROR_HEADERS = {"request-id": "req_error"}
 
 
 @pytest.mark.parametrize(
@@ -258,19 +259,25 @@ REQUEST = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
         (anthropic.APIConnectionError(request=REQUEST), "api.anthropic.com doit être autorisé"),
         (
             anthropic.AuthenticationError(
-                "invalid", response=httpx2.Response(401, request=REQUEST), body=None
+                "invalid",
+                response=httpx2.Response(401, request=REQUEST, headers=ERROR_HEADERS),
+                body=None,
             ),
             "REVUE_PORTEE_ANTHROPIC_KEY",
         ),
         (
             anthropic.RateLimitError(
-                "limit", response=httpx2.Response(429, request=REQUEST), body=None
+                "limit",
+                response=httpx2.Response(429, request=REQUEST, headers=ERROR_HEADERS),
+                body=None,
             ),
             "réessayez plus tard",
         ),
         (
             anthropic.InternalServerError(
-                "boom", response=httpx2.Response(500, request=REQUEST), body=None
+                "boom",
+                response=httpx2.Response(500, request=REQUEST, headers=ERROR_HEADERS),
+                body=None,
             ),
             "InternalServerError",
         ),
@@ -283,7 +290,10 @@ def test_api_errors_are_recorded_without_tokens(error: Exception, message: str) 
     call = raised.value.call
     assert (call.status, call.error_code) == ("error", type(error).__name__)
     assert (call.input_tokens, call.output_tokens, call.cost_estimate) == (0, 0, Decimal(0))
-    assert call.model_returned == MODEL
+    assert call.model_requested == MODEL
+    assert call.model_returned is None  # the API returned no model
+    expected_id = None if isinstance(error, anthropic.APIConnectionError) else "req_error"
+    assert call.provider_request_id == expected_id
     assert raised.value.raw_response is None
 
 
@@ -294,10 +304,13 @@ def test_estimate_needs_no_key_and_counts_the_schema() -> None:
     assert keys == []
     prompt = load_template("suggest_pcc").render(item)
     schema = str(output_schema(SUGGEST_PCC.output_model))
-    per_item = -(-len(prompt.system + prompt.user + schema) // 4)
-    assert estimate.input_tokens == 2 * per_item
+    system = -(-len(prompt.system) // 4)
+    other = -(-len(prompt.user + schema) // 4)
+    assert estimate.input_tokens == 2 * (system + other)
     assert estimate.output_tokens == 3_000
-    assert estimate.amount == (Decimal(2 * per_item) * 4 + Decimal(3_000) * 20) / Decimal(1_000_000)
+    # Instructions at the cache write price (5), the rest at the input price (4).
+    expected = Decimal(2 * system) * 5 + Decimal(2 * other) * 4 + Decimal(3_000) * 20
+    assert estimate.amount == (expected / Decimal(1_000_000)).quantize(Decimal("0.000001"))
 
 
 def test_unknown_price_blocks_the_estimate() -> None:
@@ -339,3 +352,31 @@ def test_build_provider_from_configuration() -> None:
     other = AITaskConfig(status=TaskStatus.ENABLED, provider="other", model=MODEL)
     with pytest.raises(UnknownProviderError, match="other"):
         build_provider(other, prices=PRICES)
+
+
+def test_blank_text_is_an_invalid_output() -> None:
+    blank = '{"change_type": "broadening", "confidence": 0.9, "rationale": "  "}'
+    tested, _keys = provider(Client(Message(content=[Block("text", blank)])))
+    # rationale may be empty, but suggestion texts may not: check both task schemas.
+    (result,) = list(tested.run(QUALIFY_CRITERION_CHANGE, [QUALIFY_INPUT]))
+    assert result.output.rationale == ""
+    suggestion = '{"suggestions": [{"kind": "concept", "text": "  ", "rationale": "x"}]}'
+    tested, _keys = provider(Client(Message(content=[Block("text", suggestion)])))
+    item = SuggestPccInput(item_id="f1", language="fr", question="Q ?")
+    with pytest.raises(ProviderCallError) as raised:
+        list(tested.run(SUGGEST_PCC, [item]))
+    assert raised.value.call.error_code == "invalid_output"
+
+
+def test_field_names_survive_schema_cleaning() -> None:
+    from revue_portee.ai.base import TaskOutput
+
+    class Odd(TaskOutput):
+        pattern: str
+        default: int
+
+    schema = output_schema(Odd)
+    properties = schema["properties"]
+    assert isinstance(properties, dict)
+    assert set(properties) == {"pattern", "default"}
+    assert schema["required"] == ["pattern", "default"]

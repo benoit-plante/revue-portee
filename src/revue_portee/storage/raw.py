@@ -8,7 +8,12 @@ from pathlib import Path, PurePosixPath
 
 from pydantic import JsonValue
 
-__all__ = ["raw_response_path", "read_raw_response", "write_raw_response"]
+__all__ = [
+    "raw_response_path",
+    "read_raw_response",
+    "remove_raw_response",
+    "write_raw_response",
+]
 
 
 def raw_response_path(ai_call_id: str, created_at: datetime) -> str:
@@ -35,3 +40,8 @@ def read_raw_response(folder: Path, relative: str) -> JsonValue:
     with gzip.open(target, "rb") as gz:
         value: JsonValue = json.loads(gz.read().decode("utf-8"))
     return value
+
+
+def remove_raw_response(folder: Path, relative: str) -> None:
+    """Remove a raw response whose call could not be recorded (no orphan file)."""
+    folder.joinpath(*PurePosixPath(relative).parts).unlink(missing_ok=True)

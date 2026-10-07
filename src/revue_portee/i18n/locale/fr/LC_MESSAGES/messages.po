@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 21:13+0000\n"
+"POT-Creation-Date: 2026-10-07 22:07+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -37,6 +37,10 @@ msgstr "Une note ne peut pas être vide."
 
 msgid "A rationale is required to create a new version of the criteria."
 msgstr "Une justification est obligatoire pour créer une nouvelle version des critères."
+
+#, python-brace-format
+msgid "AI answer recorded but not usable for the task {task}"
+msgstr "Réponse de l'IA consignée mais inexploitable pour la tâche {task}"
 
 #, python-brace-format
 msgid "AI call failed for the task {task} ({error})"
@@ -398,6 +402,16 @@ msgstr "Erreur"
 #, python-format
 msgid "Error %(status)s"
 msgstr "Erreur %(status)s"
+
+#, python-format
+msgid ""
+"Estimate at the prices of %(date)s, in the most expensive case for this model (instructions "
+"written to the prompt cache, no cache discount). A fallback to another model is billed at its own"
+" prices. The actual cost is recorded with the call."
+msgstr ""
+"Estimation aux tarifs du %(date)s, dans le cas le plus coûteux pour ce modèle (instructions "
+"écrites dans le cache des invites, sans remise de cache). Un repli sur un autre modèle est "
+"facturé à ses propres tarifs. Le coût réel est consigné avec l'appel."
 
 msgid "Estimated cost"
 msgstr "Coût estimé"
@@ -887,6 +901,9 @@ msgstr "L'API d'Anthropic a refusé la clé : vérifiez REVUE_PORTEE_ANTHROPIC_
 msgid "The [ia] section of {file} is invalid."
 msgstr "La section [ia] de {file} est invalide."
 
+msgid "The answer of the model could not be used; the call is recorded."
+msgstr "La réponse du modèle n'a pas pu être exploitée ; l'appel est consigné."
+
 msgid "The answer of the model does not match the expected format."
 msgstr "La réponse du modèle ne respecte pas le format attendu."
 
@@ -1071,14 +1088,6 @@ msgstr "Paramètre(s) non pris en charge par le fournisseur Anthropic : {names}
 #, python-brace-format
 msgid "Unsupported project format: {version}."
 msgstr "Format de projet non pris en charge : {version}."
-
-#, python-format
-msgid ""
-"Upper estimate without prompt caching, prices of %(date)s. The actual cost is recorded with the "
-"call."
-msgstr ""
-"Estimation haute, sans mise en cache des invites, aux tarifs du %(date)s. Le coût réel est "
-"consigné avec l'appel."
 
 msgid "Use of artificial intelligence"
 msgstr "Usage de l'intelligence artificielle"

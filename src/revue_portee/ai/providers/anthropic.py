@@ -81,14 +81,22 @@ class _Message(Protocol):
     def to_dict(self) -> dict[str, Any]: ...
 
 
+# Keywords whose value maps names (fields, definitions) to schemas: those names are
+# kept as they are, whatever they are called.
+_NAMED_SCHEMAS = frozenset({"properties", "$defs", "definitions"})
+
+
 def _clean(node: JsonValue) -> JsonValue:
     if isinstance(node, list):
         return [_clean(child) for child in node]
     if not isinstance(node, dict):
         return node
-    cleaned: dict[str, JsonValue] = {
-        key: _clean(value) for key, value in node.items() if key not in _UNSUPPORTED_KEYWORDS
-    }
+    cleaned: dict[str, JsonValue] = {}
+    for key, value in node.items():
+        if key in _NAMED_SCHEMAS and isinstance(value, dict):
+            cleaned[key] = {name: _clean(schema) for name, schema in value.items()}
+        elif key not in _UNSUPPORTED_KEYWORDS:
+            cleaned[key] = _clean(value)
     if cleaned.get("type") == "object":
         cleaned["additionalProperties"] = False
     return cleaned
@@ -157,16 +165,16 @@ class AnthropicProvider:
     ) -> CostEstimate:
         self._check(task)
         schema = str(output_schema(task.output_model))
-        input_tokens = sum(
-            estimate_tokens(prompt.system + prompt.user + schema)
-            for prompt in (self._render(task, item) for item in inputs)
-        )
+        prompts = [self._render(task, item) for item in inputs]
+        system_tokens = sum(estimate_tokens(prompt.system) for prompt in prompts)
+        other_tokens = sum(estimate_tokens(prompt.user + schema) for prompt in prompts)
         return estimate(
             self._prices,
             self.name,
             self._model,
-            input_tokens=input_tokens,
+            input_tokens=system_tokens + other_tokens,
             output_tokens=self._expected_output_tokens * len(inputs),
+            cacheable_tokens=system_tokens,
         )
 
     def request_params(self) -> dict[str, JsonValue]:
@@ -225,7 +233,10 @@ class AnthropicProvider:
         latency_ms: int,
         message: _Message | None = None,
         error_code: str | None = None,
+        request_id: str | None = None,
     ) -> AICallRecord:
+        """Call record. Without a message (the API answered with an error, or not at all),
+        no model was returned: ``model_returned`` stays empty and the cost is zero."""
         usage = None if message is None else message.usage
         tokens = {
             "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
@@ -233,17 +244,15 @@ class AnthropicProvider:
             "cache_read_tokens": int(getattr(usage, "cache_read_input_tokens", 0) or 0),
             "cache_write_tokens": int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
         }
-        returned = self._model if message is None else message.model
+        returned = None if message is None else message.model
         cost = Decimal(0)
         if message is not None:
             cost = call_cost(
                 self._prices,
                 self.name,
-                _priced_model(self._prices, returned, self._model),
+                _priced_model(self._prices, message.model, self._model),
                 **tokens,
             )
-        request_id = None
-        if message is not None:
             request_id = getattr(message, "_request_id", None) or message.id
         return AICallRecord(
             provider=self.name,
@@ -278,7 +287,12 @@ class AnthropicProvider:
         except anthropic.APIError as error:
             latency = int((time.perf_counter() - start) * 1000)
             call = self._record(
-                prompt, task, started=started, latency_ms=latency, error_code=type(error).__name__
+                prompt,
+                task,
+                started=started,
+                latency_ms=latency,
+                error_code=type(error).__name__,
+                request_id=getattr(error, "request_id", None),
             )
             raise ProviderCallError(
                 _api_error_message(error), item_id=item.item_id, call=call

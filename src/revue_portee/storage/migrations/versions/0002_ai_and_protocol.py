@@ -58,7 +58,7 @@ def upgrade() -> None:
         sa.Column("item_id", sa.Text, nullable=False),
         sa.Column("provider", sa.String(32), nullable=False),
         sa.Column("model_requested", sa.Text, nullable=False),
-        sa.Column("model_returned", sa.Text, nullable=False),
+        sa.Column("model_returned", sa.Text, nullable=True),
         sa.Column("provider_request_id", sa.Text, nullable=True),
         sa.Column("prompt_template_id", sa.String(64), nullable=False),
         sa.Column("prompt_template_version", sa.String(16), nullable=False),

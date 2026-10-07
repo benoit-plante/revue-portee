@@ -86,18 +86,27 @@ class PendingQualification:
     proposals: dict[str, QualificationProposal]  # by code, only those still applicable
 
 
+def _applicable_proposals(
+    connection: Connection, draft: CriteriaVersion
+) -> dict[str, QualificationProposal]:
+    """Latest AI proposal of each code, if the criterion is still the one it qualified."""
+    return {
+        code: proposal
+        for code, proposal in ai_repo.latest_proposals(connection, draft.id).items()
+        if proposal.applies_to(draft)
+    }
+
+
 def _pending(connection: Connection) -> PendingQualification | None:
     draft = criteria_repo.get_draft_version(connection)
     active = criteria_repo.get_active_version(connection)
     if draft is None or active is None:
         return None
-    proposals = {
-        code: proposal
-        for code, proposal in ai_repo.latest_proposals(connection, draft.id).items()
-        if proposal.applies_to(draft)
-    }
     return PendingQualification(
-        draft=draft, active=active, diff=dom.diff_versions(active, draft), proposals=proposals
+        draft=draft,
+        active=active,
+        diff=dom.diff_versions(active, draft),
+        proposals=_applicable_proposals(connection, draft),
     )
 
 
@@ -106,12 +115,12 @@ def pending_qualification(folder: ProjectFolder) -> PendingQualification | None:
         return _pending(connection)
 
 
-def _inputs(connection: Connection) -> list[QualifyChangeInput]:
+def _inputs(connection: Connection) -> tuple[PendingQualification, list[QualifyChangeInput]]:
     pending = _pending(connection)
     if pending is None or not pending.diff.modified:
         raise NothingToQualifyError
     language = projects.get_project(connection).language
-    return [
+    return pending, [
         QualifyChangeInput(
             item_id=m.code,
             language=language,
@@ -128,7 +137,7 @@ def preview_proposals(
     folder: ProjectFolder, *, factory: ProviderFactory = default_provider_factory
 ) -> CostPreview:
     with folder.engine.connect() as connection:
-        inputs = _inputs(connection)
+        _pending_changes, inputs = _inputs(connection)
     return ai_assist.preview(folder, QUALIFY_CRITERION_CHANGE, inputs, factory=factory)
 
 
@@ -141,9 +150,7 @@ def request_proposals(
 ) -> list[QualificationProposal]:
     """Ask the AI to qualify every modified criterion of the draft (one call each)."""
     with folder.engine.connect() as connection:
-        inputs = _inputs(connection)
-        pending = _pending(connection)
-    assert pending is not None  # noqa: S101 - checked by _inputs
+        pending, inputs = _inputs(connection)
     draft = pending.draft
     received: list[QualificationProposal] = []
 
@@ -215,11 +222,7 @@ def record_changes(
         qualified = qualify(dom.diff_versions(previous, draft), choices)
     except QualificationError as error:
         raise MissingQualificationError(error) from error
-    proposals = {
-        code: p
-        for code, p in ai_repo.latest_proposals(connection, draft.id).items()
-        if p.applies_to(draft)
-    }
+    proposals = _applicable_proposals(connection, draft)
     changes: list[CriterionChange] = []
     for code, change_type in qualified:
         proposal = proposals.get(code)
