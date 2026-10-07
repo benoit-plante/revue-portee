@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 from revue_portee.config.secret_scan import scan_file
-from revue_portee.config.secrets import SecretName, get_optional_secret
+from revue_portee.config.secrets import SecretName, configured_secrets
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TESTS_DIR = REPO_ROOT / "tests"
@@ -26,12 +26,8 @@ def candidate_files() -> list[Path]:
 
 
 def configured_secret_values() -> list[str]:
-    values = []
-    for name in SecretName:
-        secret = get_optional_secret(name)
-        if secret is not None:
-            values.append(secret.get_secret_value())
-    return values
+    # Every configured variable, fallbacks included (e.g. both Anthropic variables).
+    return [secret.get_secret_value() for name in SecretName for secret in configured_secrets(name)]
 
 
 def test_scan_covers_test_files() -> None:

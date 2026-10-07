@@ -24,11 +24,13 @@ __all__ = [
     "MissingSecretError",
     "SecretName",
     "SecretRedactingFilter",
+    "configured_secrets",
     "forget_loaded_secrets",
     "get_optional_secret",
     "get_secret",
     "install_secret_redaction",
     "redact",
+    "redact_record",
 ]
 
 MASK = "***"
@@ -107,21 +109,33 @@ def forget_loaded_secrets() -> None:
         _loaded_values.clear()
 
 
+def configured_secrets(
+    name: SecretName, *, environ: Mapping[str, str] | None = None
+) -> list[SecretStr]:
+    """Every non-blank value of the variables of ``name``, in priority order.
+
+    All of them are registered for log redaction, not only the one that is used.
+    ``environ`` defaults to :data:`os.environ`; tests pass a mapping instead.
+    """
+    source = os.environ if environ is None else environ
+    secrets: list[SecretStr] = []
+    for var in name.env_vars:
+        raw = source.get(var, "").strip()
+        if raw:
+            _register(raw)
+            secrets.append(SecretStr(raw))
+    return secrets
+
+
 def get_optional_secret(
     name: SecretName, *, environ: Mapping[str, str] | None = None
 ) -> SecretStr | None:
     """Return the secret, or ``None`` if none of its variables is set (blank counts as unset).
 
-    The first non-blank variable of :attr:`SecretName.env_vars` wins. ``environ`` defaults
-    to :data:`os.environ`; tests pass a mapping instead.
+    The first non-blank variable of :attr:`SecretName.env_vars` wins.
     """
-    source = os.environ if environ is None else environ
-    for var in name.env_vars:
-        raw = source.get(var, "").strip()
-        if raw:
-            _register(raw)
-            return SecretStr(raw)
-    return None
+    secrets = configured_secrets(name, environ=environ)
+    return secrets[0] if secrets else None
 
 
 def get_secret(name: SecretName, *, environ: Mapping[str, str] | None = None) -> SecretStr:
@@ -141,52 +155,112 @@ _PATTERNS: tuple[re.Pattern[str], ...] = (
         r"(?i)(?P<keep>\b(?:authorization|x-api-key|api-key)[\"']?\s*[:=]\s*[\"']?"
         r"(?:(?:bearer|basic|token)\s+)?)[^\s\"',;}]+"
     ),
+    # API keys as key=value, JSON/dict or YAML (e.g. an OpenAlex key injected by a proxy).
+    re.compile(r"(?i)(?P<keep>\b(?:api_key|apikey)[\"']?\s*[:=]\s*[\"']?)[^\s\"',;}&#]+"),
     # Query-string credentials and contact parameters.
     re.compile(r"(?i)(?P<keep>[?&;](?:api_key|apikey|email|mailto)=)[^&\s\"'#]+"),
 )
 
 
-def redact(text: str) -> str:
-    """Mask every loaded secret value and every known key pattern in ``text``."""
+def _mask_loaded(text: str) -> str:
     for value in _loaded_snapshot():
         text = text.replace(value, MASK)
+    return text
+
+
+def redact(text: str) -> str:
+    """Mask every loaded secret value and every known key pattern in ``text``."""
+    text = _mask_loaded(text)
     for pattern in _PATTERNS:
         text = pattern.sub(lambda m: (m.groupdict().get("keep") or "") + MASK, text)
     return text
 
 
-class SecretRedactingFilter(logging.Filter):
-    """Logging filter that masks secrets in messages, exceptions and stack traces.
+_exception_formatter = logging.Formatter()
 
-    Attach it to handlers (see :func:`install_secret_redaction`): a filter on a logger
-    does not apply to records propagated from child loggers.
+
+def _redact_arg(arg: object) -> object:
+    """Keep an argument as is unless its text holds a secret (then return masked text)."""
+    try:
+        text = str(arg)
+    except Exception:  # an unprintable argument cannot leak through formatting either
+        return arg
+    redacted = redact(text)
+    return arg if redacted == text else redacted
+
+
+def redact_record(record: logging.LogRecord) -> None:
+    """Mask secrets in ``record`` in place; never raises.
+
+    The structure of ``msg`` and ``args`` is kept whenever possible, because some
+    formatters (e.g. uvicorn's access log) read ``record.args`` directly. Exception
+    and stack texts are rendered now so that every handler receives the masked text.
     """
-
-    _formatter = logging.Formatter()
-
-    def filter(self, record: logging.LogRecord) -> bool:
+    try:
+        if isinstance(record.msg, str):
+            # Loaded values only: key patterns would swallow placeholders ("api_key=%s").
+            record.msg = _mask_loaded(record.msg)
+        if isinstance(record.args, Mapping):
+            record.args = {key: _redact_arg(value) for key, value in record.args.items()}
+        elif isinstance(record.args, tuple):
+            record.args = tuple(_redact_arg(value) for value in record.args)
         try:
             message = record.getMessage()
-        except (TypeError, ValueError):  # malformed %-format: keep the raw template
-            message = str(record.msg)
-        redacted = redact(message)
-        if redacted != message or record.args:
-            record.msg = redacted
+        except Exception:  # malformed call: logging reports it later, at emit time
+            message = None
+        if message is not None and redact(message) != message:
+            # A secret only appears once template and arguments are combined.
+            record.msg = redact(message)
             record.args = None
         if record.exc_info and not record.exc_text:
-            record.exc_text = self._formatter.formatException(record.exc_info)
+            record.exc_text = _exception_formatter.formatException(record.exc_info)
         if record.exc_text:
             record.exc_text = redact(record.exc_text)
         if record.stack_info:
             record.stack_info = redact(record.stack_info)
+    except Exception:  # redaction must never break the caller's logging
+        record.msg = "[message de journal masqué : échec du masquage des secrets]"
+        record.args = None
+        record.exc_info = None
+        record.exc_text = None
+        record.stack_info = None
+
+
+class SecretRedactingFilter(logging.Filter):
+    """Logging filter that masks secrets in messages, exceptions and stack traces.
+
+    Records are already masked at creation once :func:`install_secret_redaction` has
+    run; the filter is a second line of defence for handlers that receive records
+    built elsewhere (e.g. ``logging.makeLogRecord``).
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        redact_record(record)
         return True
 
 
-def install_secret_redaction(handler: logging.Handler | None = None) -> SecretRedactingFilter:
-    """Attach a :class:`SecretRedactingFilter` to ``handler``, or to every root handler.
+def _install_record_factory() -> None:
+    previous = logging.getLogRecordFactory()
+    if getattr(previous, "_revue_portee_redacting", False):
+        return
 
-    Idempotent: a handler never receives two redacting filters.
+    def factory(*args: object, **kwargs: object) -> logging.LogRecord:
+        record = previous(*args, **kwargs)
+        redact_record(record)
+        return record
+
+    factory._revue_portee_redacting = True  # type: ignore[attr-defined]
+    logging.setLogRecordFactory(factory)
+
+
+def install_secret_redaction(handler: logging.Handler | None = None) -> SecretRedactingFilter:
+    """Mask secrets in every log record, whatever handler later receives it.
+
+    Installs a record factory (records are masked when created, so handlers added
+    later, such as uvicorn's, are covered) and attaches a :class:`SecretRedactingFilter`
+    to ``handler``, or to every current root handler. Idempotent.
     """
+    _install_record_factory()
     handlers = [handler] if handler is not None else list(logging.getLogger().handlers)
     redacting = SecretRedactingFilter()
     for target in handlers:

@@ -1,5 +1,6 @@
 """A fake task run end to end through the provider-agnostic layer (jalon 0)."""
 
+from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
@@ -12,6 +13,7 @@ from revue_portee.ai import (
     PromptRef,
     TaskInput,
     TaskOutput,
+    TaskResult,
     TaskSpec,
     UnsupportedTaskError,
     run_task,
@@ -130,3 +132,29 @@ def test_task_spec_checks_schema_types() -> None:
             output_model=TitleVerdict,
             prompt=PromptRef(template_id="bad", version="1"),
         )
+
+
+def test_unsupported_task_fails_when_run_is_called() -> None:
+    provider = make_provider(supported_tasks={"another_task"})
+    with pytest.raises(UnsupportedTaskError):
+        provider.run(TOY_TASK, [TitleInput(item_id="ref-1", title="x")])  # not iterated
+
+
+class DuplicatingProvider(FakeProvider):
+    """Returns the first result twice instead of one result per input."""
+
+    def run[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> Iterator[TaskResult[OutputT]]:
+        first = next(super().run(task, inputs[:1]))
+        return iter([first, first])
+
+
+def test_mismatched_results_are_described_by_item_id() -> None:
+    provider = DuplicatingProvider(model=CONFIGURED_MODEL, responder=keyword_responder)
+    inputs = [TitleInput(item_id="ref-1", title="a"), TitleInput(item_id="ref-2", title="b")]
+    with pytest.raises(RuntimeError) as excinfo:
+        run_task(provider, TOY_TASK, inputs)
+    message = str(excinfo.value)
+    assert "manquants : ref-2" in message
+    assert "en double : ref-1" in message

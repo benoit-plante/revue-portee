@@ -41,6 +41,16 @@ _AUTH_HEADER = re.compile(
     r"(?:(?:bearer|basic|token)\s+)?(?P<value>[^\s\"',;}\]]+)"
 )
 _QUERY_PARAM = re.compile(r"(?i)[?&;](?P<name>api_key|apikey|email|mailto)=(?P<value>[^&\s\"'#]*)")
+# API key given as a quoted literal: `api_key="..."`, JSON `"api_key": "..."`, YAML.
+_KEY_LITERAL = re.compile(
+    r"(?i)(?<![?&;])\b(?P<name>api_key|apikey)[\"']?\s*[:=]\s*(?P<q>[\"'])(?P<value>[^\"'\n]*)(?P=q)"
+)
+# API key given bare on its own line: YAML `api_key: ...`, `.env`/INI `api_key=...`.
+# Not applied to Python files, where `api_key=name` is code referring to a variable.
+_KEY_BARE = re.compile(
+    r"(?im)^\s*(?:-\s+)?[\"']?(?P<name>api_key|apikey)[\"']?\s*[:=]\s*"
+    r"(?P<value>[^\s\"'#,()\[\]{}]+)\s*(?:#.*)?$"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +105,15 @@ def scan_text(text: str, *, path: str = "<text>", forbidden: Iterable[str] = ())
             findings.append(
                 Finding(path, _line_of(text, match.start()), f"non-fictitious {name} parameter")
             )
+
+    key_patterns = [_KEY_LITERAL] if path.endswith(".py") else [_KEY_LITERAL, _KEY_BARE]
+    for pattern in key_patterns:
+        for match in pattern.finditer(text):
+            if not is_placeholder(match.group("value")):
+                name = match.group("name").lower()
+                findings.append(
+                    Finding(path, _line_of(text, match.start()), f"non-fictitious {name} value")
+                )
 
     decoded = unquote(text)  # catches URL-encoded addresses (%40)
     for match in _EMAIL.finditer(decoded):

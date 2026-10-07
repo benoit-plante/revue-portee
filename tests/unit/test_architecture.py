@@ -39,10 +39,48 @@ def test_no_hard_coded_model_name() -> None:
         assert not MODEL_NAME.search(path.read_text(encoding="utf-8")), path.name
 
 
+ENV_ACCESSORS = {"environ", "environb", "getenv", "getenvb"}
+
+
+def environment_accesses(source: str) -> list[int]:
+    """Line numbers where ``source`` reads the environment through the ``os`` module.
+
+    Catches ``os.environ``, ``os.getenv``, aliases (``import os as o; o.environ``) and
+    direct imports (``from os import environ``), not only the literal text.
+    """
+    tree = ast.parse(source)
+    os_aliases = {"os"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            os_aliases.update(
+                alias.asname or alias.name for alias in node.names if alias.name == "os"
+            )
+    lines: list[int] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "os":
+            if any(alias.name in ENV_ACCESSORS | {"*"} for alias in node.names):
+                lines.append(node.lineno)
+        elif (
+            isinstance(node, ast.Attribute)
+            and node.attr in ENV_ACCESSORS
+            and isinstance(node.value, ast.Name)
+            and node.value.id in os_aliases
+        ):
+            lines.append(node.lineno)
+    return lines
+
+
+def test_environment_access_detection() -> None:
+    assert environment_accesses("import os\nos.environ['X']\n") == [2]
+    assert environment_accesses("import os as o\no.getenv('X')\n") == [2]
+    assert environment_accesses("from os import environ\n") == [1]
+    assert environment_accesses("from os import *\n") == [1]
+    assert environment_accesses("import os\nos.path.join('a')\n") == []
+
+
 def test_only_secrets_module_reads_environment() -> None:
     allowed = {PACKAGE_DIR / "config" / "secrets.py"}
     for path in PACKAGE_DIR.rglob("*.py"):
         if path not in allowed:
-            source = path.read_text(encoding="utf-8")
-            assert "os.environ" not in source, path.name
-            assert "getenv" not in source, path.name
+            lines = environment_accesses(path.read_text(encoding="utf-8"))
+            assert not lines, f"{path.name} reads the environment (lines {lines})"

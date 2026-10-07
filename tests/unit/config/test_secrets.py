@@ -11,10 +11,12 @@ from revue_portee.config.secrets import (
     MissingSecretError,
     SecretName,
     SecretRedactingFilter,
+    configured_secrets,
     get_optional_secret,
     get_secret,
     install_secret_redaction,
     redact,
+    redact_record,
 )
 
 
@@ -181,12 +183,114 @@ def test_install_is_idempotent() -> None:
     assert sum(isinstance(f, SecretRedactingFilter) for f in handler.filters) == 1
 
 
-def test_filter_survives_malformed_format_arguments(
-    capture: tuple[logging.Logger, io.StringIO],
-) -> None:
-    logger, stream = capture
+def make_record(msg: object, args: tuple[object, ...] | dict[str, object]) -> logging.LogRecord:
+    return logging.LogRecord("x", logging.WARNING, __file__, 1, msg, args, None)
+
+
+def test_malformed_record_keeps_masked_template() -> None:
     key = get_secret(
         SecretName.OPENALEX_API_KEY, environ={"OPENALEX_API_KEY": token_source.token_hex(20)}
     ).get_secret_value()
-    logger.info("%s %s " + key, "only-one-argument")
+    record = make_record("%s %s " + key, ("only-one-argument",))
+    assert SecretRedactingFilter().filter(record)
+    assert key not in str(record.msg)
+
+
+def test_every_fallback_variable_is_registered_for_redaction() -> None:
+    project, generic = token_source.token_hex(16), token_source.token_hex(16)
+    environ = {"REVUE_PORTEE_ANTHROPIC_KEY": project, "ANTHROPIC_API_KEY": generic}
+    secrets = configured_secrets(SecretName.ANTHROPIC_API_KEY, environ=environ)
+    assert [s.get_secret_value() for s in secrets] == [project, generic]
+    get_secret(SecretName.ANTHROPIC_API_KEY, environ=environ)
+    assert redact(f"{project} {generic}") == f"{MASK} {MASK}"
+
+
+def test_unloaded_api_key_assignments_are_masked() -> None:
+    token = token_source.token_hex(12)
+    key = "api_" + "key"
+    for text in (f"{key}={token}", f'{{"{key}": "{token}"}}', f"{key}: {token}"):
+        redacted = redact(text)
+        assert token not in redacted, text
+        assert MASK in redacted
+
+
+class Unprintable:
+    def __str__(self) -> str:
+        raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize(
+    ("template", "args"),
+    [
+        ("%(k)s", ({"x": 1},)),  # KeyError at formatting
+        ("%s %s", ("only-one",)),  # TypeError
+        ("%d", ("not-a-number",)),  # TypeError
+        ("value %s", (Unprintable(),)),  # __str__ raises
+        (Unprintable(), ()),  # msg itself is unprintable
+    ],
+)
+def test_redaction_never_raises(
+    template: object, args: tuple[object, ...] | dict[str, object]
+) -> None:
+    # Before the fix, the filter let KeyError and other exceptions escape Handler.filter,
+    # which logging does not guard, so a bad log call crashed the caller. Now logging
+    # reports the problem itself, at emit time ("--- Logging error ---").
+    record = make_record(template, args)
+    assert SecretRedactingFilter().filter(record)
+    redact_record(record)
+
+
+def test_handler_added_after_install_receives_masked_records() -> None:
+    install_secret_redaction()
+    key = get_secret(
+        SecretName.OPENALEX_API_KEY, environ={"OPENALEX_API_KEY": token_source.token_hex(20)}
+    ).get_secret_value()
+    stream = io.StringIO()
+    late_handler = logging.StreamHandler(stream)  # e.g. uvicorn's, configured later
+    logger = logging.getLogger("revue_portee.tests.late")
+    logger.propagate = False
+    logger.addHandler(late_handler)
+    try:
+        logger.warning("key=%s", key)
+        try:
+            raise ValueError(key)
+        except ValueError:
+            logger.exception("failure")
+    finally:
+        logger.removeHandler(late_handler)
     assert key not in stream.getvalue()
+    assert MASK in stream.getvalue()
+
+
+def test_record_structure_is_kept_when_no_secret() -> None:
+    install_secret_redaction()
+    record = logging.getLogger("revue_portee.tests.args").makeRecord(
+        "x", logging.INFO, __file__, 1, '%s - "%s %s"', ("127.0.0.1", "GET", "/"), None
+    )
+    factory_record = logging.getLogRecordFactory()(
+        "x", logging.INFO, __file__, 1, '%s - "%s %s"', ("127.0.0.1", "GET", "/"), None
+    )
+    # Formatters such as uvicorn's access log unpack record.args.
+    assert factory_record.args == ("127.0.0.1", "GET", "/")
+    assert record.getMessage() == '127.0.0.1 - "GET /"'
+
+
+@pytest.mark.parametrize("template", ["api_" + "key=%s", "Author" + "ization: Bearer %s"])
+def test_secret_completed_by_arguments_is_masked(template: str) -> None:
+    token = token_source.token_hex(12)
+    record = make_record(template, (token,))
+    redact_record(record)
+    message = record.getMessage()  # no formatting error: the placeholder was kept
+    assert token not in message
+    assert message.endswith(MASK)
+
+
+def test_redaction_failure_masks_whole_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken() -> list[str]:
+        raise RuntimeError("registry unavailable")
+
+    monkeypatch.setattr("revue_portee.config.secrets._loaded_snapshot", broken)
+    record = make_record("key %s", ("value",))
+    redact_record(record)
+    assert record.args is None
+    assert "échec du masquage" in record.getMessage()

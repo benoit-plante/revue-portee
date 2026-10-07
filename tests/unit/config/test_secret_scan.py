@@ -70,3 +70,33 @@ def test_helpers() -> None:
     assert is_fictitious_email("a@example.com")
     assert is_fictitious_email("a@mail.invalid")
     assert not is_fictitious_email(f"a@{REAL_DOMAIN}")
+
+
+KEY_NAME = "api_" + "key"
+
+
+@pytest.mark.parametrize(
+    ("text", "path"),
+    [
+        (f"{KEY_NAME}={real_looking_token()}", "settings.env"),
+        (f'{{"{KEY_NAME}": "{real_looking_token()}"}}', "fixture.json"),
+        (f"  {KEY_NAME}: {real_looking_token()}  # comment", "cassette.yaml"),
+        (f'{KEY_NAME} = "{real_looking_token()}"', "test_x.py"),
+    ],
+)
+def test_detects_api_key_assignments(text: str, path: str) -> None:
+    findings = scan_text(text, path=path)
+    assert [f.kind for f in findings] == ["non-fictitious api_key value"]
+
+
+@pytest.mark.parametrize(
+    ("text", "path"),
+    [
+        (f"{KEY_NAME}: DUMMY", "cassette.yaml"),
+        (f'{{"{KEY_NAME}": "FAKE-key"}}', "fixture.json"),
+        (f"{KEY_NAME} = token", "test_x.py"),  # code referring to a variable
+        (f"call({KEY_NAME}=token)", "test_x.py"),
+    ],
+)
+def test_accepts_fictitious_or_code_api_keys(text: str, path: str) -> None:
+    assert scan_text(text, path=path) == []

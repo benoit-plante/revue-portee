@@ -8,6 +8,7 @@
   ``coverage_gate_fail_under`` (see ``tests/_plugins/coverage_gate.py``).
 """
 
+import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -51,5 +52,7 @@ def vcr_config() -> dict[str, Any]:
 
 @pytest.fixture(autouse=True)
 def _forget_secrets() -> Iterator[None]:
+    factory = logging.getLogRecordFactory()
     yield
     forget_loaded_secrets()
+    logging.setLogRecordFactory(factory)  # undo install_secret_redaction()

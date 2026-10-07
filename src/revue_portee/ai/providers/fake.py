@@ -66,7 +66,14 @@ class FakeProvider:
     def run[InputT: TaskInput, OutputT: TaskOutput](
         self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
     ) -> Iterator[TaskResult[OutputT]]:
+        # Checked eagerly: an unsupported task fails when run() is called, not when the
+        # returned iterator is first consumed.
         self._check(task)
+        return self._results(task, inputs)
+
+    def _results[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> Iterator[TaskResult[OutputT]]:
         for item in inputs:
             validated_input = task.input_model.model_validate(item.model_dump())
             raw = self._responder(validated_input)
