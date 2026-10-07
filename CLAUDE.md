@@ -29,9 +29,12 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 
 ## Conventions
 
-- **Code, identifiants, commentaires, docstrings, messages de commit : anglais.** Documentation et interface : **français** (guillemets « », espace insécable avant `:` `;` `?` `!` dans l'interface). Chaînes d'interface externalisées (Babel).
+- **Code, identifiants, commentaires, docstrings, messages de commit : anglais.** Documentation et interface : **français** (guillemets « », espace insécable avant `:` `;` `?` `!` dans l'interface). Chaînes d'interface externalisées (Babel, D-031) :
+  - dans le code, `gettext as _` (interface) ou `french` (résumés `summary_fr` du journal), importés de `revue_portee.i18n`; dans les gabarits, `{{ _("…") }}`; identifiants de message **en anglais**;
+  - après tout ajout ou changement de message, mettre à jour puis traduire le catalogue `src/revue_portee/i18n/locale/fr/LC_MESSAGES/messages.po` (commandes dans `babel.cfg`); `tests/unit/test_i18n.py` échoue s'il manque une traduction.
 - Disposition `src/revue_portee/`, tests dans `tests/`. Le module `domain/` n'importe rien d'externe hors Pydantic.
 - Typage complet, vérifié par **mypy en mode strict** (D-022); Pydantic v2 pour les modèles; fonctions pures pour les calculs (métriques, impact, dédoublonnage, diagramme).
+- Cas d'usage dans des modules par étape (`protocol/` pour l'étape 1, puis `search/`, `screening/`…). Toute écriture dans un projet passe par `with folder.write() as connection:` (`BEGIN IMMEDIATE`, D-036), et chaque action consigne son entrée de journal dans la même transaction. Ne jamais modifier ni supprimer une ligne en ajout seulement : la base le refuse (déclencheurs, D-028).
 - Dans les chaînes d'interface du code, utiliser de vraies espaces insécables (U+00A0); ruff les autorise (D-018). ruff ignore `docs/` et les fichiers `*.md` (D-019) : ne pas lancer d'autre formateur sur la documentation.
 - Toute nouvelle dépendance : `uv add <paquet>`, vérifier sa licence (pas de licence non commerciale ni « sans dérivé »), la mentionner dans la demande de fusion. Licence du projet : **AGPL-3.0-or-later** (D-004); dépendances compatibles seulement.
 - Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main.
@@ -85,6 +88,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 - Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016).
 - Les tests qui appellent de vrais services portent le marqueur `@pytest.mark.integration`, sont exclus par défaut et ne sont lancés **que sur demande explicite de Benoit** (ils coûtent et consomment des quotas).
 - Enregistrer une nouvelle cassette = test d'intégration lancé volontairement (`uv run pytest -m integration --record-mode=once`), puis nettoyage et vérification anti-secrets.
+- Utilitaires partagés dans `tests/support.py` : horloge déterministe (`make_clock`), projet de test (`new_project`), accès SQLite direct (`raw_sqlite`).
 - **Couverture** : `uv run pytest` mesure la couverture (branches comprises) et **échoue** si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 % (D-023). Le seuil n'est vérifié que sur la suite complète : un fichier seul, `-k`, `-m` ou `--lf` l'ignorent, avec un avertissement. Réglages dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
 ## Commandes
@@ -98,7 +102,9 @@ uv run ruff format .                 # formater
 uv run mypy                          # vérification des types (mode strict)
 uv add <paquet> / uv add --dev <paquet>
 uv run revue-portee --version        # ligne de commande
-uv run revue-portee serve            # interface web sur 127.0.0.1 (à venir, tranche 1.1)
+uv run revue-portee nouveau ma-revue --titre "…" --reviseur "…"   # crée ma-revue.revue/
+uv run revue-portee serve ma-revue   # interface web sur http://127.0.0.1:8000/
+uv run revue-portee verifier-journal ma-revue   # vérifie la chaîne d'empreintes (lecture seule)
 ```
 
 Avant de proposer une demande de fusion : `ruff check`, `ruff format --check`, `mypy` et `pytest` (seuil de couverture compris) doivent passer. La CI GitHub (`.github/workflows/ci.yml`) les exécute sous Python 3.12 et 3.13.
