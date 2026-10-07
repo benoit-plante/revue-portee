@@ -9,7 +9,7 @@
 - **Une tranche = une ou plusieurs branches** `tranche/<version>.<numéro>-<nom-court>` (ex. `tranche/1.3-requetes`) et une ou plusieurs demandes de fusion, révisées par Benoit avant fusion.
 - **Définition de « terminé »** commune à toutes les tranches :
   1. tous les critères d'acceptation de la tranche sont vérifiés et cochés dans la demande de fusion;
-  2. `uv run ruff check`, `uv run ruff format --check` et `uv run pytest` passent;
+  2. `uv run ruff check`, `uv run ruff format --check`, `uv run mypy` et `uv run pytest` passent, seuil de couverture de 90 % par paquet compris (D-022, D-023);
   3. aucun test ordinaire n'appelle le réseau; aucun secret dans le dépôt;
   4. les exigences couvertes sont citées par identifiant dans la demande de fusion;
   5. toute décision d'architecture nouvelle est proposée pour le [journal des décisions](journal-des-decisions.md);
@@ -90,7 +90,7 @@
 | Enrichissement Crossref par DOI des champs manquants, concurrence ≤ 3 |
 | Chaque référence porte sa ou ses provenances; les pages brutes sont conservées |
 | Message clair en français si un domaine est bloqué par la liste réseau |
-| La clé OpenAlex est lue depuis `OPENALEX_API_KEY` (D-013) par `config/secrets.py`; si elle est absente, message clair en français et arrêt propre de la collecte OpenAlex (test) |
+| La clé OpenAlex est lue depuis `OPENALEX_API_KEY` (D-013) par `config/secrets.py` et envoyée seulement si elle est définie : elle est facultative, car le mandataire réseau l'ajoute dans l'environnement infonuagique (D-021). Un refus 401 ou 403 d'OpenAlex produit un message clair en français qui nomme `OPENALEX_API_KEY`, et arrête proprement la collecte OpenAlex (test) |
 
 ### Tranche 1.5 — Dédoublonnage
 

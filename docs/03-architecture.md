@@ -55,8 +55,8 @@
 | DOCX | python-docx | MIT | Protocole, section méthode |
 | Diagramme de flux | Gabarit SVG paramétré (Jinja2), conversion PNG/PDF par CairoSVG (V2) | LGPL | Déterministe, pas de dépendance graphique lourde |
 | Internationalisation | Babel (catalogues gettext) | BSD | ENF-LAN-03 |
-| Tests | pytest, pytest-recording (VCR.py), respx | MIT / BSD | Réponses enregistrées (ENF-QUA-01) |
-| Qualité | ruff (vérification + formatage) | MIT | Préinstallé |
+| Tests | pytest, pytest-recording (VCR.py), respx, pytest-cov (coverage) | MIT / BSD / Apache-2.0 | Réponses enregistrées (ENF-QUA-01); couverture et seuil de 90 % par paquet (ENF-QUA-04, D-023) |
+| Qualité | ruff (vérification + formatage); mypy en mode strict (D-022) | MIT | ruff préinstallé; mypy vérifie la cohérence des types (ENF-QUA-03) |
 
 **Règle** : toute nouvelle dépendance est ajoutée avec `uv add`, sa licence est vérifiée (ENF-LIC-01) et mentionnée dans la demande de fusion.
 
@@ -94,6 +94,8 @@ revue-portee/
 │   ├── dedup/                    # dédoublonnage
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
 │   ├── ai/
+│   │   ├── base.py               # TaskSpec, TaskInput/TaskOutput, TaskResult, AICallRecord, ModelProvider
+│   │   ├── runner.py             # run_task : exécution indépendante du fournisseur
 │   │   ├── tasks/                # définition des tâches (entrées/sorties Pydantic)
 │   │   ├── providers/            # anthropic.py, classifier.py, local.py, fake.py
 │   │   ├── prompts/              # gabarits d'invite versionnés (*.md.j2 + métadonnées)
@@ -102,11 +104,15 @@ revue-portee/
 │   ├── extraction/, synthesis/, stakeholders/   # V3, V3, V4
 │   ├── reporting/                # diagramme, protocole, section méthode, PRISMA-ScR
 │   ├── config/                   # paramètres, secrets (seul point d'accès aux variables d'env.)
+│   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
+│   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
 │   ├── jobs/                     # tâches de fond persistantes
 │   ├── web/                      # FastAPI : routes, gabarits, statique, traductions
 │   ├── cli/                      # Typer
 │   └── resources/                # YAML : PRISMA-ScR, gabarit diagramme, OSF, tarifs
 └── tests/
+    ├── conftest.py               # blocage du réseau, filtrage des cassettes
+    ├── _plugins/                 # greffons pytest du projet (seuil de couverture par paquet)
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
     ├── cassettes/                # réponses enregistrées, nettoyées
@@ -304,9 +310,15 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 
 ## 10. Sécurité et secrets
 
-- `config/secrets.py` est le **seul** module qui lit les variables d'environnement sensibles; il renvoie des `SecretStr` (Pydantic) dont la représentation est masquée.
-- Un filtre `logging` masque toute valeur de secret chargée et tout motif de clé connu (ENF-SEC-03).
-- Les cassettes de test sont enregistrées avec filtrage des en-têtes (`x-api-key`, `authorization`) et des paramètres (`api_key`, `email`, `mailto`), puis vérifiées par un test qui cherche des motifs de secrets dans `tests/` (ENF-SEC-04).
+- `config/secrets.py` est le **seul** module qui lit les variables d'environnement sensibles (un test d'architecture l'impose); il renvoie des `SecretStr` (Pydantic) dont la représentation est masquée.
+  - Clé Anthropic : `REVUE_PORTEE_ANTHROPIC_KEY`, à défaut `ANTHROPIC_API_KEY` (D-020); toutes les valeurs définies sont enregistrées pour le masquage.
+  - `CONTACT_EMAIL` : obligatoire. `OPENALEX_API_KEY` : facultative, car le mandataire réseau de l'environnement infonuagique l'ajoute aux requêtes (D-021).
+  - Une variable obligatoire absente lève `MissingSecretError`, avec un message en français qui nomme la variable sans jamais afficher de valeur.
+- **Masquage des journaux** (ENF-SEC-03, D-024) : `install_secret_redaction()`, appelée au démarrage de chaque point d'entrée, installe une fabrique d'entrées de journal (`logging.setLogRecordFactory`) qui masque chaque entrée dès sa création. Elle couvre ainsi tous les gestionnaires, y compris ceux configurés plus tard (uvicorn). Un filtre `logging` sur les gestionnaires sert de seconde protection.
+  - Sont masqués les valeurs de secrets chargées et les motifs de clés connus (`sk-ant-…`, en-têtes `Authorization` / `x-api-key`, `api_key`, paramètres `api_key` / `email` / `mailto`), dans le message, les arguments, les traces d'exception et les piles d'appels.
+  - La forme des entrées (`msg`, `args`) est conservée tant qu'aucun secret n'y figure, et le masquage ne lève jamais d'exception.
+  - Limite : un gestionnaire qui rend lui-même les exceptions à partir de `record.exc_info` (par exemple `RichHandler`) contourne le masquage des traces; ne pas en utiliser.
+- Les cassettes de test sont enregistrées avec filtrage des en-têtes (`x-api-key`, `authorization`) et des paramètres (`api_key`, `email`, `mailto`), remplacés par `DUMMY` et `contact@example.org`. Elles sont ensuite vérifiées par un test qui cherche des motifs de secrets dans `tests/` (`config/secret_scan.py`, ENF-SEC-04), selon la règle des valeurs fictives de D-017. Ce test signale le fichier, la ligne et le type de fuite, jamais la valeur.
 - Le serveur écoute sur `127.0.0.1` (ENF-SEC-06).
 
 ## 11. Tests
@@ -319,7 +331,11 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 | Intégration réelle (API de sources, Claude) | `tests/integration/`, marqueur `integration` | **Oui** | `uv run pytest -m integration` — **volontairement seulement** |
 | Performance de tri sur SYNERGY (sous-ensemble) | `tests/benchmarks/` (V1, tranche 7) | Oui (modèle) | Manuel, résultats consignés |
 
-`pyproject.toml` configure `addopts = "-m 'not integration'"` et le mode des cassettes en lecture seule par défaut, pour qu'aucun test ordinaire ne puisse atteindre le réseau.
+`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets.
+
+**Couverture** (ENF-QUA-04, D-023) : chaque exécution de `pytest` mesure la couverture de `revue_portee`, branches comprises (pytest-cov). Le greffon `tests/_plugins/coverage_gate.py` fait échouer la suite si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 %, chacun séparément. Le seuil n'est vérifié que sur la suite complète, et se règle dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
+
+**Vérifications avant fusion** (ENF-QUA-03) : `ruff check`, `ruff format --check`, `mypy` et `pytest`, exécutées aussi par la CI GitHub (`.github/workflows/ci.yml`, Python 3.12 et 3.13). ruff ignore `docs/` et les fichiers `*.md` (D-019).
 
 ## 12. Évolution vers une version hébergée (V4 ou plus tard)
 
