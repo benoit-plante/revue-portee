@@ -31,6 +31,7 @@ build-backend = "uv_build"
 dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "pytest-recording>=0.14.0",
     "ruff>=0.16.10",
 ]
@@ -91,11 +92,25 @@ addopts = [
     "-m",
     "not integration",
     "--record-mode=none",
+    "--cov=revue_portee",
+    "--cov-report=term-missing:skip-covered",
 ]
 markers = [
     "integration: calls real services (network, costs, quotas); excluded by default, run only on explicit request",
 ]
 xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+source = ["revue_portee"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "^\\s*\\.\\.\\.$",
+]
 
 [tool.mypy]
 python_version = "3.12"

@@ -12,6 +12,8 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 
 # Local Claude Code settings (personal, not versioned)
