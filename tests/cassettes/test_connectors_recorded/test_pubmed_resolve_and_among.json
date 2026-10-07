@@ -1,0 +1,26 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.1186%2Fs12904-026-02174-1%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"42426764\"],\"translationset\":[],\"querytranslation\":\"\\\"10.1186/s12904-026-02174-1\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=%28%22scoping+review%22%5Btiab%5D%29+AND+%2842426764%5Buid%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"42426764\"],\"translationset\":[],\"querytranslation\":\"\\\"scoping review\\\"[Title/Abstract] AND 42426764[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=%28%22randomized+controlled+trial%22%5Bti%5D%29+AND+%2842426764%5Buid%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"0\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"\\\"randomized controlled trial\\\"[Title] AND 42426764[UID]\",\"warninglist\":{\"phrasesignored\":[],\"quotedphrasesnotfound\":[],\"outputmessages\":[\"No items found.\"]}}}\n"
+  }
+ }
+]

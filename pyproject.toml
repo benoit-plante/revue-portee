@@ -20,6 +20,7 @@ dependencies = [
     "anthropic>=1.12.0",
     "babel>=2.18.0",
     "fastapi>=0.142.2",
+    "httpx2>=2.13.1",
     "jinja2>=3.1.6",
     "pydantic>=2.13.5",
     "python-docx>=1.2.0",
@@ -111,6 +112,7 @@ addopts = [
 ]
 markers = [
     "integration: calls real services (network, costs, quotas); excluded by default, run only on explicit request",
+    "cassette: replays recorded HTTP answers (tests/recording.py); records them with --record-mode=once",
 ]
 xfail_strict = true
 # Per-package coverage threshold (ENF-QUA-04), enforced by tests/_plugins/coverage_gate.py.
