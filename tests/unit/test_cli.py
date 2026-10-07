@@ -85,3 +85,21 @@ def test_commands_accept_the_name_given_at_creation(tmp_path: Path) -> None:
     runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "T", "--reviseur", "R"])
     result = runner.invoke(app, ["verifier-journal", str(tmp_path / "demo")])
     assert result.exit_code == 0, result.output
+
+
+def test_protocol_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    for language in ("fr", "en"):
+        result = runner.invoke(app, ["protocole", str(folder), "--langue", language])
+        assert result.exit_code == 0, result.output
+        assert "Protocole écrit" in result.output
+        assert (folder / "exports" / f"protocole-{language}.md").is_file()
+        assert (folder / "exports" / f"protocole-{language}.docx").is_file()
+    french = (folder / "exports" / "protocole-fr.md").read_text(encoding="utf-8")
+    assert french.startswith("# Démo : protocole de revue de portée")
+    refused = runner.invoke(app, ["protocole", str(folder), "--langue", "de"])
+    assert refused.exit_code == 1
+    assert "Langue non prise en charge" in refused.output
+    missing = runner.invoke(app, ["protocole", str(tmp_path / "absent")])
+    assert missing.exit_code == 1

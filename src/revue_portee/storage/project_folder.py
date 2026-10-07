@@ -17,11 +17,13 @@ import tomli_w
 from alembic.util.exc import CommandError
 from sqlalchemy import Connection, Engine
 
+from revue_portee.ai.settings import AISettings
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.project import FORMAT_VERSION, Project, Reviewer, ReviewerKind
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
+from revue_portee.resources import default_ai_settings
 from revue_portee.storage import migrate
 from revue_portee.storage.db import create_project_engine, write_transaction
 from revue_portee.storage.repositories import journal, projects
@@ -64,6 +66,19 @@ class ProjectFolder:
 
     def close(self) -> None:
         self.engine.dispose()
+
+    def ai_settings(self) -> AISettings:
+        """AI configuration of the project (``[ia]`` in ``projet.toml``), or the defaults
+        for a project created before it existed."""
+        section = _read_metadata(self.path).get("ia")
+        if not isinstance(section, dict):
+            return default_ai_settings()
+        try:
+            return AISettings.model_validate(section)
+        except ValueError as error:
+            raise ProjectFolderError(
+                _("The [ia] section of {file} is invalid.").format(file=self.path / PROJECT_FILE)
+            ) from error
 
 
 def _with_suffix(path: Path) -> Path:
@@ -137,6 +152,7 @@ def create_project_folder(
                         "created_at": project.created_at.isoformat(),
                         "main_reviewer_id": reviewer.id,
                     },
+                    "ia": default_ai_settings().model_dump(mode="json", exclude_none=True),
                 }
             ),
             encoding="utf-8",

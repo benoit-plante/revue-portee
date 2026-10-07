@@ -1,0 +1,7 @@
+id: qualify_criterion_change
+version: "1"
+task: qualify_criterion_change
+changelog:
+  - version: "1"
+    date: "2026-10-07"
+    change: First version (tranche 1.2).

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Protocol") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Review protocol") }}</h1>
+<p>{{ _("The protocol is generated from the framing, the criteria in force, the AI configuration and the text below, following Peters et al. (2022). It can be reported in the OSF Generalized Systematic Review Registration form (correspondence table in an appendix).") }}</p>
+{% if saved %}<div class="message success" role="status">{{ _("Protocol text saved.") }}</div>{% endif %}
+
+<section aria-labelledby="telecharger">
+  <h2 id="telecharger">{{ _("Download") }}</h2>
+  <ul>
+    <li><a href="/protocole/telecharger?langue=fr&amp;format=docx">{{ _("French, Word (DOCX)") }}</a> · <a href="/protocole/telecharger?langue=fr&amp;format=md">{{ _("French, Markdown") }}</a></li>
+    <li><a href="/protocole/telecharger?langue=en&amp;format=docx">{{ _("English, Word (DOCX)") }}</a> · <a href="/protocole/telecharger?langue=en&amp;format=md">{{ _("English, Markdown") }}</a></li>
+  </ul>
+</section>
+
+<section aria-labelledby="enregistrement">
+  <h2 id="enregistrement">{{ _("Registration") }}</h2>
+  {% if registration %}
+    <p>{{ _("Protocol registered on %(date)s, DOI %(doi)s.", date=registration.registered_on.isoformat(), doi=registration.doi) }}</p>
+    <p class="small">{{ _("Every criteria version activated from now on is a deviation from the protocol, to be reported.") }}</p>
+  {% else %}
+    <p>{{ _("After registering the protocol on OSF, record its DOI here: later changes to the criteria will be flagged as deviations from the protocol.") }}</p>
+  {% endif %}
+  <form method="post" action="/protocole/enregistrement">
+    {{ csrf() }}
+    <label for="doi">{{ _("DOI of the registration") }}</label>
+    <input id="doi" name="doi" type="text" required placeholder="10.17605/OSF.IO/ABCDE" value="{{ doi_value or '' }}">
+    <label for="date">{{ _("Registration date") }}</label>
+    <input id="date" name="date" type="date" required value="{{ date_value or '' }}">
+    <button type="submit">{% if registration %}{{ _("Record a new registration") }}{% else %}{{ _("Record the registration") }}{% endif %}</button>
+  </form>
+</section>
+
+<section aria-labelledby="elements">
+  <h2 id="elements">{{ _("Protocol elements (Peters et al., 2022)") }}</h2>
+  {% if not checklist.verified %}<p class="small">{{ _("The list of elements is to be checked against the checklist of the article.") }}</p>{% endif %}
+  <table class="criteria">
+    <thead><tr><th scope="col">{{ _("Element") }}</th><th scope="col">{{ _("Description") }}</th><th scope="col">{{ _("Status") }}</th></tr></thead>
+    <tbody>
+      {% for item, status in checklist_rows %}
+      <tr><th scope="row">{{ item.id }}</th><td>{{ item.fr }}</td><td>{% if status.filled %}{{ _("written") }}{% elif item.optional %}{{ _("to be completed if applicable") }}{% else %}{{ _("to be completed") }}{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="texte">
+  <h2 id="texte">{{ _("Text of the protocol") }}</h2>
+  <p class="small">{{ _("Separate paragraphs with a blank line. Each change creates a new version of the text, recorded in the journal.") }}</p>
+  <form method="post" action="/protocole/texte">
+    {{ csrf() }}
+    {% set labels = section_labels() %}
+    {% for section in free_sections %}
+    <label for="section-{{ section.value }}">{{ labels[section] }}</label>
+    <textarea id="section-{{ section.value }}" name="{{ section.value }}" rows="4">{{ text.text(section) if text else "" }}</textarea>
+    {% endfor %}
+    <button type="submit">{{ _("Save the text") }}</button>
+  </form>
+</section>
+{% endblock %}

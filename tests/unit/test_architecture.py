@@ -84,3 +84,18 @@ def test_only_secrets_module_reads_environment() -> None:
         if path not in allowed:
             lines = environment_accesses(path.read_text(encoding="utf-8"))
             assert not lines, f"{path.name} reads the environment (lines {lines})"
+
+
+def test_only_the_anthropic_provider_imports_the_sdk() -> None:
+    allowed = {PACKAGE_DIR / "ai" / "providers" / "anthropic.py"}
+    for path in PACKAGE_DIR.rglob("*.py"):
+        if path not in allowed:
+            assert "anthropic" not in imported_roots(path), path.name
+
+
+def test_services_do_not_name_providers() -> None:
+    """Use cases only know ModelProvider and TaskSpec (CLAUDE.md, principle 4)."""
+    for path in (PACKAGE_DIR / "protocol").rglob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        assert "AnthropicProvider" not in source, path.name
+        assert "providers.anthropic" not in source, path.name

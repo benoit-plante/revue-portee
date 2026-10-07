@@ -72,3 +72,21 @@
   <label for="contre_exemples">{{ _("Counterexamples (one per line)") }}</label>
   <textarea id="contre_exemples" name="contre_exemples" rows="3">{{ c.counterexamples | join("\n") if c else "" }}</textarea>
 {% endmacro %}
+
+{% macro cost_preview(preview, action, confirm_label, cancel_url) %}
+<section class="message info" aria-labelledby="estimation-titre" id="estimation">
+  <h3 id="estimation-titre">{{ _("Estimated cost before the call") }}</h3>
+  <dl class="meta">
+    <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+    <dt>{{ _("Calls") }}</dt><dd>{{ preview.items }}</dd>
+    <dt>{{ _("Tokens (estimate)") }}</dt><dd>{{ _("%(input)s in, %(output)s out", input=preview.estimate.input_tokens, output=preview.estimate.output_tokens) }}</dd>
+    <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+  </dl>
+  <p class="small">{{ _("Upper estimate without prompt caching, prices of %(date)s. The actual cost is recorded with the call.", date=preview.prices_as_of.isoformat()) }}</p>
+  <form method="post" action="{{ action }}" class="inline-form">
+    {{ csrf() }}
+    <button type="submit">{{ confirm_label }}</button>
+    <a href="{{ cancel_url }}">{{ _("Cancel") }}</a>
+  </form>
+</section>
+{% endmacro %}

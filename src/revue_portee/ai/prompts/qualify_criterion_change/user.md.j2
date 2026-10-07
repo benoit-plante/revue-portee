@@ -1,0 +1,9 @@
+Criterion {{ code }} (PCC element: {{ pcc_element }})
+{% for label, c in (("Before", before), ("After", after)) %}
+{{ label }}:
+- Kind: {{ c.kind }}
+- Wording: {{ c.text }}
+- Guidance: {{ c.guidance or "(none)" }}
+- Examples: {{ c.examples | join(" | ") if c.examples else "(none)" }}
+- Counterexamples: {{ c.counterexamples | join(" | ") if c.counterexamples else "(none)" }}
+{% endfor %}

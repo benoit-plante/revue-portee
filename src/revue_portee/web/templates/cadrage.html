@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf with context %}
+{% from "_macros.html" import csrf, cost_preview with context %}
 {% block title %}{{ _("Framing") }}{% endblock %}
 {% block content %}
 <h1>{{ _("Framing of the review question") }}</h1>
@@ -20,6 +20,48 @@
   <textarea id="questions_secondaires" name="questions_secondaires" rows="3">{{ f.secondary_questions | join("\n") if f else "" }}</textarea>
   <button type="submit">{{ _("Save the framing") }}</button>
 </form>
+<section aria-labelledby="suggestions-titre" id="suggestions">
+  <h2 id="suggestions-titre">{{ _("AI suggestions") }}</h2>
+  <p>{{ _("The AI can propose reformulations of the question, secondary questions and PCC elements. Each suggestion must be accepted, modified or rejected; your choice is recorded in the journal.") }}</p>
+  {% if preview %}
+    {{ cost_preview(preview, "/cadrage/suggestions", _("Ask the AI (confirm the cost)"), "/cadrage#suggestions") }}
+  {% elif current %}
+    <form method="post" action="/cadrage/suggestions/estimation">
+      {{ csrf() }}
+      <button type="submit" class="secondary">{{ _("Ask the AI for suggestions…") }}</button>
+    </form>
+  {% else %}
+    <p class="small">{{ _("Save the main question first.") }}</p>
+  {% endif %}
+  {% if suggestions %}
+  {% set kinds = suggestion_labels() %}
+  {% set outcomes = outcome_labels() %}
+  <ol class="suggestions">
+    {% for view in suggestions %}
+    {% set s = view.suggestion %}
+    <li id="suggestion-{{ s.id }}">
+      <p><span class="label">{{ kinds[s.kind] }}</span> — {{ s.text }}</p>
+      {% if s.rationale %}<p class="small">{{ _("Rationale of the AI:") }} {{ s.rationale }}</p>{% endif %}
+      <p class="small">{{ _("Proposed by %(model)s on %(date)s UTC", model=view.model_returned, date=s.created_at.strftime("%Y-%m-%d %H:%M")) }}</p>
+      {% if view.review %}
+        <p class="outcome">{{ outcomes[view.review.outcome] }}</p>
+        {% if view.review.outcome == "modified" %}<p>{{ view.review.final_text }}</p>{% endif %}
+      {% else %}
+        <form method="post" action="/cadrage/suggestions/{{ s.id }}">
+          {{ csrf() }}
+          <button type="submit" name="decision" value="accepted">{{ _("Accept") }}</button>
+          <button type="submit" name="decision" value="rejected" class="secondary">{{ _("Reject") }}</button>
+          <label for="texte-{{ s.id }}">{{ _("Modified text") }}</label>
+          <textarea id="texte-{{ s.id }}" name="texte" rows="2">{{ s.text }}</textarea>
+          <button type="submit" name="decision" value="modified" class="secondary">{{ _("Accept with this text") }}</button>
+        </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+
 {% if history %}
 <h2>{{ _("History") }}</h2>
 <ol class="history">

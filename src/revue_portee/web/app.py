@@ -8,7 +8,8 @@ requests with a foreign ``Host`` or ``Origin`` are refused (CSRF, DNS rebinding)
 import secrets
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from importlib.resources import files
 from typing import Annotated, Any
 from urllib.parse import urlsplit
@@ -17,9 +18,16 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from revue_portee.ai.costs import UnknownPriceError
+from revue_portee.ai.providers import ProviderFactory, UnknownProviderError
+from revue_portee.ai.providers.anthropic import UnsupportedParameterError
+from revue_portee.ai.settings import TaskNotAvailableError
 from revue_portee.clock import utc_now
+from revue_portee.config.secrets import MissingSecretError
+from revue_portee.domain.changes import MODIFICATION_TYPES, ChangeType
 from revue_portee.domain.criteria import (
     CriterionKind,
     EmptyCriteriaError,
@@ -30,10 +38,17 @@ from revue_portee.domain.criteria import (
 )
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.journal import verify_chain
+from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
+from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
+from revue_portee.i18n import EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
-from revue_portee.i18n import translations
-from revue_portee.protocol import criteria, framing, notes
-from revue_portee.storage.project_folder import ProjectFolder
+from revue_portee.protocol import criteria, framing, notes, qualification, registration, suggestions
+from revue_portee.protocol.ai_assist import AITaskError, CostPreview, default_provider_factory
+from revue_portee.protocol.document import protocol_document
+from revue_portee.reporting.document import render_docx, render_markdown
+from revue_portee.reporting.protocol import checklist_status
+from revue_portee.resources import peters_checklist
+from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import projects
 from revue_portee.version import tool_version as current_tool_version
 
@@ -121,11 +136,86 @@ def field_names(fields: Iterable[str]) -> str:
     return ", ".join(labels.get(field, field) for field in fields)
 
 
+def suggestion_labels() -> dict[str, str]:
+    return {
+        SuggestionKind.REFORMULATION: _("Reformulation of the question"),
+        SuggestionKind.SECONDARY_QUESTION: _("Secondary question"),
+        SuggestionKind.POPULATION: _("Population"),
+        SuggestionKind.CONCEPT: _("Concept"),
+        SuggestionKind.CONTEXT: _("Context"),
+    }
+
+
+def outcome_labels() -> dict[str, str]:
+    return {
+        SuggestionOutcome.ACCEPTED: _("Accepted"),
+        SuggestionOutcome.MODIFIED: _("Modified, then accepted"),
+        SuggestionOutcome.REJECTED: _("Rejected"),
+    }
+
+
+def change_labels() -> dict[str, str]:
+    return {
+        ChangeType.BROADENING: _("broadening"),
+        ChangeType.NARROWING: _("narrowing"),
+        ChangeType.CLARIFICATION: _("clarification"),
+        ChangeType.ADDED: _("added"),
+        ChangeType.REMOVED: _("removed"),
+    }
+
+
+def section_labels() -> dict[str, str]:
+    return {
+        ProtocolSection.ABSTRACT: _("Abstract"),
+        ProtocolSection.BACKGROUND: _("Background and rationale"),
+        ProtocolSection.EXISTING_REVIEWS: _("Preliminary search for existing reviews"),
+        ProtocolSection.OBJECTIVES: _("Objective"),
+        ProtocolSection.SOURCES: _("Types of sources of evidence"),
+        ProtocolSection.SEARCH: _("Search strategy"),
+        ProtocolSection.INFORMATION_SOURCES: _("Information sources"),
+        ProtocolSection.SELECTION: _(
+            "Source of evidence selection (in addition to the generated text)"
+        ),
+        ProtocolSection.EXTRACTION: _("Data extraction"),
+        ProtocolSection.ANALYSIS: _("Data analysis and presentation"),
+        ProtocolSection.APPRAISAL: _("Critical appraisal"),
+        ProtocolSection.CONSULTATION: _("Consultation"),
+        ProtocolSection.ACKNOWLEDGEMENTS: _("Acknowledgements"),
+        ProtocolSection.FUNDING: _("Funding"),
+        ProtocolSection.CONFLICTS: _("Conflicts of interest"),
+        ProtocolSection.REFERENCES: _("Additional references"),
+    }
+
+
+def decimal_fr(value: Decimal | float, digits: int) -> str:
+    """Number in French notation, e.g. « 0,90 »."""
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
+def money(amount: Decimal, currency: str) -> str:
+    """Amount in French notation, e.g. « 0,0123 USD »."""
+    return decimal_fr(amount, 4) + " " + currency
+
+
+# Errors of an AI request that are shown on the page (French messages).
+_AI_ERRORS: tuple[type[Exception], ...] = (
+    TaskNotAvailableError,
+    UnknownPriceError,
+    UnknownProviderError,
+    UnsupportedParameterError,
+    MissingSecretError,
+    ProjectFolderError,
+    suggestions.NoFramingError,
+    qualification.NothingToQualifyError,
+)
+
+
 def create_app(
     folder: ProjectFolder,
     *,
     now: Callable[[], datetime] = utc_now,
     tool_version: str | None = None,
+    provider_factory: ProviderFactory = default_provider_factory,
 ) -> FastAPI:
     """Application serving one open project folder."""
     context = AppContext(
@@ -147,6 +237,13 @@ def create_app(
         kind_labels=kind_labels,
         status_labels=status_labels,
         field_names=field_names,
+        suggestion_labels=suggestion_labels,
+        outcome_labels=outcome_labels,
+        change_labels=change_labels,
+        section_labels=section_labels,
+        money=money,
+        decimal_fr=decimal_fr,
+        modification_types=MODIFICATION_TYPES,
         PccElement=PccElement,
         CriterionKind=CriterionKind,
     )
@@ -174,7 +271,12 @@ def create_app(
         return see_other("/cadrage")
 
     def framing_page(
-        request: Request, *, error: str | None = None, saved: bool = False, status_code: int = 200
+        request: Request,
+        *,
+        error: str | None = None,
+        saved: bool = False,
+        preview: CostPreview | None = None,
+        status_code: int = 200,
     ) -> HTMLResponse:
         return render(
             request,
@@ -182,6 +284,8 @@ def create_app(
             {
                 "current": framing.current_framing(folder),
                 "history": framing.framing_history(folder),
+                "suggestions": suggestions.list_suggestions(folder),
+                "preview": preview,
                 "error": error,
                 "saved": saved,
             },
@@ -218,19 +322,74 @@ def create_app(
         )
         return see_other("/cadrage?enregistre=1")
 
+    @app.post("/cadrage/suggestions/estimation")
+    def estimate_suggestions(request: Request, _csrf: Csrf) -> Response:
+        try:
+            preview = suggestions.preview_suggestions(folder, factory=provider_factory)
+        except _AI_ERRORS as error:
+            return framing_page(request, error=str(error), status_code=422)
+        return framing_page(request, preview=preview)
+
+    @app.post("/cadrage/suggestions")
+    def request_suggestions(request: Request, _csrf: Csrf) -> Response:
+        try:
+            suggestions.request_suggestions(
+                folder, now=now, tool_version=context.tool_version, factory=provider_factory
+            )
+        except _AI_ERRORS as error:
+            return framing_page(request, error=str(error), status_code=422)
+        except AITaskError as error:
+            return framing_page(request, error=str(error), status_code=502)
+        return see_other("/cadrage#suggestions")
+
+    @app.post("/cadrage/suggestions/{suggestion_id}")
+    def review_suggestion(
+        request: Request,
+        suggestion_id: str,
+        _csrf: Csrf,
+        decision: Annotated[SuggestionOutcome, Form()],
+        texte: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            suggestions.review_suggestion(
+                folder,
+                suggestion_id,
+                decision,
+                text=texte,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except suggestions.UnknownSuggestionError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except (suggestions.AlreadyReviewedError, suggestions.MissingTextError) as error:
+            return framing_page(request, error=str(error), status_code=422)
+        return see_other(f"/cadrage#suggestion-{suggestion_id}")
+
     # --- Criteria ---------------------------------------------------------------------
 
     def criteria_page(
-        request: Request, *, error: str | None = None, status_code: int = 200
+        request: Request,
+        *,
+        error: str | None = None,
+        qualify_preview: CostPreview | None = None,
+        status_code: int = 200,
     ) -> HTMLResponse:
         state = criteria.criteria_state(folder)
         draft_diff = None
         if state.draft is not None and state.active is not None:
             draft_diff = diff_versions(state.active, state.draft)
+        pending = qualification.pending_qualification(folder)
         return render(
             request,
             "criteres.html",
-            {"state": state, "draft_diff": draft_diff, "error": error},
+            {
+                "state": state,
+                "draft_diff": draft_diff,
+                "proposals": {} if pending is None else pending.proposals,
+                "qualify_preview": qualify_preview,
+                "registration": registration.current_registration(folder),
+                "error": error,
+            },
             status_code=status_code,
         )
 
@@ -325,25 +484,66 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(error)) from error
         return see_other("/criteres#brouillon")
 
+    @app.post("/criteres/qualification/estimation")
+    def estimate_qualification(request: Request, _csrf: Csrf) -> Response:
+        try:
+            preview = qualification.preview_proposals(folder, factory=provider_factory)
+        except _AI_ERRORS as error:
+            return criteria_page(request, error=str(error), status_code=422)
+        return criteria_page(request, qualify_preview=preview)
+
+    @app.post("/criteres/qualification")
+    def request_qualification(request: Request, _csrf: Csrf) -> Response:
+        try:
+            qualification.request_proposals(
+                folder, now=now, tool_version=context.tool_version, factory=provider_factory
+            )
+        except _AI_ERRORS as error:
+            return criteria_page(request, error=str(error), status_code=422)
+        except AITaskError as error:
+            return criteria_page(request, error=str(error), status_code=502)
+        return see_other("/criteres#qualification")
+
     @app.post("/criteres/activer")
-    def activate(
+    async def activate(
         request: Request, _csrf: Csrf, justification: Annotated[str, Form()] = ""
     ) -> Response:
+        form = await request.form()
+        choices: dict[str, ChangeType] = {}
+        for key, value in form.multi_items():
+            if key.startswith("qualification-") and isinstance(value, str):
+                try:
+                    choices[key.removeprefix("qualification-")] = ChangeType(value)
+                except ValueError:
+                    raise HTTPException(status_code=422, detail=_("Invalid form.")) from None
         try:
-            activated = criteria.activate_draft(
-                folder, rationale=justification, now=now, tool_version=context.tool_version
+            activated = await run_in_threadpool(
+                criteria.activate_draft,
+                folder,
+                rationale=justification,
+                qualifications=choices,
+                now=now,
+                tool_version=context.tool_version,
             )
         except criteria.NoDraftError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except MissingRationaleError:
-            return criteria_page(
+            return await run_in_threadpool(
+                criteria_page,
                 request,
                 error=_("A rationale is required to create a new version of the criteria."),
                 status_code=422,
             )
         except EmptyCriteriaError:
-            return criteria_page(
-                request, error=_("Add at least one criterion before activating."), status_code=422
+            return await run_in_threadpool(
+                criteria_page,
+                request,
+                error=_("Add at least one criterion before activating."),
+                status_code=422,
+            )
+        except qualification.MissingQualificationError as error:
+            return await run_in_threadpool(
+                criteria_page, request, error=str(error), status_code=422
             )
         return see_other(f"/criteres/versions/{activated.number}")
 
@@ -363,7 +563,11 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(error)) from error
         if found.status is VersionStatus.DRAFT:
             return see_other("/criteres#brouillon")  # type: ignore[return-value]
-        return render(request, "version.html", {"version": found})
+        return render(
+            request,
+            "version.html",
+            {"version": found, "changes": qualification.version_changes(folder, found.id)},
+        )
 
     @app.get("/criteres/differentiel", response_class=HTMLResponse)
     def show_diff(request: Request, de: int, a: int) -> HTMLResponse:
@@ -375,6 +579,111 @@ def create_app(
             request,
             "differentiel.html",
             {"diff": delta, "versions": criteria.criteria_state(folder).versions},
+        )
+
+    # --- Protocol ---------------------------------------------------------------------
+
+    def protocol_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        saved: bool = False,
+        doi_value: str = "",
+        date_value: str = "",
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        document = protocol_document(
+            folder, language="fr", now=now, tool_version=context.tool_version
+        )
+        checklist = peters_checklist()
+        statuses = checklist_status(document.blocks, checklist)
+        current = registration.current_protocol_text(folder)
+        return render(
+            request,
+            "protocole.html",
+            {
+                "registration": registration.current_registration(folder),
+                "checklist": checklist,
+                "checklist_rows": list(zip(checklist.items, statuses, strict=True)),
+                "text": None if current is None else current.text,
+                "free_sections": FREE_TEXT_SECTIONS,
+                "doi_value": doi_value,
+                "date_value": date_value,
+                "error": error,
+                "saved": saved,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/protocole", response_class=HTMLResponse)
+    def show_protocol(request: Request, enregistre: int = 0) -> HTMLResponse:
+        return protocol_page(request, saved=bool(enregistre))
+
+    @app.post("/protocole/texte")
+    async def save_protocol_text(request: Request, _csrf: Csrf) -> Response:
+        form = await request.form()
+        sections = {
+            section: str(form.get(section.value, ""))
+            for section in FREE_TEXT_SECTIONS
+            if isinstance(form.get(section.value, ""), str)
+        }
+        await run_in_threadpool(
+            registration.save_protocol_text,
+            folder,
+            ProtocolText(sections=sections),
+            now=now,
+            tool_version=context.tool_version,
+        )
+        return see_other("/protocole?enregistre=1#texte")
+
+    @app.post("/protocole/enregistrement")
+    def register(
+        request: Request,
+        _csrf: Csrf,
+        doi: Annotated[str, Form()] = "",
+        date_: Annotated[str, Form(alias="date")] = "",
+    ) -> Response:
+        try:
+            registered_on = date.fromisoformat(date_)
+        except ValueError:
+            return protocol_page(
+                request,
+                error=_("Enter the registration date."),
+                doi_value=doi,
+                status_code=422,
+            )
+        try:
+            registration.register_protocol(
+                folder, doi, registered_on, now=now, tool_version=context.tool_version
+            )
+        except (
+            registration.InvalidDoiError,
+            registration.InvalidRegistrationDateError,
+        ) as error:
+            return protocol_page(
+                request, error=str(error), doi_value=doi, date_value=date_, status_code=422
+            )
+        return see_other("/protocole#enregistrement")
+
+    @app.get("/protocole/telecharger")
+    def download_protocol(langue: str = "fr", format: str = "docx") -> Response:
+        if langue not in EXPORT_LANGUAGES or format not in {"md", "docx"}:
+            raise HTTPException(status_code=404, detail=_("Unknown export."))
+        document = protocol_document(
+            folder, language=langue, now=now, tool_version=context.tool_version
+        )
+        filename = f"protocole-{langue}.{format}"
+        disposition = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        if format == "md":
+            return Response(
+                render_markdown(document),
+                media_type="text/markdown; charset=utf-8",
+                headers=disposition,
+            )
+        return Response(
+            render_docx(document),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers=disposition,
         )
 
     # --- Journal ----------------------------------------------------------------------

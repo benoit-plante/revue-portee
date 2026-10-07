@@ -1,0 +1,44 @@
+# Default AI configuration of a new project (docs/03-architecture.md §6).
+# Copied into projet.toml ([ia]) when a project is created; the project file then
+# prevails. Model names live here and in projet.toml, never in the code.
+as_of: "2026-10-07"
+
+# How the AI is supervised (EF-CAD-07, RAISE). Values from docs/02-exigences.md.
+supervision:
+  # V1: one human reviewer screens every reference; the AI is a second reviewer whose
+  # decisions never exclude a reference on their own (D-009, D-014).
+  mode: second_reviewer
+  ai_alone_may_exclude: false
+  # EF-SEL-01: pilot on a random sample before screening (default 100 at title and
+  # abstract), drawn with a recorded seed, human decisions blinded (EF-SEL-02).
+  pilot_sample_size: 100
+  # EF-SEL-05, EF-SEL-11: thresholds favour sensitivity; default target 0.95.
+  target_sensitivity: "0.95"
+  # docs/03-architecture.md §6.5: isotonic regression (Platt with little data).
+  calibration_method: isotonic
+
+# One entry per AI task. "planned" tasks are described in the protocol but cannot run yet.
+tasks:
+  suggest_pcc:
+    status: enabled
+    provider: anthropic
+    model: claude-opus-5-5
+    params:
+      max_tokens: 16000
+      effort: medium
+      fallbacks: default
+    # Used by the cost estimate before the call (thinking included).
+    expected_output_tokens: 3000
+  qualify_criterion_change:
+    status: enabled
+    provider: anthropic
+    model: claude-opus-5-5
+    params:
+      max_tokens: 16000
+      effort: medium
+      fallbacks: default
+    expected_output_tokens: 1500
+  suggest_terms:
+    status: planned  # tranche 1.3
+  screen_reference:
+    status: planned  # tranche 1.6: model and prompt strategy chosen at the benchmark

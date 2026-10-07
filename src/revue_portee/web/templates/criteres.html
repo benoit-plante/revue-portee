@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf, criteria_table, criterion_fields with context %}
+{% from "_macros.html" import csrf, criteria_table, criterion_fields, cost_preview with context %}
 {% block title %}{{ _("Criteria") }}{% endblock %}
 {% block content %}
 <h1>{{ _("Eligibility criteria") }}</h1>
@@ -42,9 +42,43 @@
       <button type="submit">{{ _("Add the criterion") }}</button>
     </form>
 
+    {% if draft_diff and draft_diff.modified %}
+    <h3 id="qualification">{{ _("Qualify the changes") }}</h3>
+    <p>{{ _("Each modified criterion must be qualified before the new version comes into force: broadening (more inclusive), narrowing (more exclusive) or clarification (no intended change of scope). The AI can propose a qualification; you confirm or correct it.") }}</p>
+    {% if qualify_preview %}
+      {{ cost_preview(qualify_preview, "/criteres/qualification", _("Ask the AI (confirm the cost)"), "/criteres#qualification") }}
+    {% else %}
+      <form method="post" action="/criteres/qualification/estimation">
+        {{ csrf() }}
+        <button type="submit" class="secondary">{{ _("Ask the AI to qualify the changes…") }}</button>
+      </form>
+    {% endif %}
+    {% endif %}
+
     <h3>{{ _("Activate the draft") }}</h3>
     <form method="post" action="/criteres/activer">
       {{ csrf() }}
+      {% if draft_diff %}
+      {% set changes = change_labels() %}
+      {% for m in draft_diff.modified %}
+      {% set proposal = proposals.get(m.code) %}
+      <fieldset id="qualifier-{{ m.code }}">
+        <legend>{{ _("Type of change of %(code)s", code=m.code) }}</legend>
+        {% if proposal %}<p class="small">{{ _("AI proposal: %(type)s (confidence %(confidence)s).", type=changes[proposal.change_type], confidence=decimal_fr(proposal.confidence or 0, 2)) }} {{ proposal.rationale }}</p>{% endif %}
+        {% for value in modification_types %}
+        <label class="inline">
+          <input type="radio" name="qualification-{{ m.code }}" value="{{ value }}" required
+                 {% if proposal and proposal.change_type == value %}checked{% endif %}>
+          {{ changes[value] }}
+        </label>
+        {% endfor %}
+      </fieldset>
+      {% endfor %}
+      {% if draft_diff.added or draft_diff.removed %}
+      <p class="small">{{ _("Added and removed criteria are qualified automatically.") }}</p>
+      {% endif %}
+      {% endif %}
+      {% if registration %}<p class="message info">{{ _("The protocol is registered (DOI %(doi)s): this version will be a deviation from the protocol, to be reported.", doi=registration.doi) }}</p>{% endif %}
       <label for="justification">{{ _("Rationale for the change") }}{% if state.draft.number > 1 %} {{ _("(required)") }}{% endif %}</label>
       <textarea id="justification" name="justification" rows="2" {% if state.draft.number > 1 %}required{% endif %}></textarea>
       <button type="submit">{{ _("Activate version %(number)s", number=state.draft.number) }}</button>
@@ -67,7 +101,7 @@
   {% set statuses = status_labels() %}
   <ol class="history">
     {% for v in state.versions | reverse %}
-    <li><a href="/criteres/versions/{{ v.number }}">{{ _("Version %(number)s", number=v.number) }}</a> — {{ statuses[v.status] }}{% if v.rationale %} — {{ v.rationale }}{% endif %}</li>
+    <li><a href="/criteres/versions/{{ v.number }}">{{ _("Version %(number)s", number=v.number) }}</a> — {{ statuses[v.status] }}{% if v.after_protocol_registration %} — <strong>{{ _("deviation from the protocol") }}</strong>{% endif %}{% if v.rationale %} — {{ v.rationale }}{% endif %}</li>
     {% endfor %}
   </ol>
   {% if state.versions | length > 1 %}
