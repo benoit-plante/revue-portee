@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, criterion_fields with context %}
+{% block title %}{{ _("Edit %(code)s", code=criterion.code) }}{% endblock %}
+{% block content %}
+<h1>{{ _("Edit criterion %(code)s", code=criterion.code) }}</h1>
+<p>{{ _("PCC element: %(element)s. The code and the PCC element of a criterion never change.", element=pcc_labels()[criterion.pcc_element]) }}</p>
+{% if not has_draft %}<p class="message info">{{ _("Saving will start a draft of the next version; the version in force stays unchanged.") }}</p>{% endif %}
+<form method="post" action="/criteres/brouillon/{{ criterion.code }}">
+  {{ csrf() }}
+  {{ criterion_fields(criterion) }}
+  <button type="submit">{{ _("Save in the draft") }}</button>
+  <a href="/criteres">{{ _("Cancel") }}</a>
+</form>
+{% endblock %}

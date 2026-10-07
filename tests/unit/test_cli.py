@@ -1,7 +1,13 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from revue_portee import __version__
 from revue_portee.cli.main import app
+from revue_portee.domain.journal import EntryType
+from revue_portee.protocol import notes
+from revue_portee.storage.project_folder import open_project_folder
+from support import raw_sqlite
 
 runner = CliRunner()
 
@@ -16,3 +22,66 @@ def test_no_arguments_shows_french_help() -> None:
     result = runner.invoke(app, [])
     assert result.exit_code == 0
     assert "Afficher la version et quitter." in result.output
+    assert "nouveau" in result.output
+    assert "verifier-journal" in result.output
+
+
+def test_new_project_then_verify_journal(tmp_path: Path) -> None:
+    created = runner.invoke(
+        app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "Benoit"]
+    )
+    assert created.exit_code == 0, created.output
+    assert "Projet créé" in created.output
+    folder = tmp_path / "demo.revue"
+
+    checked = runner.invoke(app, ["verifier-journal", str(folder)])
+    assert checked.exit_code == 0, checked.output
+    assert "Journal intègre : 1 entrée" in checked.output
+
+    # The check is read-only: it does not record an opening.
+    from revue_portee.clock import utc_now
+
+    project = open_project_folder(folder, now=utc_now, tool_version="t", record_opening=False)
+    assert [e.entry_type for e in notes.journal_entries(project)] == [EntryType.PROJECT_CREATED]
+    project.close()
+
+
+def test_new_project_refuses_non_empty_folder(tmp_path: Path) -> None:
+    target = tmp_path / "demo.revue"
+    target.mkdir()
+    (target / "x").write_text("x")
+    result = runner.invoke(app, ["nouveau", str(target), "--titre", "T", "--reviseur", "R"])
+    assert result.exit_code == 1
+    assert "n'est pas vide" in result.output
+
+
+def test_verify_journal_reports_alteration(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "T", "--reviseur", "R"])
+    database = tmp_path / "demo.revue" / "revue.sqlite"
+    with raw_sqlite(database) as connection:
+        connection.execute("DROP TRIGGER journal_entry_no_update")
+        connection.execute("UPDATE journal_entry SET summary_fr = 'falsifié'")
+    result = runner.invoke(app, ["verifier-journal", str(tmp_path / "demo.revue")])
+    assert result.exit_code == 1
+    assert "rompue à l'entrée 1" in result.output
+
+
+def test_verify_journal_on_a_non_project(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["verifier-journal", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "n'est pas un dossier de projet" in result.output
+
+
+def test_new_project_reports_invalid_input_in_french(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["nouveau", str(tmp_path / "demo"), "--titre", " ", "--reviseur", "R"]
+    )
+    assert result.exit_code == 1
+    assert "Le titre de la revue est obligatoire." in result.output
+    assert "Traceback" not in result.output
+
+
+def test_commands_accept_the_name_given_at_creation(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "T", "--reviseur", "R"])
+    result = runner.invoke(app, ["verifier-journal", str(tmp_path / "demo")])
+    assert result.exit_code == 0, result.output

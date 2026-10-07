@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import criteria_table with context %}
+{% block title %}{{ _("Version %(number)s", number=version.number) }}{% endblock %}
+{% block content %}
+<h1>{{ _("Criteria, version %(number)s", number=version.number) }}</h1>
+<dl class="meta">
+  <dt>{{ _("Status") }}</dt><dd>{{ status_labels()[version.status] }}</dd>
+  <dt>{{ _("In force since") }}</dt><dd>{{ version.activated_at.strftime("%Y-%m-%d %H:%M") }} UTC</dd>
+  {% if version.rationale %}<dt>{{ _("Rationale") }}</dt><dd>{{ version.rationale }}</dd>{% endif %}
+</dl>
+{{ criteria_table(version) }}
+{% if version.number > 1 %}<p><a href="/criteres/differentiel?de={{ version.number - 1 }}&amp;a={{ version.number }}">{{ _("Differences with version %(number)s", number=version.number - 1) }}</a></p>{% endif %}
+<p><a href="/criteres">{{ _("Back to the criteria") }}</a></p>
+{% endblock %}

@@ -23,6 +23,16 @@ Cette commande crée l'environnement virtuel `.venv/` et installe les dépendanc
 uv run revue-portee --version
 ```
 
+### Utiliser l'outil
+
+```bash
+uv run revue-portee nouveau ma-revue --titre "Titre de la revue" --reviseur "Prénom Nom"
+uv run revue-portee serve ma-revue.revue            # interface web sur http://127.0.0.1:8000/
+uv run revue-portee verifier-journal ma-revue.revue # vérifie la chaîne d'empreintes du journal
+```
+
+Un projet est un dossier `.revue` (fichier `projet.toml` et base `revue.sqlite`). L'interface web n'écoute que sur `127.0.0.1`. Elle offre les pages « Cadrage » (question PCC), « Critères » (brouillon, versions et différentiel) et « Journal » (entrées, notes et vérification de la chaîne).
+
 ### Tests et style
 
 ```bash

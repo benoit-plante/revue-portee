@@ -19,6 +19,8 @@ from enum import StrEnum
 
 from pydantic import SecretStr
 
+from revue_portee.i18n import gettext as _
+
 __all__ = [
     "MASK",
     "MissingSecretError",
@@ -65,15 +67,17 @@ _ENV_VARS: dict[SecretName, tuple[str, ...]] = {
 _OPTIONAL: frozenset[SecretName] = frozenset({SecretName.OPENALEX_API_KEY})
 
 
-# User-facing descriptions (French interface).
-_DESCRIPTIONS: dict[SecretName, str] = {
-    SecretName.ANTHROPIC_API_KEY: "clé d'API Anthropic, utilisée par le réviseur IA",
-    SecretName.OPENALEX_API_KEY: (
-        "clé d'API OpenAlex, exigée par OpenAlex depuis février 2026 "
-        "sauf si un mandataire réseau l'ajoute aux requêtes"
-    ),
-    SecretName.CONTACT_EMAIL: "adresse de contact transmise aux API bibliographiques",
-}
+def _description(name: SecretName) -> str:
+    """User-facing description of a secret, in the interface language."""
+    descriptions = {
+        SecretName.ANTHROPIC_API_KEY: _("Anthropic API key, used by the AI reviewer"),
+        SecretName.OPENALEX_API_KEY: _(
+            "OpenAlex API key, required by OpenAlex since February 2026 "
+            "unless a network proxy adds it to the requests"
+        ),
+        SecretName.CONTACT_EMAIL: _("contact address sent to the bibliographic APIs"),
+    }
+    return descriptions[name]
 
 
 class MissingSecretError(RuntimeError):
@@ -81,10 +85,12 @@ class MissingSecretError(RuntimeError):
 
     def __init__(self, name: SecretName) -> None:
         self.name = name
+        names = f" {_('or')} ".join(name.env_vars)
         super().__init__(
-            f"Variable d'environnement manquante : {' ou '.join(name.env_vars)} "
-            f"({_DESCRIPTIONS[name]}). "
-            "Définissez-la dans les réglages de l'environnement, puis relancez la commande."
+            _(
+                "Missing environment variable: {names} ({description}). "
+                "Set it in the environment settings, then run the command again."
+            ).format(names=names, description=_description(name))
         )
 
 

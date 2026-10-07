@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import criterion_details with context %}
+{% block title %}{{ _("Differences") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Differences between version %(old)s and version %(new)s", old=diff.from_number, new=diff.to_number) }}</h1>
+{% if diff.is_empty %}<p>{{ _("The two versions have the same criteria.") }}</p>{% endif %}
+{% if diff.added %}
+<h2>{{ _("Added criteria") }}</h2>
+<ul class="diff added">{% for c in diff.added %}<li><code>{{ c.code }}</code> {{ criterion_details(c) }}</li>{% endfor %}</ul>
+{% endif %}
+{% if diff.removed %}
+<h2>{{ _("Removed criteria") }}</h2>
+<ul class="diff removed">{% for c in diff.removed %}<li><code>{{ c.code }}</code> {{ criterion_details(c) }}</li>{% endfor %}</ul>
+{% endif %}
+{% if diff.modified %}
+<h2>{{ _("Modified criteria") }}</h2>
+{% for m in diff.modified %}
+<section class="diff modified" aria-labelledby="mod-{{ m.code }}">
+  <h3 id="mod-{{ m.code }}"><code>{{ m.code }}</code> — {{ _("changed: %(fields)s", fields=field_names(m.changed_fields)) }}</h3>
+  <div class="columns">
+    <div><h4>{{ _("Version %(number)s", number=diff.from_number) }}</h4>{{ criterion_details(m.before) }}</div>
+    <div><h4>{{ _("Version %(number)s", number=diff.to_number) }}</h4>{{ criterion_details(m.after) }}</div>
+  </div>
+</section>
+{% endfor %}
+{% endif %}
+{% if diff.unchanged %}<p>{{ _("Unchanged: %(codes)s", codes=diff.unchanged | join(", ")) }}</p>{% endif %}
+<p><a href="/criteres">{{ _("Back to the criteria") }}</a></p>
+{% endblock %}

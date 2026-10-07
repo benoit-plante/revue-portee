@@ -11,6 +11,7 @@ from revue_portee.ai.base import (
     TaskSpec,
     UnsupportedTaskError,
 )
+from revue_portee.i18n import gettext as _
 
 __all__ = ["run_task"]
 
@@ -27,17 +28,19 @@ def run_task[InputT: TaskInput, OutputT: TaskOutput](
     )
     if mismatch:
         raise RuntimeError(
-            f"Le fournisseur «\u00a0{provider.name}\u00a0» a renvoyé des résultats incohérents "
-            f"pour la tâche «\u00a0{task.name}\u00a0»\u00a0: {mismatch}."
+            _(
+                "The provider “{provider}” returned inconsistent results "
+                "for the task “{task}”: {mismatch}."
+            ).format(provider=provider.name, task=task.name, mismatch=mismatch)
         )
     for result in results:
         if not isinstance(result.output, task.output_model):
-            raise TypeError(f"Sortie invalide pour la tâche « {task.name} ».")
+            raise TypeError(_("Invalid output for the task “{task}”.").format(task=task.name))
     return results
 
 
 def _describe_mismatch(expected: Sequence[str], received: Sequence[str]) -> str:
-    """French description of the item ids that are missing, unexpected or repeated."""
+    """Description of the item ids that are missing, unexpected or repeated."""
     expected_counts, received_counts = Counter(expected), Counter(received)
     missing = sorted((expected_counts - received_counts).keys())
     unexpected = sorted(set(received_counts) - set(expected_counts))
@@ -49,9 +52,9 @@ def _describe_mismatch(expected: Sequence[str], received: Sequence[str]) -> str:
     parts = [
         f"{label} {', '.join(ids)}"
         for label, ids in (
-            ("manquants\u00a0:", missing),
-            ("inattendus\u00a0:", unexpected),
-            ("en double\u00a0:", repeated),
+            (_("missing:"), missing),
+            (_("unexpected:"), unexpected),
+            (_("repeated:"), repeated),
         )
         if ids
     ]
