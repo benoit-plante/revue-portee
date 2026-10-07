@@ -6,7 +6,7 @@ Lis ce fichier en entier au début de chaque session. Il est court; les détails
 
 **revue-portee** : logiciel libre (Python) qui accompagne une équipe de recherche dans une revue de portée (*scoping review*) selon la méthode **JBI** et la norme **PRISMA-ScR**, avec l'IA comme **second réviseur traçable**. Fonctionnalité distinctive : critères d'inclusion et grille d'extraction **versionnés**, avec **analyse d'impact** des changements et réévaluation. V1 = application **web locale** (FastAPI, interface en français) + ligne de commande; **un réviseur humain + l'IA**.
 
-Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`). Benoit révise chaque demande de fusion.
+Projet personnel de Benoit Plante (dépôt **public** `benoit-plante/revue-portee`, rendu public le 2026-10-07 : tout ce qui est poussé, historique compris, est visible de tous). Benoit révise chaque demande de fusion.
 
 ## À lire selon la tâche
 
