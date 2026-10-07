@@ -29,6 +29,7 @@ uv run revue-portee --version
 uv run pytest                                         # tests ordinaires, sans réseau
 uv run ruff check . && uv run ruff format --check .   # vérification du style
 uv run ruff format .                                  # formatage
+uv run mypy                                           # vérification des types (mode strict)
 ```
 
 Les tests ordinaires n'appellent jamais les vraies API : ils utilisent des réponses enregistrées et un fournisseur d'IA factice, et l'accès au réseau y est bloqué. Les tests d'intégration, qui appellent de vrais services, sont exclus par défaut et se lancent seulement volontairement :

@@ -89,8 +89,7 @@ class FakeProvider:
                 created_at=self._clock(),
             )
             self.calls.append(call)
-            # Parametrize with the concrete schema so that serialization keeps every field.
-            yield TaskResult[task.output_model](
+            yield _result_type(task.output_model)(
                 item_id=validated_input.item_id,
                 output=output,
                 raw_confidence=self._confidence,
@@ -100,6 +99,11 @@ class FakeProvider:
     def _check(self, task: TaskSpec[Any, Any]) -> None:
         if not self.supports(task):
             raise UnsupportedTaskError(self.name, task.name)
+
+
+def _result_type[OutputT: TaskOutput](output_model: type[OutputT]) -> type[TaskResult[OutputT]]:
+    """Parametrize with the concrete schema so that serialization keeps every field."""
+    return TaskResult[output_model]  # type: ignore[valid-type]
 
 
 def _render(task: TaskSpec[Any, Any], item: TaskInput) -> str:
