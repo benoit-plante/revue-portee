@@ -1,0 +1,136 @@
+[project]
+name = "revue-portee"
+version = "0.1.0.dev0"
+description = "Accompagnement des revues de portée (JBI, PRISMA-ScR) avec l'IA comme second réviseur traçable."
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Benoit Plante" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Natural Language :: French",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "pydantic>=2.13.5",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+revue-portee = "revue_portee.cli.main:app"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-recording>=0.14.0",
+    "ruff>=0.16.10",
+]
+
+[tool.uv]
+required-version = ">=0.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+# docs/ is written in Cowork and must not be reformatted (CLAUDE.md).
+extend-exclude = ["docs", "*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+    "SIM", # flake8-simplify
+    "PT",  # flake8-pytest-style
+    "ANN", # flake8-annotations (full typing)
+    "RUF", # ruff-specific rules
+]
+# French typography in user-facing strings: no-break spaces before « : ; ? ! » and inside « ».
+allowed-confusables = ["\u00a0", "\u202f"]
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101", # assert is the pytest idiom
+    "S105", # fake secrets are expected in tests
+    "S106",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["tests"]
+# Integration tests (real services, costs, quotas) are excluded by default and
+# cassettes are read-only: no ordinary test can reach the network.
+# Override explicitly: `uv run pytest -m integration [--record-mode=once]`.
+addopts = [
+    "-ra",
+    "--import-mode=importlib",
+    "--strict-markers",
+    "--strict-config",
+    "-m",
+    "not integration",
+    "--record-mode=none",
+    "--cov=revue_portee",
+    "--cov-report=term-missing:skip-covered",
+]
+markers = [
+    "integration: calls real services (network, costs, quotas); excluded by default, run only on explicit request",
+]
+xfail_strict = true
+# Per-package coverage threshold (ENF-QUA-04), enforced by tests/_plugins/coverage_gate.py.
+coverage_gate_packages = [
+    "domain",
+    "dedup",
+    "reporting",
+]
+coverage_gate_fail_under = "90"
+
+[tool.coverage.run]
+branch = true
+source = ["revue_portee"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "^\\s*\\.\\.\\.$",
+]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+# Test modules are resolved from tests/ (pytest's `pythonpath`), e.g. `_plugins.coverage_gate`.
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Environments and tools
+.venv/
+.env
+.env.*
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local Claude Code settings (personal, not versioned)
+.claude/settings.local.json
+
+# Review projects created locally (user data, never versioned)
+*.revue/

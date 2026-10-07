@@ -192,7 +192,7 @@
 
 | ID | Exigence |
 |---|---|
-| ENF-SEC-01 | Les clés d'API (`ANTHROPIC_API_KEY`, et toute autre clé ajoutée) sont lues **uniquement** depuis les variables d'environnement (ou, sur le poste de l'utilisateur, depuis le trousseau du système en V2). Elles ne sont **jamais** affichées, journalisées, écrites dans un fichier du projet, dans une archive, dans un message d'erreur ou dans une réponse enregistrée pour les tests. |
+| ENF-SEC-01 | Les clés d'API (`REVUE_PORTEE_ANTHROPIC_KEY`, à défaut `ANTHROPIC_API_KEY` (D-020); `OPENALEX_API_KEY`, facultative (D-021); et toute autre clé ajoutée) sont lues **uniquement** depuis les variables d'environnement (ou, sur le poste de l'utilisateur, depuis le trousseau du système en V2). Elles ne sont **jamais** affichées, journalisées, écrites dans un fichier du projet, dans une archive, dans un message d'erreur ou dans une réponse enregistrée pour les tests. |
 | ENF-SEC-02 | Le même traitement s'applique à `CONTACT_EMAIL` : utilisé dans les en-têtes et paramètres requis par les API, jamais écrit dans les fichiers du projet ni dans les réponses enregistrées (remplacé par une valeur fictive). |
 | ENF-SEC-03 | Un filtre de journalisation doit masquer toute chaîne ressemblant à une clé connue; un test automatisé le vérifie. |
 | ENF-SEC-04 | Les réponses enregistrées pour les tests doivent être **nettoyées** (en-têtes d'authentification, paramètres `api_key`, `email`, `mailto`) avant d'être versionnées; un test vérifie qu'aucun fichier de `tests/` ne contient de secret. |
@@ -226,8 +226,8 @@
 |---|---|
 | ENF-QUA-01 | Les tests automatisés **n'appellent jamais les vraies API** : ils utilisent des réponses enregistrées et des modèles factices. |
 | ENF-QUA-02 | Des **tests d'intégration**, marqués et exclus par défaut, appellent les vrais services; ils ne sont lancés que volontairement. |
-| ENF-QUA-03 | `ruff check`, `ruff format --check` et `pytest` doivent passer avant toute demande de fusion. |
-| ENF-QUA-04 | Couverture de tests : les modules de domaine (critères, décisions, versionnement, impact, dédoublonnage, diagramme) devraient dépasser 90 %. |
+| ENF-QUA-03 | `ruff check`, `ruff format --check`, `mypy` (mode strict, D-022) et `pytest` doivent passer avant toute demande de fusion. |
+| ENF-QUA-04 | Couverture de tests : les paquets `domain` (critères, décisions, versionnement, impact), `dedup` (dédoublonnage) et `reporting` (diagramme, protocole, section méthode) doivent chacun atteindre au moins 90 %, branches comprises; `pytest` échoue sinon (D-023). |
 | ENF-QUA-05 | Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main. |
 
 ### 2.8 Performance et utilisabilité (ENF-PER)
