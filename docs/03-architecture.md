@@ -75,6 +75,8 @@ revue-portee/
 │   │   ├── ids.py                # identifiants (ULID), codes de critères
 │   │   ├── references.py         # Reference, Provenance, normalisation DOI/titre
 │   │   ├── criteria.py           # CriteriaVersion, Criterion, CriterionChange
+│   │   ├── framing.py            # Framing, FramingVersion (question PCC versionnée)
+│   │   ├── project.py            # Project, Reviewer
 │   │   ├── decisions.py          # Decision, ReviewerRef, Stage, état courant
 │   │   ├── impact.py             # analyse d'impact des changements (EF-VER-04)
 │   │   ├── grid.py               # GridVersion, Field, ExtractionValue (V3)
@@ -82,14 +84,15 @@ revue-portee/
 │   │   └── journal.py            # JournalEntry, chaîne d'empreintes
 │   ├── storage/
 │   │   ├── project_folder.py     # création/ouverture du dossier de projet
-│   │   ├── db.py, repositories/  # accès SQLite
-│   │   ├── migrations/           # Alembic
+│   │   ├── db.py, repositories/  # accès SQLite; écritures par ProjectFolder.write() (D-036)
+│   │   ├── migrate.py, migrations/ # Alembic (migrations appliquées à l'ouverture)
 │   │   └── archive.py            # export autonome (EF-PRJ-04)
 │   ├── sources/
 │   │   ├── base.py               # interface Source, limiteur de débit, reprise
 │   │   ├── openalex.py, pubmed.py, crossref.py, unpaywall.py
 │   │   ├── ris.py                # import RIS
 │   │   └── oai_pmh.py            # Érudit, HAL, dépôts (V2)
+│   ├── protocol/                 # cas d'usage de l'étape 1 : cadrage, critères, notes du journal
 │   ├── search/                   # blocs de concepts, traducteurs par base, test de sensibilité
 │   ├── dedup/                    # dédoublonnage
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
@@ -107,11 +110,14 @@ revue-portee/
 │   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
 │   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
 │   ├── jobs/                     # tâches de fond persistantes
-│   ├── web/                      # FastAPI : routes, gabarits, statique, traductions
-│   ├── cli/                      # Typer
+│   ├── web/                      # FastAPI : routes (app.py), gabarits, statique (HTMX copié, D-033)
+│   ├── cli/                      # Typer : nouveau, serve, verifier-journal
+│   ├── i18n/                     # catalogues Babel (locale/fr/…/messages.po), D-031
+│   ├── clock.py, version.py      # heure UTC; version de l'outil et commit (D-034)
 │   └── resources/                # YAML : PRISMA-ScR, gabarit diagramme, OSF, tarifs
 └── tests/
     ├── conftest.py               # blocage du réseau, filtrage des cassettes
+    ├── support.py                # utilitaires partagés (horloge déterministe, projet de test)
     ├── _plugins/                 # greffons pytest du projet (seuil de couverture par paquet)
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
@@ -143,7 +149,9 @@ ecoanxiete-enfants.revue/
 
 ## 5. Modèle de données
 
-Tous les identifiants sont des **ULID** (triables par date). Toutes les dates sont en UTC, ISO 8601. Les colonnes `*_json` contiennent du JSON validé par un modèle Pydantic.
+Tous les identifiants sont des **ULID** (triables par date), générés sans dépendance externe (D-025). Toutes les dates sont en UTC, ISO 8601. Les colonnes `*_json` contiennent du JSON validé par un modèle Pydantic.
+
+Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** dans la migration, en plus du code (D-028). Toute écriture passe par `ProjectFolder.write()`, qui ouvre la transaction avec `BEGIN IMMEDIATE`, pour que deux requêtes simultanées ne puissent pas entrer en collision (D-036).
 
 ### 5.1 Projet, personnes, journal
 
@@ -152,17 +160,19 @@ Tous les identifiants sont des **ULID** (triables par date). Toutes les dates so
 | `project` | id, title, language, created_at, format_version | Une ligne |
 | `reviewer` | id, kind (`human` / `ai`), display_name, role, ai_config_id (si IA), active | EF-PRJ-05 |
 | `ai_config` | id, provider, model_requested, task, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**; la version **effective** est dans `ai_call` |
-| `journal_entry` | id, created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable) |
+| `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `criteria.version_created`, `criteria.change_qualified`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_qualified`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
 
 ### 5.2 Critères versionnés
 
 | Table | Champs principaux | Notes |
 |---|---|---|
-| `criteria_version` | id, number (1, 2, 3…), parent_id, status (`draft` / `active` / `superseded`), created_at, author_id, rationale, journal_entry_id, after_protocol_registration (bool) | Une seule version `active` à la fois; immuable une fois active |
-| `criterion` | version_id, code (stable : `P1`, `C2`, `CTX1`, `X3`…), pcc_element (`population` / `concept` / `context` / `other`), kind (`inclusion` / `exclusion`), text, guidance, examples_json, counterexamples_json, applies_to_stages | Le `code` reste le même d'une version à l'autre |
-| `criterion_change` | id, from_version_id, to_version_id, code, change_type (`broadening` / `narrowing` / `clarification` / `added` / `removed`), proposed_by (IA ou humain), confirmed_by, rationale | EF-VER-03 |
+| `framing_version` | id, number, created_at, author_id, question, population, concept, context, secondary_questions_json, journal_entry_id | Cadrage PCC (EF-CAD-01), une version immuable par modification (D-030) |
+| `criteria_version` | id, number (1, 2, 3…), parent_id, status (`draft` / `active` / `superseded`), created_at, activated_at, author_id, rationale, journal_entry_id, after_protocol_registration (bool) | Au plus un brouillon et une version `active` à la fois; immuable une fois sortie du brouillon (flux D-027) |
+| `criterion` | version_id, code (stable : `P1`, `C2`, `CTX1`, `X3`…), pcc_element (`population` / `concept` / `context` / `other`), kind (`inclusion` / `exclusion`), text, guidance, examples_json, counterexamples_json, applies_to_stages | Le `code` reste le même d'une version à l'autre; `applies_to_stages` sera ajouté avec le tri |
+| `criterion_code` | code, pcc_element, first_version_id, created_at | Registre en ajout seulement : un code n'est jamais réattribué, même s'il n'a existé que dans un brouillon (D-026) |
+| `criterion_change` | id, from_version_id, to_version_id, code, change_type (`broadening` / `narrowing` / `clarification` / `added` / `removed`), proposed_by (IA ou humain), confirmed_by, rationale | EF-VER-03 (à venir avec l'analyse d'impact) |
 
 ### 5.3 Recherche et collecte
 
@@ -306,6 +316,10 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 
 - Rendu côté serveur, HTMX pour les interactions partielles (tri au clavier sans recharger la page).
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
+- Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
+- Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
+- Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
+- **Sécurité locale** (D-032) : chaque formulaire porte un jeton propre au processus du serveur; les en-têtes `Host` autres que `127.0.0.1` ou `localhost`, et les en-têtes `Origin` étrangers sur les écritures, sont refusés (requêtes intersites, DNS rebinding).
 - **Tâches de fond** (`jobs/`) : file persistée dans SQLite, exécutée par un fil de travail dans le processus du serveur; reprise au redémarrage (ENF-PER-04). Pas de Celery ni de Redis.
 
 ## 10. Sécurité et secrets

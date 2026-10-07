@@ -382,6 +382,177 @@ Ces décisions ont été proposées ou tranchées pendant le jalon 0 (demande de
   - documentation mise à jour dans la même demande de fusion : [03-architecture.md §10](03-architecture.md#10-sécurité-et-secrets).
 - **Renvois** : ENF-SEC-01 à 03; demande de fusion benoit-plante/revue-portee#1.
 
+## Décisions issues de la tranche 1.1 (2026-10-07)
+
+### D-026 — Codes de critères stables, jamais réutilisés
+
+- **Date** : 2026-10-07
+- **Statut** : décidée (option A choisie par Benoit le 2026-10-07, à la revue de code de la tranche 1.1)
+- **Décision** : chaque critère reçoit un code formé d'un préfixe selon l'élément PCC (`P` population, `C` concept, `CTX` contexte, `X` dimension transversale : type de source, langue, période, devis) et du numéro suivant (`P1`, `C2`, `CTX1`, `X3`). Un code n'est **jamais** réutilisé dans le projet, même s'il n'a existé que dans un brouillon abandonné ou a été retiré d'un brouillon. Le code et l'élément PCC d'un critère ne changent jamais : changer d'élément revient à retirer le critère, puis à en ajouter un autre.
+- **Contexte** : EF-CAD-03 exige des codes stables d'une version à l'autre. Le journal consigne aussi les modifications des brouillons; si un code libéré était réattribué, le journal contiendrait deux critères différents sous le même code.
+- **Options envisagées** :
+  1. **Option A — aucun code n'est jamais réutilisé** (registre des codes attribués) — un code désigne toujours le même critère, dans les versions comme dans le journal.
+  2. Option B — libérer les codes des brouillons jamais activés — numérotation sans trous, mais deux sens possibles pour un code dans le journal.
+- **Justification** : la traçabilité prime sur une numérotation continue.
+- **Conséquences** :
+  - table `criterion_code` (code, élément PCC, première version, date), en ajout seulement, protégée par des déclencheurs SQLite (D-028);
+  - la numérotation peut avoir des trous (`P1`, `P2`, `P4`);
+  - documentation : [03-architecture.md §5.2](03-architecture.md#52-critères-versionnés).
+- **Renvois** : EF-CAD-03, EF-VER-01; ENF-TRA-02; demande de fusion benoit-plante/revue-portee#2.
+
 ## Décisions proposées, en attente de Benoit
 
-*(Aucune pour l'instant. Les sessions de développement ajoutent leurs propositions dans la description de leurs demandes de fusion; Benoit les reporte ici.)*
+*Les sessions de développement ajoutent leurs propositions dans la description de leurs demandes de fusion; Benoit les reporte ici, puis les fait passer à « décidée ».*
+
+Propositions de la tranche 1.1 (2026-10-07), mises en œuvre dans la demande de fusion benoit-plante/revue-portee#2 :
+
+### D-025 — Identifiants ULID sans dépendance externe
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : les ULID (§5) sont générés par `domain/ids.py` avec la seule bibliothèque standard (48 bits de millisecondes, 80 bits aléatoires, base 32 de Crockford).
+- **Contexte** : le module `domain/` ne doit importer rien d'externe hors Pydantic (CLAUDE.md).
+- **Options envisagées** :
+  1. **Implémentation interne** — environ trente lignes, testées sur des valeurs calculées à la main.
+  2. Bibliothèque `python-ulid` — maintenue, mais une dépendance de plus dans le domaine.
+- **Justification** : le format est simple et stable; la règle du domaine sans dépendance est préservée.
+- **Conséquences** : aucune dépendance; les identifiants se trient par date de création.
+- **Renvois** : [03-architecture.md §5](03-architecture.md#5-modèle-de-données), §12; demande de fusion benoit-plante/revue-portee#2.
+
+### D-027 — Flux brouillon → version des critères
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - toute modification des critères passe par un **brouillon**, créé automatiquement au premier vrai changement (une modification qui ne change rien n'en crée pas); un seul brouillon à la fois;
+  - l'**activation** du brouillon crée la version en vigueur; elle exige au moins un critère et, à partir de la version 2, une justification (la version 1 peut s'en passer); la version précédente passe à « remplacée »;
+  - un brouillon peut être **abandonné**; ses codes restent réservés (D-026);
+  - chaque modification du brouillon est journalisée.
+- **Contexte** : EF-VER-01 exige une nouvelle version immuable, avec justification, à chaque modification. Créer une version par modification élémentaire multiplierait les versions pour un seul changement réfléchi.
+- **Options envisagées** :
+  1. **Brouillon, puis activation** — l'équipe regroupe ses changements; le différentiel avec la version en vigueur s'affiche avant l'activation.
+  2. Une version par modification élémentaire — plus simple, mais beaucoup de versions intermédiaires sans justification propre.
+- **Justification** : une version correspond à une décision de l'équipe, justifiée une fois.
+- **Conséquences** : statuts `draft`, `active` et `superseded` (§5.2); au plus un brouillon et une version en vigueur (index partiels uniques).
+- **Renvois** : EF-CAD-05, EF-VER-01, EF-VER-02; demande de fusion benoit-plante/revue-portee#2.
+
+### D-028 — Immuabilité garantie par la base de données
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : des déclencheurs SQLite refusent toute modification ou suppression du journal, des versions du cadrage, du registre des codes de critères, du projet, et des versions de critères sorties du brouillon (y compris leurs critères). Seul le passage « en vigueur → remplacée » est permis.
+- **Contexte** : ENF-TRA-02 (rien n'est modifié ni supprimé). Une règle appliquée seulement par le code peut être contournée par un autre chemin d'écriture.
+- **Options envisagées** :
+  1. **Déclencheurs dans la migration** — la règle tient pour toute écriture, même une requête SQL directe.
+  2. Vérifications dans les dépôts seulement — plus simple, mais contournable.
+- **Justification** : défense en profondeur; les tests vérifient les deux niveaux.
+- **Conséquences** : les dépôts traduisent le refus de la base en `ImmutableVersionError`. Une modification du fichier qui supprime d'abord les déclencheurs reste détectée par la chaîne d'empreintes (D-029).
+- **Renvois** : ENF-TRA-02; demande de fusion benoit-plante/revue-portee#2.
+
+### D-029 — Format de la chaîne d'empreintes du journal
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : l'empreinte d'une entrée est le SHA-256 de son JSON canonique (clés triées, sans espaces, UTF-8, dates UTC ISO 8601 avec microsecondes), qui inclut l'empreinte de l'entrée précédente. Valeur initiale : 64 zéros. L'ordre de la chaîne est la colonne `position` (0, 1, 2…).
+- **Contexte** : §5.1 prévoit une chaîne vérifiable sans en fixer le format.
+- **Options envisagées** :
+  1. **SHA-256 sur JSON canonique** — reproductible avec n'importe quel langage, sans dépendance.
+  2. Signature numérique — prouverait l'auteur, mais exige une gestion de clés hors de portée de la V1.
+- **Justification** : détecte toute altération, suppression ou interversion; vérifiable par un tiers à partir de l'archive.
+- **Conséquences** : `revue-portee verifier-journal` et la page « Journal » vérifient la chaîne; tout changement de format exigera une nouvelle décision.
+- **Renvois** : EF-PRJ-02; ENF-TRA-02; ENF-REP-06; demande de fusion benoit-plante/revue-portee#2.
+
+### D-030 — Cadrage PCC versionné
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : chaque modification du cadrage (question principale, population, concept, contexte, questions secondaires) crée une version immuable, dans la table `framing_version`. Un enregistrement identique au cadrage en vigueur n'en crée pas.
+- **Contexte** : le §5 ne prévoyait pas de table pour le cadrage; or le cadrage oriente les critères, et ses changements font partie de l'histoire méthodologique.
+- **Options envisagées** :
+  1. **Versions immuables** — même principe que les critères, sans brouillon.
+  2. Champs modifiables dans la table `project` — plus simple, mais l'historique ne serait que dans le journal.
+- **Justification** : cohérence avec ENF-TRA-02.
+- **Conséquences** : table `framing_version` (§5.2); entrée de journal `framing.updated`.
+- **Renvois** : EF-CAD-01; ENF-TRA-02; demande de fusion benoit-plante/revue-portee#2.
+
+### D-031 — Internationalisation avec Babel
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - les identifiants de message sont en anglais dans le code et les gabarits; le catalogue `src/revue_portee/i18n/locale/fr/LC_MESSAGES/messages.po` fournit le français, langue par défaut;
+  - le catalogue est lu directement depuis le `.po` et compilé en mémoire : aucun `.mo` n'est versionné;
+  - les résumés du journal (`summary_fr`) passent toujours par le catalogue français, quelle que soit la langue de l'interface;
+  - un test exige que chaque message extrait soit traduit, sans entrée obsolète, avec une espace insécable devant `:` `;` `?` `!`.
+- **Contexte** : ENF-LAN-03 (chaînes externalisées) et D-001 (code en anglais, interface en français).
+- **Options envisagées** :
+  1. **Identifiants anglais, catalogue français** — usage standard de gettext; une interface anglaise ne demandera qu'un catalogue.
+  2. Identifiants français — plus lisibles pour l'équipe, mais contraires à D-001 dans le code.
+- **Justification** : respecte D-001 et prépare l'anglais sans le livrer.
+- **Conséquences** : le module `i18n/` sert aussi à la ligne de commande et aux messages d'erreur; `babel.cfg` décrit l'extraction (CLAUDE.md, « Conventions »).
+- **Renvois** : ENF-LAN-01, ENF-LAN-03; D-001; demande de fusion benoit-plante/revue-portee#2.
+
+### D-032 — Sécurité de l'interface web locale
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : chaque formulaire porte un jeton propre au processus du serveur; un en-tête `Host` autre que `127.0.0.1` ou `localhost` est refusé, ainsi qu'un en-tête `Origin` étranger sur toute écriture.
+- **Contexte** : même sur `127.0.0.1` (ENF-SEC-06), n'importe quelle page web ouverte dans le navigateur peut envoyer des requêtes au serveur local (requêtes intersites) ou l'atteindre par un nom de domaine qui pointe vers 127.0.0.1 (DNS rebinding).
+- **Options envisagées** :
+  1. **Jeton par processus + contrôle de `Host` et `Origin`** — aucune session ni compte à gérer.
+  2. Aucune protection, l'écoute locale étant jugée suffisante — exposé aux deux attaques.
+- **Justification** : protection simple et suffisante pour une application locale à un seul utilisateur.
+- **Conséquences** : après un redémarrage du serveur, un formulaire déjà ouvert est refusé (403) et doit être rechargé; la future version hébergée (§12) remplacera ce mécanisme par des sessions.
+- **Renvois** : ENF-SEC-06; [03-architecture.md §9](03-architecture.md#9-interface-web); demande de fusion benoit-plante/revue-portee#2.
+
+### D-033 — HTMX versionné dans le dépôt
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : HTMX 2.0.11 est copié dans `src/revue_portee/web/static/vendor/`, avec sa source (registre npm), sa licence (0BSD) et l'empreinte `sha512` de l'archive. La navigation utilise `hx-boost`, et les réponses 4xx et 5xx sont affichées (configuration `htmx-config` dans `base.html`).
+- **Contexte** : D-011 retient HTMX sans chaîne de compilation JavaScript. Par défaut, HTMX 2 n'affiche pas les réponses 4xx, alors que l'application renvoie ses erreurs de formulaire comme des pages complètes.
+- **Options envisagées** :
+  1. **Fichier versionné** — fonctionne hors ligne, contenu vérifié.
+  2. Chargement depuis un CDN — dépend du réseau et d'un tiers.
+- **Justification** : application locale autosuffisante; empreinte vérifiable.
+- **Conséquences** : toute mise à jour d'HTMX remplace le fichier et met à jour `vendor/README.md`.
+- **Renvois** : D-011; ENF-LIC-01; [03-architecture.md §9](03-architecture.md#9-interface-web); demande de fusion benoit-plante/revue-portee#2.
+
+### D-034 — Version de l'outil consignée
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : la version de l'outil s'écrit `"<version> (<commit court>)"`. Le commit n'est consigné que si le dépôt git qui contient le code est bien celui de revue-portee (sa racine contient `src/revue_portee`); sinon : `"<version> (commit inconnu)"`.
+- **Contexte** : ENF-REP-05. Installé depuis un paquet dans le `.venv` d'un autre dépôt git, l'outil consignerait sinon le commit de ce dépôt-là.
+- **Options envisagées** :
+  1. **Commit seulement pour le dépôt de revue-portee** — jamais d'information fausse.
+  2. Inscrire le commit dans le paquet à sa construction — exact pour les paquets publiés, mais exige une étape de construction propre au projet.
+- **Justification** : une valeur absente vaut mieux qu'une valeur fausse dans un registre de traçabilité.
+- **Conséquences** : à revoir à la première publication d'un paquet (option 2 alors préférable).
+- **Renvois** : ENF-REP-05; demande de fusion benoit-plante/revue-portee#2.
+
+### D-035 — Vérification du journal en lecture seule
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : `revue-portee verifier-journal` ouvre le projet sans consigner d'entrée `project.opened`.
+- **Contexte** : ENF-REP-05 demande de consigner la version de l'outil à chaque ouverture du projet; une vérification ne doit pourtant jamais modifier ce qu'elle vérifie.
+- **Options envisagées** :
+  1. **Exception pour la vérification** — la vérification ne change rien.
+  2. Consigner aussi cette ouverture — conforme à la lettre d'ENF-REP-05, mais la vérification modifierait le journal.
+- **Justification** : une vérification doit pouvoir être répétée sans effet.
+- **Conséquences** : ENF-REP-05 pourrait préciser « à chaque ouverture en écriture ».
+- **Renvois** : ENF-REP-05; demande de fusion benoit-plante/revue-portee#2.
+
+### D-036 — Transactions d'écriture SQLite
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : toute écriture passe par `ProjectFolder.write()`, qui ouvre la transaction avec `BEGIN IMMEDIATE` (verrou pris dès le début; attente du verrou jusqu'à 30 s). Les lectures restent en mode `DEFERRED`.
+- **Contexte** : les requêtes web s'exécutent en parallèle. Un cas d'usage qui lit avant d'écrire (par exemple la dernière entrée du journal) pouvait entrer en collision avec un autre : 17 notes sur 60 échouaient dans une reproduction de la revue de code.
+- **Options envisagées** :
+  1. **`BEGIN IMMEDIATE` pour les écritures** — sérialise les écritures sans bloquer les lectures.
+  2. Un verrou dans le processus web — ne protège pas la ligne de commande ni un second processus.
+- **Justification** : le verrou de la base vaut pour tous les processus.
+- **Conséquences** : règle de développement dans CLAUDE.md (« Conventions »); un test fait écrire six fils d'exécution en même temps.
+- **Renvois** : EF-PRJ-02; ENF-TRA-02; [03-architecture.md §5](03-architecture.md#5-modèle-de-données); demande de fusion benoit-plante/revue-portee#2.
