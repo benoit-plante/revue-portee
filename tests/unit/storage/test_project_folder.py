@@ -281,6 +281,16 @@ def test_project_of_tranche_1_1_is_migrated_after_a_backup(tmp_path: Path) -> No
     folder = new_project(tmp_path)
     folder.close()
     new_tables = (
+        # tranche 1.3 (0003), dependent tables first
+        "term_suggestion_review",
+        "term_suggestion",
+        "descriptor_check",
+        "sensitivity_check",
+        "key_article_set_version",
+        "search_run",
+        "query",
+        "search_strategy_version",
+        # tranche 1.2 (0002)
         "protocol_registration",
         "protocol_text_version",
         "criterion_change",
@@ -299,7 +309,10 @@ def test_project_of_tranche_1_1_is_migrated_after_a_backup(tmp_path: Path) -> No
         backups = list(folder.path.glob(f"{DATABASE_FILE}.sauvegarde-*"))
         assert len(backups) == 1
         with reopened.engine.connect() as connection:
-            assert MigrationContext.configure(connection).get_current_revision() == "0002"
+            assert (
+                MigrationContext.configure(connection).get_current_revision()
+                == migrate.head_revision()
+            )
             tables = set(inspect(connection).get_table_names())
         assert set(new_tables) <= tables
         entry = notes.journal_entries(reopened)[-1]

@@ -10,11 +10,15 @@
 
 import logging
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
+import httpx2
 import pytest
+from pydantic import SecretStr
 
-from revue_portee.config.secrets import forget_loaded_secrets
+from recording import cassette_client
+from revue_portee.config.secrets import SecretName, forget_loaded_secrets, get_secret
 
 pytest_plugins = ["_plugins.coverage_gate"]
 
@@ -22,10 +26,46 @@ FAKE_TOKEN = "DUMMY"
 FAKE_EMAIL = "contact@example.org"
 
 
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+CASSETTES = Path(__file__).parent / "cassettes"
+
+
+def _record_mode(config: pytest.Config) -> str:
+    return str(config.getoption("--record-mode") or "none")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    recording = _record_mode(config) != "none"
     for item in items:
-        if item.get_closest_marker("integration") is None:
-            item.add_marker(pytest.mark.block_network)
+        if item.get_closest_marker("integration") is not None:
+            continue
+        if recording and item.get_closest_marker("cassette") is not None:
+            continue  # recording a cassette calls the real service
+        item.add_marker(pytest.mark.block_network)
+
+
+@pytest.fixture
+def http_cassette(request: pytest.FixtureRequest) -> Iterator[httpx2.Client]:
+    """Client replaying ``tests/cassettes/<module>/<test>.json`` (see tests/recording.py).
+
+    Only for tests marked ``cassette``; recording happens with ``--record-mode=once``."""
+    if request.node.get_closest_marker("cassette") is None:
+        raise pytest.UsageError("http_cassette requires @pytest.mark.cassette")
+    module = request.node.module.__name__.rsplit(".", 1)[-1]
+    path = CASSETTES / module / f"{request.node.name}.json"
+    mode = _record_mode(request.config)
+    forbidden: tuple[str, ...] = ()
+    if mode != "none":
+        forbidden = (get_secret(SecretName.CONTACT_EMAIL).get_secret_value(),)
+    with cassette_client(path, mode, forbidden=forbidden) as client:
+        yield client
+
+
+@pytest.fixture
+def contact_email(request: pytest.FixtureRequest) -> SecretStr:
+    """The real contact address while recording, a fictitious one otherwise."""
+    if _record_mode(request.config) != "none":
+        return get_secret(SecretName.CONTACT_EMAIL)
+    return SecretStr(FAKE_EMAIL)
 
 
 @pytest.fixture(scope="module")

@@ -1,0 +1,607 @@
+# Reference search strategies (tranche 1.3, EF-REC-03): strategies published in
+# open-access scoping reviews (PubMed Central), each entered as concept blocks in the
+# syntax of the tool. The test checks that the generated query is syntactically
+# equivalent to the published one. "published" is copied from the article as is
+# (typographic quotes included).
+- id: PMC13637366
+  database: pubmed
+  doi: 10.1186/s12904-026-02174-1
+  title: 'Financial hardship in cancer family caregivers: a scoping review'
+  published: ("Financial Stress"[Mesh] OR "Health Care Costs"[Mesh] OR "Medical Debt"[Mesh] OR “financial
+    distress”[tiab] OR “financial burden*”[tiab] OR “financial toxicity”[tiab] OR “financial challenge*”[tiab]
+    OR “financial strain*”[tiab] OR “financial hardship*”[tiab] OR "economic burden*"[tiab] OR "economic
+    cost*"[tiab] OR "economic outcome*"[tiab] OR "economic well-being"[tiab] OR "healthcare cost*"[tiab]
+    OR "health care cost*"[tiab] OR "cost* of care"[tiab] OR "out of pocket"[tiab] OR debt*[tiab] OR loan*[tiab]
+    OR "labor force exit"[tiab] OR "early retirement*"[tiab]) AND ("Caregivers"[Mesh] OR “family caregiver*”[tiab]
+    OR “spouse caregiver*”[tiab] OR “family carer*”[tiab] OR “spouse carer*”[tiab] OR “informal caregiver*”[tiab]
+    OR “informal carer*”[tiab]) AND ("Neoplasms"[Mesh] OR neoplasm*[tiab] OR cancer*[tiab]) AND (2015/1/1:2025/05/23[pdat])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'mesh: Financial Stress'
+    - 'mesh: Health Care Costs'
+    - 'mesh: Medical Debt'
+    - '"financial distress"'
+    - '"financial burden*"'
+    - '"financial toxicity"'
+    - '"financial challenge*"'
+    - '"financial strain*"'
+    - '"financial hardship*"'
+    - '"economic burden*"'
+    - '"economic cost*"'
+    - '"economic outcome*"'
+    - '"economic well-being"'
+    - '"healthcare cost*"'
+    - '"health care cost*"'
+    - '"cost* of care"'
+    - '"out of pocket"'
+    - debt*
+    - loan*
+    - '"labor force exit"'
+    - '"early retirement*"'
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'mesh: Caregivers'
+    - '"family caregiver*"'
+    - '"spouse caregiver*"'
+    - '"family carer*"'
+    - '"spouse carer*"'
+    - '"informal caregiver*"'
+    - '"informal carer*"'
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'mesh: Neoplasms'
+    - neoplasm*
+    - cancer*
+  - label: Bloc 4
+    role: include
+    terms:
+    - 'pubmed: 2015/1/1:2025/05/23[pdat]'
+- id: PMC13617928
+  database: pubmed
+  doi: 10.1186/s12887-026-07173-y
+  title: 'Parent understanding and satisfaction with NICU discharge for infants with medical complexity:
+    a scoping review of discharge instruction tools'
+  note: La limite de langue publiée contient une coquille (« nglish[lang] »), reproduite telle quelle
+    par un terme brut.
+  published: (“Caregivers”[Mesh] OR “Parents”[Mesh] OR parent*[tiab] OR mother*[tiab] OR father*[tiab])
+    AND (“Infant, Newborn”[Mesh] OR “Infant, Premature”[Mesh] OR “Infant, Extremely Premature”[Mesh] OR
+    neonat*[tiab] OR NICU[tiab] OR “newborn intensive care”[tiab] OR “Intensive Care, Neonatal”[Mesh])
+    AND (“Patient Discharge”[Mesh] OR “Patient Discharge Summaries”[Mesh] OR discharge[tiab] OR “hospital
+    discharge”[tiab] OR “discharge education”[tiab] OR “discharge instruction*”[tiab] OR “discharge intervention*”[tiab])
+    AND (“Patient Satisfaction”[Mesh] OR satisfaction[tiab] OR experience*[tiab] OR perception*[tiab]
+    OR understanding[tiab] OR comprehension[tiab]) AND (“Infant, Newborn, Diseases”[Mesh] OR “Chronic
+    Disease”[Mesh] OR “Complex Chronic Conditions”[tiab] OR “medical complexity”[tiab] OR “technology-dependent”[tiab])
+    AND (nglish[lang])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'mesh: Caregivers'
+    - 'mesh: Parents'
+    - parent*
+    - mother*
+    - father*
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'mesh: Infant, Newborn'
+    - 'mesh: Infant, Premature'
+    - 'mesh: Infant, Extremely Premature'
+    - neonat*
+    - NICU
+    - '"newborn intensive care"'
+    - 'mesh: Intensive Care, Neonatal'
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'mesh: Patient Discharge'
+    - 'mesh: Patient Discharge Summaries'
+    - discharge
+    - '"hospital discharge"'
+    - '"discharge education"'
+    - '"discharge instruction*"'
+    - '"discharge intervention*"'
+  - label: Bloc 4
+    role: include
+    terms:
+    - 'mesh: Patient Satisfaction'
+    - satisfaction
+    - experience*
+    - perception*
+    - understanding
+    - comprehension
+  - label: Bloc 5
+    role: include
+    terms:
+    - 'mesh: Infant, Newborn, Diseases'
+    - 'mesh: Chronic Disease'
+    - '"Complex Chronic Conditions"'
+    - '"medical complexity"'
+    - '"technology-dependent"'
+  - label: Bloc 6
+    role: include
+    terms:
+    - 'pubmed: nglish[lang]'
+- id: PMC13582335
+  database: pubmed
+  doi: 10.3389/fpubh.2026.1907318
+  title: 'Physical exercise therapy for autism spectrum disorder: a scoping review of systematic reviews'
+  published: (“Autistic Disorder”[Mesh] OR “Autism Spectrum Disorder” [Mesh] OR autism[tiab] OR asd[tiab]
+    OR autistic[tiab] OR asperger*[tiab]) AND (“Exercise Therapy”[Mesh] OR “Exercise”[Mesh] OR “Sports”[Mesh]
+    OR “Motor Activity”[Mesh] OR exercis*[tiab] OR “physical activity”[tiab] OR “physical activities”[tiab]
+    OR sport*[tiab] OR treadmill[tiab] OR swimming[tiab] OR yoga[tiab] OR “Tai Ji”[tiab] OR Taichi[tiab]
+    OR “martial arts”[tiab] OR dance[tiab] OR cycling[tiab] OR “active play”[tiab] OR “horse riding”[tiab]
+    OR “equestrian therapy”[tiab]) AND (“Meta-Analysis”[Publication Type] OR “Systematic Review”[Publication
+    Type] OR “systematic review”[ti] OR meta-analy*[tiab])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'mesh: Autistic Disorder'
+    - 'mesh: Autism Spectrum Disorder'
+    - autism
+    - asd
+    - autistic
+    - asperger*
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'mesh: Exercise Therapy'
+    - 'mesh: Exercise'
+    - 'mesh: Sports'
+    - 'mesh: Motor Activity'
+    - exercis*
+    - '"physical activity"'
+    - '"physical activities"'
+    - sport*
+    - treadmill
+    - swimming
+    - yoga
+    - '"Tai Ji"'
+    - Taichi
+    - '"martial arts"'
+    - dance
+    - cycling
+    - '"active play"'
+    - '"horse riding"'
+    - '"equestrian therapy"'
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'pt: "Meta-Analysis"'
+    - 'pt: "Systematic Review"'
+    - 'ti: "systematic review"'
+    - meta-analy*
+- id: PMC13610651
+  database: pubmed
+  doi: 10.3390/nu18182947
+  title: 'Nutrition, Sedentary Behaviour and Physical Activity in Undergraduate Students: A Scoping Review
+    with PRISMA-ScR Checklist'
+  published: (“university students”[tiab] OR “college students”[tiab] OR “undergraduate students”[tiab]
+    OR “undergraduate”[tiab] OR “university population”[tiab]) AND (“physical activity”[tiab] OR “exercise”[tiab]
+    OR “sedentary behavior”[tiab] OR “sedentary behaviour”[tiab] OR “sedentary lifestyle”[tiab] OR “physical
+    inactivity”[tiab]) AND (“nutrition”[tiab] OR “dietary habits”[tiab] OR “eating habits”[tiab] OR “food
+    intake”[tiab] OR “diet”[tiab] OR “nutritional education”[tiab] OR “dietary behavior”[tiab] OR “dietary
+    behaviour”[tiab]) AND (“2014”[pdat]:“2026”[pdat]) AND (English[lang])
+  limits:
+    year_from: 2014
+    year_to: 2026
+    languages:
+    - en
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - '"university students"'
+    - '"college students"'
+    - '"undergraduate students"'
+    - '"undergraduate"'
+    - '"university population"'
+  - label: Bloc 2
+    role: include
+    terms:
+    - '"physical activity"'
+    - '"exercise"'
+    - '"sedentary behavior"'
+    - '"sedentary behaviour"'
+    - '"sedentary lifestyle"'
+    - '"physical inactivity"'
+  - label: Bloc 3
+    role: include
+    terms:
+    - '"nutrition"'
+    - '"dietary habits"'
+    - '"eating habits"'
+    - '"food intake"'
+    - '"diet"'
+    - '"nutritional education"'
+    - '"dietary behavior"'
+    - '"dietary behaviour"'
+- id: PMC13611741
+  database: pubmed
+  doi: 10.3390/sports14090390
+  title: 'Mental Health and Psychological Constructs Related to Performance in Professional, Semi-Professional,
+    and Competitive Adolescent Women''s Soccer Players: A Scoping Review'
+  published: (“women soccer players” [tiab] OR “women’s soccer” [tiab] OR “female football players” [tiab]
+    OR “women’s football” [tiab]) AND (“mental health” [tiab] OR “mental health” [MeSH Terms] OR anxiety[tiab]
+    OR depression[tiab] OR stress[tiab] OR burnout[tiab] OR “mental fatigue” [tiab] OR wellbeing[tiab]
+    OR “psychological well-being” [tiab] OR coping[tiab] OR resilience[tiab] OR “mental toughness” [tiab])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - '"women soccer players"'
+    - '"women''s soccer"'
+    - '"female football players"'
+    - '"women''s football"'
+  - label: Bloc 2
+    role: include
+    terms:
+    - '"mental health"'
+    - 'mesh: mental health'
+    - anxiety
+    - depression
+    - stress
+    - burnout
+    - '"mental fatigue"'
+    - wellbeing
+    - '"psychological well-being"'
+    - coping
+    - resilience
+    - '"mental toughness"'
+- id: PMC13604609
+  database: pubmed
+  doi: 10.3390/brainsci16090944
+  title: 'Cognitive Stimulation and Training in People with Mild-to-Moderate Alzheimer''s Disease: A Scoping
+    Review'
+  published: (“Alzheimer Disease” [Mesh] OR Alzheimer [Title/Abstract]) AND (“cognitive stimulation” [Title/Abstract])
+    AND (“Aged” [Mesh] OR elderly [Title/Abstract] OR “older adult” [Title/Abstract])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'mesh: Alzheimer Disease'
+    - Alzheimer
+  - label: Bloc 2
+    role: include
+    terms:
+    - '"cognitive stimulation"'
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'mesh: Aged'
+    - elderly
+    - '"older adult"'
+- id: PMC13556327
+  database: pubmed
+  doi: 10.1177/07334648261463391
+  title: 'Definitions of Person-Centeredness for Persons With Dementia in the United States: A Scoping
+    Review'
+  note: Le terme « dementia », sans étiquette de champ, est reproduit par un terme brut (recherche avec
+    correspondance automatique de PubMed).
+  published: (person-centered [Title/Abstract] OR person-centeredness [Title/Abstract] OR “person centered”
+    [Title/Abstract] OR “person centeredness” [Title/Abstract] OR person-directed [Title/Abstract] OR
+    “person directed” [Title/Abstract] OR patient-centered [Title/Abstract] OR patient-centeredness [Title/Abstract]
+    OR “patient centered” [Title/Abstract] OR “patient centeredness” [Title/Abstract] OR patient-directed
+    [Title/Abstract] OR “patient directed” [Title/Abstract] OR “patient directed” [Title/Abstract]) AND
+    dementia
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - person-centered
+    - person-centeredness
+    - '"person centered"'
+    - '"person centeredness"'
+    - person-directed
+    - '"person directed"'
+    - patient-centered
+    - patient-centeredness
+    - '"patient centered"'
+    - '"patient centeredness"'
+    - patient-directed
+    - '"patient directed"'
+    - '"patient directed"'
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'pubmed: dementia'
+- id: PMC13632410
+  database: pubmed
+  doi: 10.1186/s12961-026-01544-8
+  title: 'Participatory health research and promotion with children in Germany: a scoping review'
+  note: Blocs du tableau 1 de l'article, combinés par AND comme le décrit le texte.
+  published: (Participatory[Title/Abstract] OR “participatory health research”[Title/Abstract] OR “participatory
+    research”[Title/Abstract] OR CBPR[Title/Abstract] OR participation[Title/Abstract] OR “community based
+    participatory research”[Title/Abstract] OR Teilhabe[Title/Abstract] OR collaborat*[Title/Abstract]
+    OR community based participatory research[MeSH Terms]) AND (Adolescent[MeSH Terms] OR child[MeSH Terms]
+    OR child development[MeSH Terms] OR adolescent development[MeSH Terms] OR schoolage[Title/Abstract]
+    OR kid[Title/Abstract] OR boy[Title/Abstract] OR girl[Title/Abstract] OR youngster[Title/Abstract]
+    OR child*[Title/Abstract] OR adolescen*[Title/Abstract] OR teenage[Title/Abstract]) AND (Health Promotion[MeSH
+    Terms] OR Public Health[MeSH Terms] OR prevention[Title/Abstract] OR “primary prevention”[Title/Abstract]
+    OR health[Title/Abstract] OR School Health Services[MeSH Terms]) AND (Germany[MeSH Terms] OR german*[Title/Abstract])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - Participatory
+    - '"participatory health research"'
+    - '"participatory research"'
+    - CBPR
+    - participation
+    - '"community based participatory research"'
+    - Teilhabe
+    - collaborat*
+    - 'mesh: community based participatory research'
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'mesh: Adolescent'
+    - 'mesh: child'
+    - 'mesh: child development'
+    - 'mesh: adolescent development'
+    - schoolage
+    - kid
+    - boy
+    - girl
+    - youngster
+    - child*
+    - adolescen*
+    - teenage
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'mesh: Health Promotion'
+    - 'mesh: Public Health'
+    - prevention
+    - '"primary prevention"'
+    - health
+    - 'mesh: School Health Services'
+  - label: Bloc 4
+    role: include
+    terms:
+    - 'mesh: Germany'
+    - german*
+- id: PMC13610237
+  database: pubmed
+  doi: 10.3390/nursrep16090325
+  title: 'Peer-Support Interventions for Self-Management in Adults Living with an Intestinal Ostomy: A
+    Scoping Review'
+  note: Blocs du tableau de l'article, combinés par AND comme le décrit le texte.
+  published: (Colostomy [MeSH Terms] OR Enterostomy [MeSH Terms] OR Ileostomy [MeSH Terms] OR Ostomy [MeSH
+    Terms] OR colostom* [Title/Abstract] OR enterostom* [Title/Abstract] OR ileostom* [Title/Abstract]
+    OR ostom* [Title/Abstract] OR stoma* [Title/Abstract]) AND (Patient Education as Topic [MeSH Terms]
+    OR Peer Group [MeSH Terms] OR Self-help Groups [MeSH Terms] OR Social Support [MeSH Terms] OR Patient
+    Navigation [MeSH Terms] OR coach* [Title/Abstract] OR health advisor [Title/Abstract] OR lay-led [Title/Abstract]
+    OR laymen [Title/Abstract] OR lived experience [Title/Abstract] OR mentor* [Title/Abstract] OR lay
+    worker [Title/Abstract] OR navigat* [Title/Abstract] OR peer support [Title/Abstract] OR peer-support
+    [Title/Abstract] OR peer to peer [Title/Abstract]) AND (Quality of Life [MeSH Terms] OR Self Efficacy
+    [MeSH Terms] OR Self-Care [MeSH Terms] OR Self-Management [MeSH Terms] OR empowerment [Title/Abstract]
+    OR quality of life [Title/Abstract] OR selfcare [Title/Abstract] OR self-care [Title/Abstract] OR
+    selfefficacy [Title/Abstract] OR self-efficacy [Title/Abstract] OR selfmanagement [Title/Abstract]
+    OR self-management [Title/Abstract] OR selfmonitor* [Title/Abstract] OR self-monitor* [Title/Abstract])
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'mesh: Colostomy'
+    - 'mesh: Enterostomy'
+    - 'mesh: Ileostomy'
+    - 'mesh: Ostomy'
+    - colostom*
+    - enterostom*
+    - ileostom*
+    - ostom*
+    - stoma*
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'mesh: Patient Education as Topic'
+    - 'mesh: Peer Group'
+    - 'mesh: Self-help Groups'
+    - 'mesh: Social Support'
+    - 'mesh: Patient Navigation'
+    - coach*
+    - health advisor
+    - lay-led
+    - laymen
+    - lived experience
+    - mentor*
+    - lay worker
+    - navigat*
+    - peer support
+    - peer-support
+    - peer to peer
+  - label: Bloc 3
+    role: include
+    terms:
+    - 'mesh: Quality of Life'
+    - 'mesh: Self Efficacy'
+    - 'mesh: Self-Care'
+    - 'mesh: Self-Management'
+    - empowerment
+    - quality of life
+    - selfcare
+    - self-care
+    - selfefficacy
+    - self-efficacy
+    - selfmanagement
+    - self-management
+    - selfmonitor*
+    - self-monitor*
+- id: PMC13182901
+  database: psycinfo_ebsco
+  doi: 10.35946/arcr.v46.1.02
+  title: 'Alcohol Misuse in Older Women: A Scoping Review of Correlates, Consequences, Treatment, and
+    Prevention'
+  note: PsycInfo (EBSCOhost).
+  published: (TI alcohol* OR TI drinking OR TI drinker* OR TI “problem drink*” OR TI “excessive drink*”
+    OR TI “binge drink*” OR TI substance*) AND (TI gender* OR TI women* OR TI woman* OR TI female* OR
+    TI sex) AND (TI age-adjust* OR AB age-adjust* OR TI geriatri* OR AB geriatri* OR TI “old age” OR AB
+    “old age” OR TI “older adult*” OR AB “older adult*” OR TI “older age” OR AB “older age” OR TI “older
+    female*” OR AB “older female*” OR TI “older patient*” OR AB “older patient*” OR TI “older people”
+    OR AB “older people” OR TI “older person*” OR AB “older person*” OR TI “older woman” OR AB “older
+    woman” OR TI “older women” OR AB “older women” OR TI “oldest old” OR AB “oldest old” OR TI senior*
+    OR AB senior* OR TI “old adult*” OR AB “old adult*” OR TI “late adult*” OR AB “late adult*” OR DE
+    “Menopause” OR TI menopaus* OR AB menopaus* OR TI postmenopaus* OR AB postmenopaus* OR TI perimenopaus*
+    OR AB perimenopaus*) NOT (PZ Dissertation OR PT “Dissertation Abstract” OR TI nonalcoholic OR DE “Pregnancy”)
+    AND PO Female AND PO Human AND LA English
+  limits:
+    languages:
+    - en
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'ti: alcohol*'
+    - 'ti: drinking'
+    - 'ti: drinker*'
+    - 'ti: "problem drink*"'
+    - 'ti: "excessive drink*"'
+    - 'ti: "binge drink*"'
+    - 'ti: substance*'
+  - label: Bloc 2
+    role: include
+    terms:
+    - 'ti: gender*'
+    - 'ti: women*'
+    - 'ti: woman*'
+    - 'ti: female*'
+    - 'ti: sex'
+  - label: Bloc 3
+    role: include
+    terms:
+    - age-adjust*
+    - geriatri*
+    - '"old age"'
+    - '"older adult*"'
+    - '"older age"'
+    - '"older female*"'
+    - '"older patient*"'
+    - '"older people"'
+    - '"older person*"'
+    - '"older woman"'
+    - '"older women"'
+    - '"oldest old"'
+    - senior*
+    - '"old adult*"'
+    - '"late adult*"'
+    - 'apa: Menopause'
+    - menopaus*
+    - postmenopaus*
+    - perimenopaus*
+  - label: Bloc 4
+    role: exclude
+    terms:
+    - 'psycinfo: PZ Dissertation'
+    - 'pt: "Dissertation Abstract"'
+    - 'ti: nonalcoholic'
+    - 'apa: Pregnancy'
+  - label: Bloc 5
+    role: include
+    terms:
+    - 'psycinfo: PO Female'
+  - label: Bloc 6
+    role: include
+    terms:
+    - 'psycinfo: PO Human'
+- id: PMC13499789
+  database: psycinfo_ebsco
+  doi: 10.1007/s11469-025-01537-8
+  title: 'Measurement of Impulsivity and Its Role in Drug Use Behaviours and Related Health, Harm and
+    Treatment Outcomes: A Scoping Review'
+  note: Chaîne publiée pour CINAHL (EBSCOhost), de même syntaxe que PsycINFO sur EBSCOhost.
+  published: ((TI “illicit drug”) OR (TI “drug use”) OR (TI cocaine) OR (TI crack) OR (TI heroin) OR (TI
+    “drug abuse”) OR (TI addiction) OR (TI dependence) OR (TI methamphetamine) OR (TI amphetamine) OR
+    (TI “people who inject drugs”) OR (TI “people who use drugs”) OR (TI “drug injection”) OR (TI “drug
+    injecting”) OR (TI opiate*) OR (TI opioid*) OR (TI methadone) OR (TI buprenorphine) OR (TI injecting)
+    OR (TI overdose) OR (TI “risk behavior”) OR (TI “risk behaviour”) OR (TI “sharing syringes” OR AB”sharing
+    syringes”) OR (TI “harm reduction”)) AND ((TI impulsivity OR AB impulsivity) OR (TI impulsiveness
+    OR AB impulsiveness) OR (TI “impulsive behavior” OR AB”impulsive behavior”) OR (TI “impulsive behaviour”
+    OR AB”impulsive behaviour”) OR (TI “impulsive choice” OR AB”impulsive choice”) OR “executive dysfunction”
+    OR (TI “cognitive task” OR AB”cognitive task”) OR (TI “delay discounting” OR AB”delay discounting”)
+    OR (TI CANTAB OR AB CANTAB) OR (TI “delay rewards” OR AB”delay rewards”) OR (TI “stop signal task”
+    OR AB”stop signal task”) OR (TI “cambridge gambling task” OR AB”cambridge gambling task”) OR (TI GoStop
+    OR AB GoStop) OR (TI Go/no-go OR AB Go/no-go) OR (TI “neurocognitive task*” OR AB”neurocognitive task*”)
+    OR (TI “risk decision-making” OR AB”risk decision-making”) OR (TI “stop signal reaction time” OR AB”stop
+    signal reaction time”)) NOT ((TI cannabis) OR (TI alcohol) OR (TI tobacco) OR (TI cigarette) OR (TI
+    internet) OR (TI gambling) OR (TI nicotine) OR (TI mice) OR (TI mices) OR (TI mouse) OR (TI mouses)
+    OR (TI rat) OR (TI rats) OR (TI animal) OR (TI brain) OR (TI imaging) OR (TI food) OR (TI MRI) OR
+    (TI sex) OR (phone) OR (smartphone) OR (Parkinson’s))
+  blocks:
+  - label: Bloc 1
+    role: include
+    terms:
+    - 'ti: "illicit drug"'
+    - 'ti: "drug use"'
+    - 'ti: cocaine'
+    - 'ti: crack'
+    - 'ti: heroin'
+    - 'ti: "drug abuse"'
+    - 'ti: addiction'
+    - 'ti: dependence'
+    - 'ti: methamphetamine'
+    - 'ti: amphetamine'
+    - 'ti: "people who inject drugs"'
+    - 'ti: "people who use drugs"'
+    - 'ti: "drug injection"'
+    - 'ti: "drug injecting"'
+    - 'ti: opiate*'
+    - 'ti: opioid*'
+    - 'ti: methadone'
+    - 'ti: buprenorphine'
+    - 'ti: injecting'
+    - 'ti: overdose'
+    - 'ti: "risk behavior"'
+    - 'ti: "risk behaviour"'
+    - '"sharing syringes"'
+    - 'ti: "harm reduction"'
+  - label: Bloc 2
+    role: include
+    terms:
+    - impulsivity
+    - impulsiveness
+    - '"impulsive behavior"'
+    - '"impulsive behaviour"'
+    - '"impulsive choice"'
+    - 'all: "executive dysfunction"'
+    - '"cognitive task"'
+    - '"delay discounting"'
+    - CANTAB
+    - '"delay rewards"'
+    - '"stop signal task"'
+    - '"cambridge gambling task"'
+    - GoStop
+    - Go/no-go
+    - '"neurocognitive task*"'
+    - '"risk decision-making"'
+    - '"stop signal reaction time"'
+  - label: Bloc 3
+    role: exclude
+    terms:
+    - 'ti: cannabis'
+    - 'ti: alcohol'
+    - 'ti: tobacco'
+    - 'ti: cigarette'
+    - 'ti: internet'
+    - 'ti: gambling'
+    - 'ti: nicotine'
+    - 'ti: mice'
+    - 'ti: mices'
+    - 'ti: mouse'
+    - 'ti: mouses'
+    - 'ti: rat'
+    - 'ti: rats'
+    - 'ti: animal'
+    - 'ti: brain'
+    - 'ti: imaging'
+    - 'ti: food'
+    - 'ti: MRI'
+    - 'ti: sex'
+    - 'all: phone'
+    - 'all: smartphone'
+    - 'all: Parkinson''s'

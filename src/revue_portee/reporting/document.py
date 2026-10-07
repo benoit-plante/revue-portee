@@ -18,6 +18,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 __all__ = [
     "Block",
     "BulletList",
+    "Code",
     "Document",
     "Heading",
     "Paragraph",
@@ -60,7 +61,16 @@ class Table(BaseModel):
     rows: tuple[tuple[str, ...], ...]
 
 
-type Block = Heading | Paragraph | BulletList | Table
+class Code(BaseModel):
+    """Text shown as is, in a fixed-width font (search queries)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["code"] = "code"
+    text: str
+
+
+type Block = Heading | Paragraph | BulletList | Table | Code
 
 
 class Document(BaseModel):
@@ -109,6 +119,9 @@ def render_markdown(document: Document) -> str:
             lines += [f"_{block.text}_" if block.placeholder else block.text, ""]
         elif isinstance(block, BulletList):
             lines += [f"- {item}" for item in block.items] + [""]
+        elif isinstance(block, Code):
+            fence = "````" if "```" in block.text else "```"
+            lines += [fence, block.text, fence, ""]
         else:
             lines.append("| " + " | ".join(_cell(h) for h in block.header) + " |")
             lines.append("|" + "---|" * len(block.header))
@@ -135,6 +148,9 @@ def _docx(document: Document) -> DocxDocument:
         elif isinstance(block, BulletList):
             for item in block.items:
                 result.add_paragraph(item, style="List Bullet")
+        elif isinstance(block, Code):
+            run = result.add_paragraph().add_run(block.text)
+            run.font.name = "Courier New"
         else:
             table = result.add_table(rows=1, cols=len(block.header))
             table.style = "Table Grid"

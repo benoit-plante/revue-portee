@@ -1,0 +1,26 @@
+[
+ {
+  "request": "GET https://api.openalex.org/works?filter=title_and_abstract.search.exact%3A%28parent%2A+OR+father%2A+OR+mother%2A%29+AND+%28%22scoping+review%22%29&per-page=1&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 6054, \"db_response_time_ms\": 352, \"page\": 1, \"per_page\": 1, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where title-abstract has (\\\"scoping review\\\" AND (\\\"father*\\\" OR \\\"mother*\\\" OR \\\"parent*\\\"))\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"\\\"scoping review\\\"\", \"operator\": \"has\"}, {\"join\": \"or\", \"filters\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"father*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"mother*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"parent*\", \"operator\": \"has\"}]}]}, \"url\": \"/works?filter=title_and_abstract.search.exact:%22scoping review%22,title_and_abstract.search.exact:father%2A|mother%2A|parent%2A&per_page=1\"}, \"cost_usd\": 0.001}, \"results\": [{\"id\": \"https://openalex.org/W3170634961\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=title_and_abstract.search.exact%3Aparent%2A+OR+father%2A+OR+mother%2A&per-page=1&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 3622842, \"db_response_time_ms\": 277, \"page\": 1, \"per_page\": 1, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where title-abstract has (\\\"father*\\\" OR \\\"mother*\\\" OR \\\"parent*\\\")\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"join\": \"or\", \"filters\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"father*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"mother*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"parent*\", \"operator\": \"has\"}]}]}, \"url\": \"/works?filter=title_and_abstract.search.exact:father%2A|mother%2A|parent%2A&per_page=1\"}, \"cost_usd\": 0.001}, \"results\": [{\"id\": \"https://openalex.org/W2058714004\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=title_and_abstract.search.exact%3A%22scoping+review%22&per-page=1&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 149304, \"db_response_time_ms\": 176, \"page\": 1, \"per_page\": 1, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where title-abstract has (\\\"scoping review\\\")\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"\\\"scoping review\\\"\", \"operator\": \"has\"}]}, \"url\": \"/works?filter=title_and_abstract.search.exact:%22scoping review%22&per_page=1\"}, \"cost_usd\": 0.001}, \"results\": [{\"id\": \"https://openalex.org/W4403532912\"}], \"group_by\": []}"
+  }
+ }
+]

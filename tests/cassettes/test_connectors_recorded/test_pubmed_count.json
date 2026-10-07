@@ -1,0 +1,10 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=0&retmode=json&term=%22scoping+review%22%5Bti%5D+AND+parent%2A%5Btiab%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1613\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"\\\"scoping review\\\"[Title] AND \\\"parent*\\\"[Title/Abstract]\"}}\n"
+  }
+ }
+]

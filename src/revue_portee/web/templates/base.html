@@ -18,6 +18,7 @@
       <ul>
         <li><a href="/cadrage" {% if page == "cadrage.html" %}aria-current="page"{% endif %}>{{ _("Framing") }}</a></li>
         <li><a href="/criteres" {% if page.startswith("crit") or page in ("version.html", "differentiel.html") %}aria-current="page"{% endif %}>{{ _("Criteria") }}</a></li>
+        <li><a href="/recherche" {% if page == "recherche.html" %}aria-current="page"{% endif %}>{{ _("Search") }}</a></li>
         <li><a href="/protocole" {% if page == "protocole.html" %}aria-current="page"{% endif %}>{{ _("Protocol") }}</a></li>
         <li><a href="/journal" {% if page == "journal.html" %}aria-current="page"{% endif %}>{{ _("Journal") }}</a></li>
       </ul>

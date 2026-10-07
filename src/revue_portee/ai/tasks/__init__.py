@@ -13,14 +13,26 @@ from revue_portee.ai.tasks.qualification import (
     QualifyChangeInput,
     QualifyChangeOutput,
 )
+from revue_portee.ai.tasks.search import (
+    SUGGEST_TERMS,
+    BlockSnapshot,
+    SuggestTermsInput,
+    SuggestTermsOutput,
+    TermProposal,
+)
 
 __all__ = [
     "QUALIFY_CRITERION_CHANGE",
     "SUGGEST_PCC",
+    "SUGGEST_TERMS",
+    "BlockSnapshot",
     "CriterionSnapshot",
     "PccSuggestion",
     "QualifyChangeInput",
     "QualifyChangeOutput",
     "SuggestPccInput",
     "SuggestPccOutput",
+    "SuggestTermsInput",
+    "SuggestTermsOutput",
+    "TermProposal",
 ]

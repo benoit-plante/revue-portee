@@ -1,0 +1,10 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=mesh&email=contact%40example.org&retmax=5&retmode=json&term=%22Parenting+Programs%22%5BMeSH+Terms%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"0\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"(\\\"Parenting Programs\\\"[MeSH Terms])\",\"warninglist\":{\"phrasesignored\":[],\"quotedphrasesnotfound\":[\"\\\"Parenting Programs\\\"[MeSH Terms]\"],\"outputmessages\":[\"No items found.\"]}}}\n"
+  }
+ }
+]

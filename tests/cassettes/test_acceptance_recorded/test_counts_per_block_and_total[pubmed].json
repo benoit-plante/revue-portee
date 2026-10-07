@@ -1,0 +1,26 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=0&retmode=json&term=%28parent%2A%5Btiab%5D+OR+father%2A%5Btiab%5D+OR+mother%2A%5Btiab%5D%29+AND+%28%22scoping+review%22%5Btiab%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"2370\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"(\\\"parent*\\\"[Title/Abstract] OR \\\"father*\\\"[Title/Abstract] OR \\\"mother*\\\"[Title/Abstract]) AND \\\"scoping review\\\"[Title/Abstract]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=0&retmode=json&term=parent%2A%5Btiab%5D+OR+father%2A%5Btiab%5D+OR+mother%2A%5Btiab%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"851809\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"\\\"parent*\\\"[Title/Abstract] OR \\\"father*\\\"[Title/Abstract] OR \\\"mother*\\\"[Title/Abstract]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=0&retmode=json&term=%22scoping+review%22%5Btiab%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"54396\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"\\\"scoping review\\\"[Title/Abstract]\"}}\n"
+  }
+ }
+]

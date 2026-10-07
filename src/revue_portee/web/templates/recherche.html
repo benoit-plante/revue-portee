@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, cost_preview with context %}
+{% block title %}{{ _("Search") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Search strategy") }}</h1>
+<p>{{ _("Describe each concept with a block of terms. The terms of a block are combined with OR, the inclusion blocks with AND; exclusion blocks are removed with NOT. The query of each database is generated from the blocks.") }}</p>
+{% if saved %}<div class="message success" role="status">{{ _("Strategy saved.") }}</div>{% endif %}
+{% if errors %}
+<div class="message error" role="alert">
+  <p>{{ _("The strategy was not saved:") }}</p>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<details class="small">
+  <summary>{{ _("How to write the terms (one per line)") }}</summary>
+  <ul>
+    <li>{{ _("A word: %(example)s; truncation with an asterisk: %(truncated)s.", example="parent", truncated="parent*") }}</li>
+    <li>{{ _("An exact phrase, in quotes (several words are always searched as a phrase): %(example)s.", example='"parenting program"') }}</li>
+    <li>{{ _("Title and abstract by default; other fields with a prefix: %(prefixes)s.", prefixes="ti:, ab:, tw:, all:, pt:") }}</li>
+    <li>{{ _("A MeSH descriptor: %(exploded)s (with narrower headings) or %(not_exploded)s.", exploded="mesh: Parenting", not_exploded="mesh-noexp: Parenting") }}</li>
+    <li>{{ _("An APA Thesaurus descriptor (PsycINFO): %(plain)s, or %(exploded)s with narrower headings.", plain="apa: Parenting", exploded="apa+: Parenting") }}</li>
+    <li>{{ _("Text copied as is in the query of one database: %(prefixes)s.", prefixes="pubmed:, openalex:, psycinfo:") }}</li>
+    <li>{{ _("French and English terms can be mixed in a block.") }}</li>
+  </ul>
+</details>
+
+{% set labels = pcc_labels() %}
+{% set roles = role_labels() %}
+{% macro block_fields(row, legend) %}
+<fieldset id="bloc-{{ row.code }}">
+  <legend>{{ legend }}</legend>
+  <label for="bloc-{{ row.code }}-libelle">{{ _("Label") }}</label>
+  <input type="text" id="bloc-{{ row.code }}-libelle" name="bloc-{{ row.code }}-libelle" value="{{ row.label }}">
+  <label for="bloc-{{ row.code }}-pcc">{{ _("PCC element") }}</label>
+  <select id="bloc-{{ row.code }}-pcc" name="bloc-{{ row.code }}-pcc">
+    <option value="">{{ _("(none)") }}</option>
+    {% for element in PccElement %}<option value="{{ element.value }}" {% if row.pcc == element.value %}selected{% endif %}>{{ labels[element] }}</option>{% endfor %}
+  </select>
+  <fieldset>
+    <legend>{{ _("Role") }}</legend>
+    {% for role, role_label in roles.items() %}
+    <label class="inline"><input type="radio" name="bloc-{{ row.code }}-role" value="{{ role }}" {% if row.role == role %}checked{% endif %}> {{ role_label }}</label>
+    {% endfor %}
+  </fieldset>
+  <label for="bloc-{{ row.code }}-termes">{{ _("Terms (one per line)") }}</label>
+  <textarea id="bloc-{{ row.code }}-termes" name="bloc-{{ row.code }}-termes" rows="6">{{ row.terms }}</textarea>
+  {% if row.code != NEW_BLOCK %}
+  <label class="inline"><input type="checkbox" name="bloc-{{ row.code }}-retirer" value="1"> {{ _("Remove this block") }}</label>
+  {% endif %}
+</fieldset>
+{% endmacro %}
+
+<form method="post" action="/recherche/strategie" id="strategie">
+  {{ csrf() }}
+  {% for row in form.rows if row.code != NEW_BLOCK %}
+    {{ block_fields(row, _("Block %(code)s", code=row.code)) }}
+  {% endfor %}
+  {% set new_rows = form.rows | selectattr("code", "equalto", NEW_BLOCK) | list %}
+  {{ block_fields(new_rows[0] if new_rows else {"code": NEW_BLOCK, "label": "", "pcc": "", "role": "include", "terms": ""}, _("New block")) }}
+  <fieldset>
+    <legend>{{ _("Limits") }}</legend>
+    <label for="annee_debut">{{ _("From the year") }}</label>
+    <input type="text" inputmode="numeric" id="annee_debut" name="annee_debut" value="{{ form.year_from }}" size="4">
+    <label for="annee_fin">{{ _("To the year") }}</label>
+    <input type="text" inputmode="numeric" id="annee_fin" name="annee_fin" value="{{ form.year_to }}" size="4">
+    <p class="label">{{ _("Languages (none: every language)") }}</p>
+    {% for code, name in language_labels().items() %}
+    <label class="inline"><input type="checkbox" name="langues" value="{{ code }}" {% if code in form.languages %}checked{% endif %}> {{ name }}</label>
+    {% endfor %}
+  </fieldset>
+  <label for="justification">{{ _("Reason for the change (kept with the version)") }}</label>
+  <textarea id="justification" name="justification" rows="2">{{ form.rationale }}</textarea>
+  <button type="submit">{{ _("Save the strategy") }}</button>
+</form>
+
+{% if current %}
+<section aria-labelledby="requetes-titre">
+  <h2 id="requetes-titre">{{ _("Queries of version %(number)s", number=current.number) }}</h2>
+  {% set warnings = warning_labels() %}
+  {% for database in Database %}
+  {% set q = queries.get(database) %}
+  {% if q %}
+  {% set t = q.translation %}
+  <article id="requete-{{ database.value }}">
+    <h3>{{ database.display_name }}</h3>
+    {% if database == Database.OPENALEX %}<p class="small">{{ _("Value of the « filter » parameter of the OpenAlex API (works).") }}</p>{% endif %}
+    <pre><code>{{ t.text or _("(empty query)") }}</code></pre>
+    {% if t.warnings %}
+    <ul class="small">
+      {% for w in t.warnings %}<li>{% if w.block %}{{ w.block }} — {% endif %}{% if w.term %}<code>{{ w.term }}</code> : {% endif %}{{ warnings[w.kind] }}{% if w.detail %} ({{ w.detail }}){% endif %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if database == Database.PSYCINFO_EBSCO %}
+      <p class="small">{{ _("PsycINFO has no public API: run this query in EBSCOhost and enter the number of results in the journal.") }}</p>
+    {% else %}
+      {% set run = counts.get(q.id) %}
+      {% if run %}
+      <dl class="meta">
+        <dt>{{ _("Results") }}</dt><dd>{{ run.result_count }}</dd>
+        {% for code, n in run.block_counts.items() %}<dt>{{ _("Block %(code)s alone", code=code) }}</dt><dd>{{ n }}</dd>{% endfor %}
+        <dt>{{ _("Counted on") }}</dt><dd>{{ run.executed_at.strftime("%Y-%m-%d %H:%M") }} UTC</dd>
+      </dl>
+      {% endif %}
+      <form method="post" action="/recherche/comptes/{{ database.value }}">
+        {{ csrf() }}
+        <button type="submit" class="secondary">{{ _("Count the results in %(database)s", database=database.display_name) }}</button>
+      </form>
+    {% endif %}
+  </article>
+  {% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+
+<section aria-labelledby="descripteurs-titre" id="descripteurs">
+  <h2 id="descripteurs-titre">{{ _("MeSH descriptors") }}</h2>
+  <p>{{ _("Each MeSH heading of the strategy and of the pending AI suggestions is looked up in MeSH (NCBI E-utilities). APA Thesaurus headings cannot be checked automatically.") }}</p>
+  {% if headings %}
+  <ul>
+    {% for heading in headings %}
+    {% set c = descriptor_checks.get(("mesh", heading | lower)) %}
+    <li><code>{{ heading }}</code> —
+      {% if not c %}{{ _("not checked yet") }}
+      {% elif c.found %}{{ _("exists (%(ui)s)", ui=c.descriptor_ui) }}{% if c.official_heading != heading %} — {{ _("official form: %(heading)s", heading=c.official_heading) }}{% endif %}
+      {% else %}<strong>{{ _("does not exist in MeSH") }}</strong>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/recherche/descripteurs">
+    {{ csrf() }}
+    <button type="submit" class="secondary">{{ _("Check the MeSH descriptors") }}</button>
+  </form>
+  {% else %}
+  <p class="small">{{ _("No MeSH descriptor yet.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="articles-titre" id="articles-cles">
+  <h2 id="articles-titre">{{ _("Key articles and sensitivity test") }}</h2>
+  <p>{{ _("Enter articles that the search must retrieve, one per line: DOI, PMID or title. The test reports which ones the query retrieves and, for the others, the block that loses them.") }}</p>
+  <form method="post" action="/recherche/articles-cles">
+    {{ csrf() }}
+    <label for="articles">{{ _("Key articles") }}</label>
+    <textarea id="articles" name="articles" rows="8">{{ key_lines }}</textarea>
+    <button type="submit">{{ _("Save the key articles") }}</button>
+  </form>
+  {% if key_articles and current %}
+  {% for database in [Database.PUBMED, Database.OPENALEX] %}
+  <article id="sensibilite-{{ database.value }}">
+    <h3>{{ database.display_name }}</h3>
+    {% set latest = sensitivity.get(database) %}
+    {% if latest %}
+    {% set run, check = latest %}
+    {% set r = check.result %}
+    <p><strong>{{ _("Key articles retrieved: %(found)s of %(indexed)s", found=r.found, indexed=r.indexed) }}</strong>{% if r.recall is not none %} ({{ _("recall %(value)s", value=decimal_fr(r.recall, 3)) }}){% endif %} — {{ run.executed_at.strftime("%Y-%m-%d %H:%M") }} UTC</p>
+    {% if r.missed %}
+    <p>{{ _("Missed:") }}</p>
+    <ul>
+      {% for o in r.missed %}<li>{{ o.article.label }} — {{ _("lost by:") }} {% for code in o.responsible %}{{ block_name(code) }}{% if not loop.last %}, {% endif %}{% else %}{{ _("the combination of blocks") }}{% endfor %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if r.not_indexed %}
+    <p>{{ _("Not found in %(database)s (left out of the recall):", database=database.display_name) }}</p>
+    <ul>{% for o in r.not_indexed %}<li>{{ o.article.label }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% endif %}
+    <form method="post" action="/recherche/sensibilite/{{ database.value }}">
+      {{ csrf() }}
+      <button type="submit" class="secondary">{{ _("Run the sensitivity test in %(database)s", database=database.display_name) }}</button>
+    </form>
+  </article>
+  {% endfor %}
+  {% endif %}
+</section>
+
+<section aria-labelledby="suggestions-titre" id="suggestions">
+  <h2 id="suggestions-titre">{{ _("AI suggestions of terms") }}</h2>
+  <p>{{ _("The AI can propose synonyms, variants and descriptors for each block. Each suggestion must be accepted, modified or rejected; an accepted term is added to its block (new version of the strategy).") }}</p>
+  {% if preview %}
+    {{ cost_preview(preview, "/recherche/suggestions", _("Ask the AI (confirm the cost)"), "/recherche#suggestions") }}
+  {% elif current %}
+    <form method="post" action="/recherche/suggestions/estimation">
+      {{ csrf() }}
+      <button type="submit" class="secondary">{{ _("Ask the AI for terms…") }}</button>
+    </form>
+  {% else %}
+    <p class="small">{{ _("Save at least one concept block first.") }}</p>
+  {% endif %}
+  {% if suggestions %}
+  {% set outcomes = outcome_labels() %}
+  <ol class="suggestions">
+    {% for view in suggestions %}
+    {% set s = view.suggestion %}
+    <li id="suggestion-{{ s.id }}">
+      <p><span class="label">{{ _("Block %(code)s", code=s.block_code) }}</span> — <code>{{ s.line }}</code>
+        {% if s.kind == "descriptor" and s.line.startswith("mesh") %}
+          {% set c = descriptor_checks.get(("mesh", s.term.text | lower)) %}
+          {% if c and not c.found %}<strong>— {{ _("does not exist in MeSH") }}</strong>{% elif not c %}<span class="small">— {{ _("not checked yet") }}</span>{% endif %}
+        {% endif %}
+      </p>
+      {% if s.rationale %}<p class="small">{{ _("Rationale of the AI:") }} {{ s.rationale }}</p>{% endif %}
+      <p class="small">{{ _("Proposed by %(model)s on %(date)s UTC", model=view.model_returned, date=s.created_at.strftime("%Y-%m-%d %H:%M")) }}</p>
+      {% if view.review %}
+        <p class="outcome">{{ outcomes[view.review.outcome] }}</p>
+        {% if view.review.outcome == "modified" %}<p><code>{{ view.review.final_line }}</code></p>{% endif %}
+      {% else %}
+        <form method="post" action="/recherche/suggestions/{{ s.id }}">
+          {{ csrf() }}
+          <button type="submit" name="decision" value="accepted">{{ _("Accept") }}</button>
+          <button type="submit" name="decision" value="rejected" class="secondary">{{ _("Reject") }}</button>
+          <label for="terme-{{ s.id }}">{{ _("Modified term") }}</label>
+          <input type="text" id="terme-{{ s.id }}" name="terme" value="{{ s.line }}">
+          <button type="submit" name="decision" value="modified" class="secondary">{{ _("Accept with this term") }}</button>
+        </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+
+{% if history %}
+<h2>{{ _("History") }}</h2>
+<ol class="history">
+  {% for version, version_queries in history | reverse %}
+  <li>
+    <details>
+      <summary>{{ _("Version %(number)s, %(date)s UTC", number=version.number, date=version.created_at.strftime("%Y-%m-%d %H:%M")) }}{% if version.rationale %} — {{ version.rationale }}{% endif %}</summary>
+      {% for q in version_queries %}
+      <p class="label">{{ q.database.display_name }}</p>
+      <pre><code>{{ q.translation.text }}</code></pre>
+      {% endfor %}
+    </details>
+  </li>
+  {% endfor %}
+</ol>
+{% endif %}
+{% endblock %}

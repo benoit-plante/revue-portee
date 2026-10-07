@@ -20,6 +20,7 @@ from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import framing as framing_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import protocol as protocol_repo
+from revue_portee.storage.repositories import search as search_repo
 
 __all__ = ["ExportFormat", "export_protocol", "protocol_data", "protocol_document"]
 
@@ -46,6 +47,18 @@ def protocol_data(
             for v in versions
             if v.after_protocol_registration and v.activated_at is not None
         )
+        search = search_repo.latest_strategy_version(connection)
+        queries = (
+            ()
+            if search is None
+            else tuple(search_repo.list_queries(connection, strategy_version_id=search.id))
+        )
+        query_ids = {q.id for q in queries}
+        latest_counts = {
+            run.query_id: run
+            for run in search_repo.list_runs(connection)
+            if run.query_id in query_ids and run.result_count is not None
+        }
         data = ProtocolData(
             project=projects.get_project(connection),
             reviewers=tuple(
@@ -59,6 +72,9 @@ def protocol_data(
             ai=folder.ai_settings(),
             registration=protocol_repo.latest_registration(connection),
             deviations=deviations,
+            search=search,
+            queries=queries,
+            counts=tuple(latest_counts.values()),
             tool_version=tool_version,
             generated_at=now(),
         )

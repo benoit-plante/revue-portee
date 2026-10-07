@@ -1,0 +1,106 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.1080%2F03036758.2024.2399359%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39989647\"],\"translationset\":[],\"querytranslation\":\"\\\"10.1080/03036758.2024.2399359\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=39938532%5Buid%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39938532\"],\"translationset\":[],\"querytranslation\":\"39938532[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.3389%2FPHRS.2024.1607651%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39906193\"],\"translationset\":[],\"querytranslation\":\"\\\"10.3389/PHRS.2024.1607651\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=39757795%5Buid%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39757795\"],\"translationset\":[],\"querytranslation\":\"39757795[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=39713846%5Buid%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39713846\"],\"translationset\":[],\"querytranslation\":\"39713846[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.1186%2FS13643-024-02690-2%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39702411\"],\"translationset\":[],\"querytranslation\":\"\\\"10.1186/S13643-024-02690-2\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=39696198%5Buid%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39696198\"],\"translationset\":[],\"querytranslation\":\"39696198[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.2196%2F60352%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39671597\"],\"translationset\":[],\"querytranslation\":\"\\\"10.2196/60352\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%2210.12688%2FOPENRESAFRICA.14092.4%22%5Bdoi%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"41623853\"],\"translationset\":[],\"querytranslation\":\"\\\"10.12688/OPENRESAFRICA.14092.4\\\"[Publisher ID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=1&retmode=json&term=39086663%5Buid%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"39086663\"],\"translationset\":[],\"querytranslation\":\"39086663[UID]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=10&retmode=json&term=%28%28parent%2A%5Btiab%5D+OR+father%2A%5Btiab%5D+OR+mother%2A%5Btiab%5D%29+AND+%28%22scoping+review%22%5Btiab%5D%29%29+AND+%2839086663%5Buid%5D+OR+39671597%5Buid%5D+OR+39696198%5Buid%5D+OR+39702411%5Buid%5D+OR+39713846%5Buid%5D+OR+39757795%5Buid%5D+OR+39906193%5Buid%5D+OR+39938532%5Buid%5D+OR+39989647%5Buid%5D+OR+41623853%5Buid%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"8\",\"retmax\":\"8\",\"retstart\":\"0\",\"idlist\":[\"39989647\",\"39938532\",\"39906193\",\"39757795\",\"39713846\",\"39702411\",\"39696198\",\"39671597\"],\"translationset\":[],\"querytranslation\":\"(\\\"parent*\\\"[Title/Abstract] OR \\\"father*\\\"[Title/Abstract] OR \\\"mother*\\\"[Title/Abstract]) AND \\\"scoping review\\\"[Title/Abstract] AND (39086663[UID] OR 39671597[UID] OR 39696198[UID] OR 39702411[UID] OR 39713846[UID] OR 39757795[UID] OR 39906193[UID] OR 39938532[UID] OR 39989647[UID] OR 41623853[UID])\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%28parent%2A%5Btiab%5D+OR+father%2A%5Btiab%5D+OR+mother%2A%5Btiab%5D%29+AND+%2839086663%5Buid%5D+OR+41623853%5Buid%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"0\",\"retmax\":\"0\",\"retstart\":\"0\",\"idlist\":[],\"translationset\":[],\"querytranslation\":\"(\\\"parent*\\\"[Title/Abstract] OR \\\"father*\\\"[Title/Abstract] OR \\\"mother*\\\"[Title/Abstract]) AND (39086663[UID] OR 41623853[UID])\",\"warninglist\":{\"phrasesignored\":[],\"quotedphrasesnotfound\":[],\"outputmessages\":[\"No items found.\"]}}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&email=contact%40example.org&retmax=2&retmode=json&term=%28%22scoping+review%22%5Btiab%5D%29+AND+%2839086663%5Buid%5D+OR+41623853%5Buid%5D%29&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"2\",\"retmax\":\"2\",\"retstart\":\"0\",\"idlist\":[\"41623853\",\"39086663\"],\"translationset\":[],\"querytranslation\":\"\\\"scoping review\\\"[Title/Abstract] AND (39086663[UID] OR 41623853[UID])\"}}\n"
+  }
+ }
+]

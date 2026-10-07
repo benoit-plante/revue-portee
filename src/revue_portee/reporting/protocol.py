@@ -30,10 +30,20 @@ from revue_portee.domain.protocol import (
     ProtocolSection,
     ProtocolText,
 )
+from revue_portee.domain.search import (
+    LANGUAGES,
+    BlockRole,
+    Database,
+    QueryVersion,
+    SearchRun,
+    StrategyVersion,
+    format_term,
+)
 from revue_portee.i18n import translator
 from revue_portee.reporting.document import (
     Block,
     BulletList,
+    Code,
     Document,
     Heading,
     Paragraph,
@@ -78,6 +88,9 @@ class ProtocolData(BaseModel):
     ai: AISettings
     registration: ProtocolRegistration | None
     deviations: tuple[Deviation, ...] = ()
+    search: StrategyVersion | None = None
+    queries: tuple[QueryVersion, ...] = ()  # of the search version, one per database
+    counts: tuple[SearchRun, ...] = ()  # latest count of each query
     tool_version: str
     generated_at: AwareDatetime
 
@@ -436,6 +449,145 @@ def _selection_generated(_: Translate, data: ProtocolData) -> list[Block]:
     ]
 
 
+def _search_generated(_: Translate, data: ProtocolData, language: str) -> list[Block]:
+    version = data.search
+    if version is None or not version.strategy.included:
+        return []
+    strategy = version.strategy
+    included = [b.label or b.code for b in strategy.included]
+    excluded = [b.label or b.code for b in strategy.excluded]
+    blocks: list[Block] = [
+        Paragraph(
+            text=_(
+                "The search strategy combines the following concept blocks with AND: {blocks}. "
+                "The terms of a block (free-text words and phrases searched in titles and "
+                "abstracts, with truncation, and subject headings) are combined with OR."
+            ).format(blocks=", ".join(included))
+        )
+    ]
+    if excluded:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Records matching the following blocks are removed with NOT: {blocks}."
+                ).format(blocks=", ".join(excluded))
+            )
+        )
+    limits = strategy.limits
+    if not limits.empty:
+        parts = []
+        if limits.year_from or limits.year_to:
+            parts.append(
+                _("publication years {start} to {end}").format(
+                    start=limits.year_from or "…", end=limits.year_to or "…"
+                )
+            )
+        if limits.languages:
+            parts.append(
+                _("languages: {languages}").format(
+                    languages=", ".join(_language_name(_, code) for code in limits.languages)
+                )
+            )
+        separator = " ; " if language == "fr" else "; "
+        blocks.append(Paragraph(text=_("Limits: {limits}.").format(limits=separator.join(parts))))
+    databases = [q.database.display_name for q in _ordered(data.queries) if q.translation.text]
+    blocks.append(
+        Paragraph(
+            text=_(
+                "The query of each database ({databases}) is generated from version {number} of "
+                "the strategy ({date}) and given in Appendix II; each version of the strategy "
+                "and of the queries is kept with its date and its number of results."
+            ).format(
+                databases=", ".join(databases),
+                number=version.number,
+                date=_date(version.created_at),
+            )
+        )
+    )
+    return blocks
+
+
+def _sources_generated(_: Translate, data: ProtocolData, language: str) -> list[Block]:
+    if not data.counts:
+        return []
+    by_query = {q.id: q.database for q in data.queries}
+    items = tuple(
+        _("{database} ({date}): {count}").format(
+            database=by_query[run.query_id].display_name,
+            count=_integer(run.result_count or 0, language),
+            date=_date(run.executed_at),
+        )
+        for run in data.counts
+        if run.query_id in by_query
+    )
+    if not items:
+        return []
+    return [
+        Paragraph(text=_("Preliminary number of records retrieved by the queries of Appendix II:")),
+        BulletList(items=items),
+    ]
+
+
+def _ordered(queries: Iterable[QueryVersion]) -> list[QueryVersion]:
+    order = {database: position for position, database in enumerate(Database)}
+    return sorted(queries, key=lambda q: order[q.database])
+
+
+def _language_name(_: Translate, code: str) -> str:
+    names = {
+        "en": _("English"),
+        "fr": _("French"),
+        "es": _("Spanish"),
+        "de": _("German"),
+        "pt": _("Portuguese"),
+        "it": _("Italian"),
+    }
+    return names.get(code, LANGUAGES.get(code, code))
+
+
+def _integer(value: int, language: str) -> str:
+    text = f"{value:,}"
+    return text.replace(",", " ") if language == "fr" else text
+
+
+def _separator(language: str) -> str:
+    """Separator of list items, with the French non-breaking space before « ; »."""
+    return " ; " if language == "fr" else "; "
+
+
+def _search_appendix(_: Translate, data: ProtocolData, language: str) -> list[Block]:
+    version = data.search
+    if version is None or not data.queries:
+        return [_todo(_, _("complete search strategy for at least one database"))]
+    rows = tuple(
+        (
+            b.code,
+            b.label,
+            _("exclusion (NOT)") if b.role is BlockRole.EXCLUDE else _("inclusion (AND)"),
+            _separator(language).join(format_term(t) for t in b.terms),
+        )
+        for b in version.strategy.blocks
+    )
+    blocks: list[Block] = [
+        Paragraph(
+            text=_("Concept blocks of version {number} of the search strategy ({date}).").format(
+                number=version.number, date=_date(version.created_at)
+            )
+        ),
+        Table(header=(_("Block"), _("Label"), _("Role"), _("Terms")), rows=rows),
+    ]
+    for query in _ordered(data.queries):
+        if not query.translation.text:
+            continue
+        blocks.append(Paragraph(text=query.database.display_name))
+        blocks.append(Code(text=query.translation.text))
+        if query.database is Database.OPENALEX:
+            blocks.append(
+                Paragraph(text=_("Value of the « filter » parameter of the OpenAlex API (works)."))
+            )
+    return blocks
+
+
 def _methods(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     framework: list[Block] = [
         Paragraph(
@@ -468,6 +620,7 @@ def _methods(_: Translate, data: ProtocolData, language: str) -> list[Block]:
                 "steps of the search, draft search for one database (Appendix II), language "
                 "and date limits with their justification"
             ),
+            _search_generated(_, data, language),
         ),
         *_section(
             _,
@@ -476,6 +629,7 @@ def _methods(_: Translate, data: ProtocolData, language: str) -> list[Block]:
             3,
             _("Information sources"),
             _("databases, interfaces and grey literature sources"),
+            _sources_generated(_, data, language),
         ),
         *_section(
             _,
@@ -623,13 +777,13 @@ def _criteria_table(_: Translate, data: ProtocolData) -> list[Block]:
     ]
 
 
-def _appendices(_: Translate, data: ProtocolData) -> list[Block]:
+def _appendices(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     return [
         Heading(level=2, text=_("Appendices"), section=S.APPENDICES.value),
         Heading(level=3, text=_("Appendix I: Eligibility criteria in full")),
         *_criteria_table(_, data),
         Heading(level=3, text=_("Appendix II: Search strategy")),
-        _todo(_, _("complete search strategy for at least one database")),
+        *_search_appendix(_, data, language),
         Heading(level=3, text=_("Appendix III: Data extraction instrument")),
         _todo(_, _("draft charting tool")),
     ]
@@ -705,7 +859,7 @@ def build_protocol(
         *_methods(_, data, language),
         *_deviations(_, data),
         *_closing(_, data),
-        *_appendices(_, data),
+        *_appendices(_, data, language),
     ]
     titles = {b.section: b.text for b in blocks if isinstance(b, Heading) and b.section is not None}
     blocks += _checklist_appendix(_, language, blocks, checklist, titles)

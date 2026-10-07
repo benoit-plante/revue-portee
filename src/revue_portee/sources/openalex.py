@@ -1,0 +1,80 @@
+"""OpenAlex works API (EF-REC-04, EF-REC-05).
+
+The key, when configured, is sent as ``api_key``; in the cloud environment the network
+proxy adds it itself (D-021). Each count costs a little of the daily allowance.
+"""
+
+from collections.abc import Sequence
+from typing import Any
+
+import httpx2
+from pydantic import SecretStr
+
+from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
+from revue_portee.sources.http import RateLimiter, SourceAnswer, chunks, get_json, merge_answers
+
+__all__ = ["WORKS", "OpenAlex"]
+
+WORKS = "https://api.openalex.org/works"
+SERVICE = "OpenAlex"
+# OpenAlex accepts at most 100 values in one OR filter (and 200 results per page).
+MAX_OR_VALUES = 100
+
+
+def _short(openalex_id: str) -> str:
+    return openalex_id.rsplit("/", 1)[-1]
+
+
+class OpenAlex:
+    database = Database.OPENALEX
+
+    def __init__(
+        self,
+        client: httpx2.Client,
+        *,
+        api_key: SecretStr | None = None,
+        limiter: RateLimiter | None = None,
+        owns_client: bool = False,
+    ) -> None:
+        self._client = client
+        self._api_key = api_key
+        self._limiter = limiter or RateLimiter(0.1)
+        self._owns_client = owns_client
+
+    def close(self) -> None:
+        """Close the HTTP client if this connector created it."""
+        if self._owns_client:
+            self._client.close()
+
+    def _works(self, filter_value: str, per_page: int) -> SourceAnswer:
+        params = {"filter": filter_value, "per-page": str(per_page), "select": "id"}
+        if self._api_key is not None:
+            params["api_key"] = self._api_key.get_secret_value()
+        raw = get_json(self._client, WORKS, params, service=SERVICE, limiter=self._limiter)
+        ids = tuple(_short(work["id"]) for work in raw.get("results", []) if work.get("id"))
+        return SourceAnswer(count=int(raw.get("meta", {}).get("count", 0)), ids=ids, raw=raw)
+
+    def count(self, filter_value: str) -> SourceAnswer:
+        return self._works(filter_value, 1)
+
+    def among(self, filter_value: str, work_ids: Sequence[str]) -> SourceAnswer:
+        """Which of ``work_ids`` the filter retrieves."""
+        if not work_ids:
+            return SourceAnswer(count=0, ids=(), raw={})
+        return merge_answers(
+            [
+                self._works(f"openalex:{'|'.join(part)},{filter_value}", len(part))
+                for part in chunks(work_ids, MAX_OR_VALUES)
+            ]
+        )
+
+    def resolve(self, article: KeyArticle) -> tuple[str | None, dict[str, Any]]:
+        """OpenAlex work of a key article, or None if there is no single match."""
+        if article.kind is KeyArticleKind.DOI:
+            answer = self._works(f"doi:{article.value.lower()}", 2)
+        elif article.kind is KeyArticleKind.PMID:
+            answer = self._works(f"pmid:{article.value}", 2)
+        else:
+            title = " ".join(article.value.replace(",", " ").replace('"', " ").split())
+            answer = self._works(f'title.search.exact:"{title}"', 2)
+        return (answer.ids[0] if len(answer.ids) == 1 else None), answer.raw

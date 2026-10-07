@@ -1,0 +1,18 @@
+[
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=mesh&email=contact%40example.org&retmax=5&retmode=json&term=%22parenting%22%5BMeSH+Terms%5D&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"1\",\"retmax\":\"1\",\"retstart\":\"0\",\"idlist\":[\"68016487\"],\"translationset\":[],\"translationstack\":[{\"term\":\"\\\"parenting\\\"[MeSH Terms]\",\"field\":\"MeSH Terms\",\"count\":\"1\",\"explode\":\"N\"},\"GROUP\"],\"querytranslation\":\"\\\"parenting\\\"[MeSH Terms]\"}}\n"
+  }
+ },
+ {
+  "request": "GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=mesh&email=contact%40example.org&id=68016487&retmode=json&tool=revue-portee",
+  "response": {
+   "status": 200,
+   "content_type": "application/json; charset=UTF-8",
+   "body": "{\"header\":{\"type\":\"esummary\",\"version\":\"0.3\"},\"result\":{\"uids\":[\"68016487\"],\"68016487\":{\"uid\":\"68016487\",\"ds_yearintroduced\":\"1992\",\"ds_scopenote\":\"Performing the role of a parent by care-giving, nurturance, and protection of the child by a natural or substitute parent. The parent supports the child by exercising authority and through consistent, empathic, appropriate behavior in response to the child's needs. PARENTING differs from CHILD REARING in that in child rearing the emphasis is on the act of training or bringing up the children and the interaction between the parent and child, while parenting emphasizes the responsibility and qualities of exemplary behavior of the parent.\",\"ds_registrynumber\":\"\",\"ds_headingmappedto\":\"\",\"ds_meshterms\":[\"Parenting\"],\"ds_subheading\":[\"ethnology\",\"history\",\"psychology\",\"trends\"],\"ds_papx\":[],\"ds_previousindexing\":[\"Child Rearing (1970-1991)\",\"Parent-Child Relations (1970-1991)\"],\"ds_seerelated\":[\"68002668\"],\"ds_palist\":[],\"ds_idxlinks\":[{\"parent\":68005195,\"treenum\":\"F01.829.263.370.310\",\"children\":[]}],\"ds_entrydate\":\"1/01/01 00:00\",\"ds_revisiondate\":\"1/01/01 00:00\",\"ds_headingmappedtolist\":[],\"ds_recordtype\":\"descriptor\",\"ds_meshui\":\"D016487\"}}}\n"
+  }
+ }
+]

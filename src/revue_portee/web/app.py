@@ -39,6 +39,8 @@ from revue_portee.domain.criteria import (
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
+from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
+from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.i18n import EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
@@ -49,9 +51,14 @@ from revue_portee.reporting.document import render_docx, render_markdown
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.resources import peters_checklist
+from revue_portee.search import runs, strategies
+from revue_portee.search import suggestions as term_suggestions
+from revue_portee.search.runs import DescriptorSource, default_descriptor_source
+from revue_portee.sources import SourceError, SourceFactory, default_source_factory
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import projects
 from revue_portee.version import tool_version as current_tool_version
+from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
 
@@ -182,6 +189,48 @@ def section_labels() -> dict[str, str]:
     }
 
 
+def role_labels() -> dict[str, str]:
+    return {
+        BlockRole.INCLUDE: _("Inclusion (combined with AND)"),
+        BlockRole.EXCLUDE: _("Exclusion (removed with NOT)"),
+    }
+
+
+def language_labels() -> dict[str, str]:
+    names = {
+        "en": _("English"),
+        "fr": _("French"),
+        "es": _("Spanish"),
+        "de": _("German"),
+        "pt": _("Portuguese"),
+        "it": _("Italian"),
+    }
+    return {code: names.get(code, code) for code in LANGUAGES}
+
+
+def warning_labels() -> dict[str, str]:
+    return {
+        WarningKind.DESCRIPTOR_NOT_SUPPORTED: _("descriptor left out: vocabulary absent here"),
+        WarningKind.FIELD_WIDENED: _("field not available: searched in title and abstract"),
+        WarningKind.PUBLICATION_TYPE_NOT_SUPPORTED: _("publication type left out"),
+        WarningKind.COMMA_REMOVED: _("comma removed (not allowed in OpenAlex filters)"),
+        WarningKind.EMPTY_BLOCK: _("block without usable term: left out"),
+        WarningKind.RAW_FILTER_IN_EXCLUSION: _(
+            "OpenAlex filter of an exclusion block left out (a filter cannot be removed with NOT)"
+        ),
+        WarningKind.EXCLUSION_WITHOUT_INCLUSION: _(
+            "exclusion blocks without inclusion block: no query (NOT needs records to remove from)"
+        ),
+        WarningKind.YEARS_IN_INTERFACE: _(
+            "set the publication years with the limiter of the interface"
+        ),
+    }
+
+
+def block_name(code: str) -> str:
+    return _("limits (years, languages)") if code == LIMITS else code
+
+
 def decimal_fr(value: Decimal | float, digits: int) -> str:
     """Number in French notation, e.g. « 0,90 »."""
     return f"{value:.{digits}f}".replace(".", ",")
@@ -205,12 +254,17 @@ _AI_ERRORS: tuple[type[Exception], ...] = (
 )
 
 
+_TERM_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, term_suggestions.NoStrategyError)
+
+
 def create_app(
     folder: ProjectFolder,
     *,
     now: Callable[[], datetime] = utc_now,
     tool_version: str | None = None,
     provider_factory: ProviderFactory = default_provider_factory,
+    source_factory: SourceFactory = default_source_factory,
+    descriptor_source: Callable[[], DescriptorSource] = default_descriptor_source,
 ) -> FastAPI:
     """Application serving one open project folder."""
     context = AppContext(
@@ -238,6 +292,12 @@ def create_app(
         section_labels=section_labels,
         money=money,
         decimal_fr=decimal_fr,
+        role_labels=role_labels,
+        language_labels=language_labels,
+        warning_labels=warning_labels,
+        block_name=block_name,
+        Database=Database,
+        NEW_BLOCK=NEW_BLOCK,
         modification_types=MODIFICATION_TYPES,
         PccElement=PccElement,
         CriterionKind=CriterionKind,
@@ -575,6 +635,195 @@ def create_app(
             "differentiel.html",
             {"diff": delta, "versions": criteria.criteria_state(folder).versions},
         )
+
+    # --- Search -----------------------------------------------------------------------
+
+    def search_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        saved: bool = False,
+        form: StrategyForm | None = None,
+        key_lines: str | None = None,
+        preview: CostPreview | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        current = strategies.current_strategy(folder)
+        strategy = None if current is None else current.strategy
+        if form is None:
+            limits = None if strategy is None else strategy.limits
+            form = StrategyForm(
+                rows=rows_of(strategy),
+                year_from=str(limits.year_from or "") if limits else "",
+                year_to=str(limits.year_to or "") if limits else "",
+                languages=limits.languages if limits else (),
+            )
+        key_articles = runs.current_key_articles(folder)
+        if key_lines is None:
+            key_lines = (
+                "" if key_articles is None else "\n".join(a.value for a in key_articles.articles)
+            )
+        checks = runs.sensitivity_checks(folder)
+        latest_checks = {}
+        queries = strategies.current_queries(folder)
+        query_databases = {q.id: q.database for q in queries.values()}
+        for run, check in checks:
+            if run.query_id in query_databases:
+                latest_checks[query_databases[run.query_id]] = (run, check)
+        return render(
+            request,
+            "recherche.html",
+            {
+                "current": current,
+                "form": form,
+                "errors": form.errors,
+                "queries": queries,
+                "counts": runs.latest_runs(folder),
+                "history": strategies.strategy_history(folder),
+                "headings": runs.headings_to_check(folder),
+                "descriptor_checks": runs.descriptor_checks(folder),
+                "key_articles": key_articles,
+                "key_lines": key_lines,
+                "sensitivity": latest_checks,
+                "suggestions": term_suggestions.list_term_suggestions(folder),
+                "preview": preview,
+                "error": error,
+                "saved": saved,
+            },
+            status_code=status_code,
+        )
+
+    def _database(value: str) -> Database:
+        try:
+            database = Database(value)
+        except ValueError as error:
+            raise HTTPException(status_code=404, detail=_("Unknown database.")) from error
+        if database is Database.PSYCINFO_EBSCO:
+            raise HTTPException(status_code=404, detail=_("Unknown database."))
+        return database
+
+    @app.get("/recherche", response_class=HTMLResponse)
+    def show_search(request: Request, enregistre: int = 0) -> HTMLResponse:
+        return search_page(request, saved=bool(enregistre))
+
+    @app.post("/recherche/strategie")
+    async def save_search_strategy(request: Request, _csrf: Csrf) -> Response:
+        raw = await request.form()
+        values = {key: value for key, value in raw.items() if isinstance(value, str)}
+        languages = [value for value in raw.getlist("langues") if isinstance(value, str)]
+        used = await run_in_threadpool(strategies.used_block_codes, folder)
+        form = read_strategy_form(values, languages, used_codes=used)
+        if form.strategy is None:
+            return search_page(request, form=form, status_code=422)
+        try:
+            await run_in_threadpool(
+                strategies.save_strategy,
+                folder,
+                form.strategy,
+                rationale=form.rationale,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except strategies.EmptyStrategyError as error:
+            return search_page(request, error=str(error), form=form, status_code=422)
+        return see_other("/recherche?enregistre=1")
+
+    @app.post("/recherche/comptes/{database}")
+    def count_search_results(request: Request, database: str, _csrf: Csrf) -> Response:
+        chosen = _database(database)
+        try:
+            runs.count_results(
+                folder, chosen, now=now, tool_version=context.tool_version, factory=source_factory
+            )
+        except (runs.NoQueryError, MissingSecretError) as error:
+            return search_page(request, error=str(error), status_code=422)
+        except SourceError as error:
+            return search_page(request, error=str(error), status_code=502)
+        return see_other(f"/recherche#requete-{chosen.value}")
+
+    @app.post("/recherche/descripteurs")
+    def check_search_descriptors(request: Request, _csrf: Csrf) -> Response:
+        try:
+            runs.check_descriptors(
+                folder, now=now, tool_version=context.tool_version, source=descriptor_source
+            )
+        except MissingSecretError as error:
+            return search_page(request, error=str(error), status_code=422)
+        except SourceError as error:
+            return search_page(request, error=str(error), status_code=502)
+        return see_other("/recherche#descripteurs")
+
+    @app.post("/recherche/articles-cles")
+    def save_search_key_articles(
+        request: Request, _csrf: Csrf, articles: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            runs.save_key_articles(
+                folder, articles.splitlines(), now=now, tool_version=context.tool_version
+            )
+        except runs.InvalidKeyArticlesError as error:
+            return search_page(request, error=str(error), key_lines=articles, status_code=422)
+        return see_other("/recherche#articles-cles")
+
+    @app.post("/recherche/sensibilite/{database}")
+    def check_search_sensitivity(request: Request, database: str, _csrf: Csrf) -> Response:
+        chosen = _database(database)
+        try:
+            runs.check_sensitivity(
+                folder, chosen, now=now, tool_version=context.tool_version, factory=source_factory
+            )
+        except (runs.NoQueryError, runs.NoKeyArticlesError, MissingSecretError) as error:
+            return search_page(request, error=str(error), status_code=422)
+        except SourceError as error:
+            return search_page(request, error=str(error), status_code=502)
+        return see_other(f"/recherche#sensibilite-{chosen.value}")
+
+    @app.post("/recherche/suggestions/estimation")
+    def estimate_term_suggestions(request: Request, _csrf: Csrf) -> Response:
+        try:
+            preview = term_suggestions.preview_term_suggestions(folder, factory=provider_factory)
+        except _TERM_ERRORS as error:
+            return search_page(request, error=str(error), status_code=422)
+        return search_page(request, preview=preview)
+
+    @app.post("/recherche/suggestions")
+    def request_term_suggestions(request: Request, _csrf: Csrf) -> Response:
+        try:
+            term_suggestions.request_term_suggestions(
+                folder, now=now, tool_version=context.tool_version, factory=provider_factory
+            )
+        except _TERM_ERRORS as error:
+            return search_page(request, error=str(error), status_code=422)
+        except AITaskError as error:
+            return search_page(request, error=str(error), status_code=502)
+        return see_other("/recherche#suggestions")
+
+    @app.post("/recherche/suggestions/{suggestion_id}")
+    def review_term_suggestion(
+        request: Request,
+        suggestion_id: str,
+        _csrf: Csrf,
+        decision: Annotated[SuggestionOutcome, Form()],
+        terme: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            term_suggestions.review_term_suggestion(
+                folder,
+                suggestion_id,
+                decision,
+                line=terme,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except term_suggestions.UnknownSuggestionError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except (
+            term_suggestions.AlreadyReviewedError,
+            term_suggestions.BlockGoneError,
+            term_suggestions.InvalidTermError,
+        ) as error:
+            return search_page(request, error=str(error), status_code=422)
+        return see_other(f"/recherche#suggestion-{suggestion_id}")
 
     # --- Protocol ---------------------------------------------------------------------
 
