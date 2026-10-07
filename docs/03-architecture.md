@@ -74,7 +74,10 @@ revue-portee/
 │   ├── domain/                   # aucun import externe hors pydantic
 │   │   ├── ids.py                # identifiants (ULID), codes de critères
 │   │   ├── references.py         # Reference, Provenance, normalisation DOI/titre
-│   │   ├── criteria.py           # CriteriaVersion, Criterion, CriterionChange
+│   │   ├── criteria.py           # CriteriaVersion, Criterion, différentiel
+│   │   ├── changes.py            # ChangeType, CriterionChange, qualification (EF-VER-03)
+│   │   ├── suggestions.py        # suggestions de l'IA pour le cadrage et leur décision
+│   │   ├── protocol.py           # sections du protocole, listes de contrôle, enregistrement
 │   │   ├── framing.py            # Framing, FramingVersion (question PCC versionnée)
 │   │   ├── project.py            # Project, Reviewer
 │   │   ├── decisions.py          # Decision, ReviewerRef, Stage, état courant
@@ -86,35 +89,40 @@ revue-portee/
 │   │   ├── project_folder.py     # création/ouverture du dossier de projet
 │   │   ├── db.py, repositories/  # accès SQLite; écritures par ProjectFolder.write() (D-036)
 │   │   ├── migrate.py, migrations/ # Alembic (migrations appliquées à l'ouverture)
+│   │   ├── raw.py                # réponses brutes des modèles (brut/ia/, gzip)
 │   │   └── archive.py            # export autonome (EF-PRJ-04)
 │   ├── sources/
 │   │   ├── base.py               # interface Source, limiteur de débit, reprise
 │   │   ├── openalex.py, pubmed.py, crossref.py, unpaywall.py
 │   │   ├── ris.py                # import RIS
 │   │   └── oai_pmh.py            # Érudit, HAL, dépôts (V2)
-│   ├── protocol/                 # cas d'usage de l'étape 1 : cadrage, critères, notes du journal
+│   ├── protocol/                 # cas d'usage de l'étape 1 : cadrage, critères, notes du journal,
+│   │                             # suggestions et qualification par l'IA (ai_assist.py), protocole
 │   ├── search/                   # blocs de concepts, traducteurs par base, test de sensibilité
 │   ├── dedup/                    # dédoublonnage
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
 │   ├── ai/
 │   │   ├── base.py               # TaskSpec, TaskInput/TaskOutput, TaskResult, AICallRecord, ModelProvider
 │   │   ├── runner.py             # run_task : exécution indépendante du fournisseur
+│   │   ├── settings.py           # configuration de l'IA du projet ([ia] de projet.toml, D-039)
 │   │   ├── tasks/                # définition des tâches (entrées/sorties Pydantic)
 │   │   ├── providers/            # anthropic.py, classifier.py, local.py, fake.py
-│   │   ├── prompts/              # gabarits d'invite versionnés (*.md.j2 + métadonnées)
+│   │   ├── prompts/              # un dossier par gabarit : meta.yaml, system.md.j2, user.md.j2
 │   │   ├── calibration.py        # étalonnage de la confiance
 │   │   └── costs.py              # estimation, plafonds, suivi
 │   ├── extraction/, synthesis/, stakeholders/   # V3, V3, V4
-│   ├── reporting/                # diagramme, protocole, section méthode, PRISMA-ScR
+│   ├── reporting/                # document neutre (rendus Markdown, DOCX), protocole; plus tard
+│   │                             # diagramme, section méthode, PRISMA-ScR
 │   ├── config/                   # paramètres, secrets (seul point d'accès aux variables d'env.)
 │   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
 │   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
 │   ├── jobs/                     # tâches de fond persistantes
 │   ├── web/                      # FastAPI : routes (app.py), gabarits, statique (HTMX copié, D-033)
-│   ├── cli/                      # Typer : nouveau, serve, verifier-journal
+│   ├── cli/                      # Typer : nouveau, serve, verifier-journal, protocole
 │   ├── i18n/                     # catalogues Babel (locale/fr/…/messages.po), D-031
 │   ├── clock.py, version.py      # heure UTC; version de l'outil et commit (D-034)
-│   └── resources/                # YAML : PRISMA-ScR, gabarit diagramme, OSF, tarifs
+│   └── resources/                # YAML datés : tarifs (model_prices), IA par défaut (ai_defaults),
+│                                 # protocol/ (Peters et al. 2022, formulaire OSF); plus tard PRISMA-ScR
 └── tests/
     ├── conftest.py               # blocage du réseau, filtrage des cassettes
     ├── support.py                # utilitaires partagés (horloge déterministe, projet de test)
@@ -131,7 +139,7 @@ Un projet de revue est un **dossier** (extension conventionnelle `.revue`, ex. `
 
 ```
 ecoanxiete-enfants.revue/
-├── projet.toml           # métadonnées, version du format, paramètres (seuils, plafonds, réviseurs IA)
+├── projet.toml           # métadonnées, version du format, configuration de l'IA ([ia], D-039)
 ├── revue.sqlite          # source de vérité (toutes les tables de la section 5)
 ├── brut/
 │   ├── ia/AAAA/MM/<ai_call_id>.json.gz       # réponses brutes des modèles (ENF-TRA-03)
@@ -144,6 +152,7 @@ ecoanxiete-enfants.revue/
 
 - `projet.toml` contient `format_version` (ex. `"1.0"`). Toute ouverture d'un projet d'un format antérieur lance les migrations après **copie de sauvegarde** automatique.
 - **Aucun secret** dans le dossier de projet (ENF-SEC-01). Les réviseurs IA y sont décrits par fournisseur et modèle, jamais par clé.
+- `[ia]` de `projet.toml` : supervision (mode, taille du pilote, cible de sensibilité, étalonnage) et, pour chaque tâche, statut (`enabled` / `planned`), fournisseur, modèle, paramètres et sortie attendue. Valeurs initiales : `resources/ai_defaults.yaml`; un projet sans cette section reçoit ces valeurs.
 - Le dossier est **autosuffisant** : copié ailleurs, il s'ouvre sans perte. L'archive OSF (EF-PRJ-04) est ce dossier sans `textes/` (droits d'auteur), plus des exports CSV/JSON lisibles sans l'outil.
 - Le dossier n'est **pas** prévu pour être versionné dans git (SQLite binaire); la traçabilité est assurée par le journal interne.
 
@@ -159,10 +168,10 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 |---|---|---|
 | `project` | id, title, language, created_at, format_version | Une ligne |
 | `reviewer` | id, kind (`human` / `ai`), display_name, role, ai_config_id (si IA), active | EF-PRJ-05 |
-| `ai_config` | id, provider, model_requested, task, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**; la version **effective** est dans `ai_call` |
+| `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_qualified`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
 
 ### 5.2 Critères versionnés
 
@@ -172,7 +181,12 @@ Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `fr
 | `criteria_version` | id, number (1, 2, 3…), parent_id, status (`draft` / `active` / `superseded`), created_at, activated_at, author_id, rationale, journal_entry_id, after_protocol_registration (bool) | Au plus un brouillon et une version `active` à la fois; immuable une fois sortie du brouillon (flux D-027) |
 | `criterion` | version_id, code (stable : `P1`, `C2`, `CTX1`, `X3`…), pcc_element (`population` / `concept` / `context` / `other`), kind (`inclusion` / `exclusion`), text, guidance, examples_json, counterexamples_json, applies_to_stages | Le `code` reste le même d'une version à l'autre; `applies_to_stages` sera ajouté avec le tri |
 | `criterion_code` | code, pcc_element, first_version_id, created_at | Registre en ajout seulement : un code n'est jamais réattribué, même s'il n'a existé que dans un brouillon (D-026) |
-| `criterion_change` | id, from_version_id, to_version_id, code, change_type (`broadening` / `narrowing` / `clarification` / `added` / `removed`), proposed_by (IA ou humain), confirmed_by, rationale | EF-VER-03 (à venir avec l'analyse d'impact) |
+| `qualification_proposal` | id, draft_version_id, code, ai_call_id, change_type, confidence, rationale, after_json, created_at | Proposition de l'IA pour un critère modifié d'un brouillon; caduque si le critère change de nouveau (D-043) |
+| `criterion_change` | id, from_version_id, to_version_id, code, change_type (`broadening` / `narrowing` / `clarification` / `added` / `removed`), proposed_by (`ai` / `human`), proposal_id, confirmed_by, created_at, journal_entry_id | EF-VER-03 : un type confirmé par l'humain pour chaque changement, à l'activation (D-043); la justification est celle de la version |
+| `ai_suggestion` | id, ai_call_id, position, kind (`reformulation` / `secondary_question` / `population` / `concept` / `context`), text, rationale, created_at | Suggestions de l'IA pour le cadrage (EF-CAD-02) |
+| `suggestion_review` | id, suggestion_id (unique), outcome (`accepted` / `modified` / `rejected`), final_text, reviewer_id, created_at, framing_version_id, journal_entry_id | Une décision humaine par suggestion; `framing_version_id` est la version créée, s'il y en a une (D-042) |
+| `protocol_text_version` | id, number, created_at, author_id, sections_json, journal_entry_id | Texte libre du protocole par section, versionné (D-045) |
+| `protocol_registration` | id, doi, registered_on, criteria_version_id, created_at, reviewer_id, journal_entry_id | Dépôt du protocole (EF-CAD-08); toute version de critères activée ensuite est un écart au protocole (D-044) |
 
 ### 5.3 Recherche et collecte
 
@@ -210,7 +224,7 @@ Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `fr
 
 | Table | Champs principaux |
 |---|---|
-| `ai_call` | id, ai_config_id, provider, model_requested, **model_returned** (identifiant exact renvoyé par l'API), provider_request_id, prompt_template_id, prompt_template_version, prompt_sha256, params_json, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_estimate, currency, latency_ms, batch_id, response_path, status, error_code, created_at |
+| `ai_call` | id, ai_config_id, task, item_id, provider, model_requested, **model_returned** (identifiant exact renvoyé par l'API; vide si l'API n'a renvoyé aucun modèle), provider_request_id, prompt_template_id, prompt_template_version, prompt_sha256, params_json, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_estimate, currency, latency_ms, batch_id, response_path, status, error_code, created_at |
 | `budget` | id, scope (`project` / `batch`), limit_amount, currency, spent_amount, updated_at |
 
 ### 5.7 Texte complet, études, extraction (V2–V3)
@@ -268,9 +282,12 @@ Les services applicatifs ne connaissent que `ModelProvider` et `TaskSpec`. Le ch
 
 Le **nom exact du modèle** n'est jamais codé en dur : il vient de la configuration du projet. Le fichier `resources/model_prices.yaml` (daté) donne les tarifs connus.
 
+`AnthropicProvider` (tranche 1.2, D-037) : sortie structurée selon le schéma de la tâche, revalidée par Pydantic; instructions mises en cache; replis côté serveur activables (`fallbacks`); chaque appel produit un `AICallRecord` complet et la réponse brute. Seul ce module importe le SDK `anthropic` (test d'architecture). Les services reçoivent une fabrique de fournisseurs (`ProviderFactory`) construite depuis `[ia]`; les tests y substituent `FakeProvider`.
+
 ### 6.4 Invites
 
-- Gabarits Jinja2 dans `ai/prompts/`, chacun avec un fichier de métadonnées (`id`, `version`, `task`, `changelog`). Modifier un gabarit = incrémenter sa version.
+- Gabarits Jinja2 dans `ai/prompts/<id>/` : `meta.yaml` (`id`, `version`, `task`, `changelog`), `system.md.j2` (instructions fixes, préfixe mis en cache) et `user.md.j2` (entrée de la tâche). Modifier un gabarit = incrémenter sa version. L'empreinte SHA-256 consignée porte sur les deux parties rendues.
+- Gabarits livrés à la tranche 1.2 : `suggest_pcc` et `qualify_criterion_change` (version 1).
 - **Structure de l'invite de tri** : instructions fixes → critères de la version en vigueur (avec exemples et contre-exemples) → référence. Les deux premiers blocs forment un **préfixe stable** qui profite de la mise en cache des invites (ENF-COU-04).
 - Deux stratégies configurables, à comparer dans l'étude de validation : **un appel par référence** évaluant tous les critères (par défaut, moins coûteux) ou **un appel par critère** (Vembye et al., 2025).
 - Sortie **structurée** (schéma JSON) : pour chaque critère, `status` (`met` / `not_met` / `cannot_tell`), `evidence_quote`; puis `decision`, `confidence`, `rationale`, `decisive_criteria`.
@@ -285,7 +302,7 @@ Le **nom exact du modèle** n'est jamais codé en dur : il vient de la configura
 
 ### 6.6 Coûts
 
-`ai/costs.py` estime le coût avant chaque lot (jetons d'entrée estimés × tarif + sortie moyenne observée), vérifie le plafond, enregistre le coût réel par appel et arrête proprement au plafond (ENF-COU-01 à 03). L'API de traitement par lots du fournisseur est utilisée pour les lots non urgents quand elle est offerte.
+`ai/costs.py` estime le coût avant chaque lot (jetons d'entrée estimés × tarif, instructions au tarif d'écriture en cache, + sortie attendue : D-040), vérifie le plafond, enregistre le coût réel par appel et arrête proprement au plafond (ENF-COU-01 à 03; plafond à venir à la tranche 1.6). L'appel se fait hors transaction d'écriture; il est consigné dans sa propre transaction, puis son résultat est exploité (D-041). L'API de traitement par lots du fournisseur est utilisée pour les lots non urgents quand elle est offerte.
 
 ## 7. Analyse d'impact (fonctionnalité distinctive)
 
@@ -317,6 +334,7 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Rendu côté serveur, HTMX pour les interactions partielles (tri au clavier sans recharger la page).
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
+- Ajouts de la tranche 1.2 : suggestions de l'IA sur « Cadrage » (accepter, modifier, refuser); qualification des changements sur « Critères », avec proposition facultative de l'IA; page « Protocole » (téléchargement Markdown et DOCX en français et en anglais, enregistrement OSF, état des éléments de Peters et al., texte libre). Tout appel à l'IA passe par une page d'estimation du coût, puis une confirmation (ENF-COU-01).
 - Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
 - Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
 - **Sécurité locale** (D-032) : chaque formulaire porte un jeton propre au processus du serveur; les en-têtes `Host` autres que `127.0.0.1` ou `localhost`, et les en-têtes `Origin` étrangers sur les écritures, sont refusés (requêtes intersites, DNS rebinding).
