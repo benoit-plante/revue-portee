@@ -31,6 +31,7 @@ from revue_portee.sources import SourceAnswer, UnsupportedDatabaseError, default
 from revue_portee.sources.pubmed import MeshCheck
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.raw import read_source_pages
+from revue_portee.storage.repositories import search as search_repo
 from support import TOOL_VERSION, fake_factory, make_clock, new_project, raw_sqlite
 
 Clock = Callable[[], datetime]
@@ -148,7 +149,7 @@ def test_failed_recording_leaves_no_raw_folder(
     def broken(*_args: object, **_kwargs: object) -> None:
         raise sqlite3.OperationalError("disk full")
 
-    monkeypatch.setattr(runs.search_repo, "insert_run", broken)
+    monkeypatch.setattr(search_repo, "insert_run", broken)
     source = FakeSource(Database.OPENALEX, hits={})
     with pytest.raises(sqlite3.OperationalError):
         runs.count_results(
@@ -326,7 +327,20 @@ def test_term_suggestions_are_reviewed_into_new_versions(
         ("Parenting Programs", False, None),
     ]
     assert runs.descriptor_checks(folder)[("mesh", "parenting programs")].found is False
-    assert notes.journal_entries(folder)[-1].payload["checks"][1]["found"] is False
+    assert notes.journal_entries(folder)[-1].payload["checks"] == [
+        {
+            "heading": "Parenting",
+            "found": True,
+            "official_heading": "Parenting",
+            "descriptor_ui": "D016487",
+        },
+        {
+            "heading": "Parenting Programs",
+            "found": False,
+            "official_heading": None,
+            "descriptor_ui": None,
+        },
+    ]
 
     father, programs, scoping = received
     accepted = suggestions.review_term_suggestion(
