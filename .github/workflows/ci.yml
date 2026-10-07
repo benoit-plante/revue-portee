@@ -25,3 +25,5 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
+      - name: Domain coverage >= 90% (ENF-QUA-04)
+        run: uv run coverage report --include="src/revue_portee/domain/*" --fail-under=90
