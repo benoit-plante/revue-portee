@@ -711,3 +711,134 @@ Propositions de la tranche 1.2 (2026-10-07), mises en œuvre dans la demande de 
 - **Justification** : la structure (une section par élément, test de couverture) ne dépend pas du libellé exact; corriger la liste est une modification de données.
 - **Conséquences** : tant que la liste n'est pas vérifiée, le critère « 100 % des éléments de Peters et al. » est satisfait sous réserve.
 - **Renvois** : EF-CAD-06; [01-etat-de-l-art.md §5](01-etat-de-l-art.md#5-normes-et-recommandations); demande de fusion benoit-plante/revue-portee#4.
+
+Propositions de la tranche 1.3 (2026-10-07), mises en œuvre dans la demande de fusion benoit-plante/revue-portee#6 :
+
+### D-047 — Réponses enregistrées propres au projet pour httpx2
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : les tests des connecteurs rejouent des réponses enregistrées par un mécanisme du projet (`tests/recording.py`). Chaque cassette est un fichier JSON de paires requête et réponse, dans `tests/cassettes/<module>/<test>.json`.
+  - Correspondance : méthode et URL, avec les paramètres triés et filtrés.
+  - Conservé de la réponse : statut, type de contenu et corps.
+  - Marqueur `cassette`, fixture `http_cassette`.
+  - Mode d'enregistrement : celui de l'option `--record-mode` de pytest-recording. `none` (valeur par défaut) rejoue ; `once` enregistre seulement les cassettes absentes.
+- **Contexte** : les connecteurs utilisent `httpx2`, que vcrpy (et donc pytest-recording) n'intercepte pas.
+- **Options envisagées** :
+  1. **Transport httpx2 de rejeu, avec enregistrement par un vrai client** : environ cent lignes de code, sans dépendance.
+  2. Passer les connecteurs à `httpx` pour garder vcrpy : deux clients HTTP dans le projet.
+  3. Doublures écrites à la main : elles ne vérifient pas les vraies réponses des API.
+- **Justification** : l'option 1 garde de vraies réponses, des cassettes lisibles et sans dépendance supplémentaire.
+- **Conséquences** :
+  - À l'enregistrement, le client respecte le mandataire et les certificats de l'environnement.
+  - `api_key`, `email` et `mailto` sont remplacés par `DUMMY` et `contact@example.org`.
+  - La cassette n'est pas écrite si la vraie adresse de contact y figure.
+  - En mode d'enregistrement, le réseau n'est pas bloqué pour les tests marqués `cassette` ; il reste bloqué pour tous les autres (D-016).
+  - Enregistrer reste un appel volontaire aux vrais services, sur autorisation de Benoit.
+- **Renvois** : D-016, D-017 ; ENF-SEC-04 ; demande de fusion benoit-plante/revue-portee#6.
+
+### D-048 — Stratégie de recherche stockée en un seul document JSON
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : chaque version de la stratégie (blocs, termes, limites) est stockée en JSON dans `search_strategy_version.strategy_json`. Il n'y a pas de table `concept_block`.
+- **Contexte** : l'architecture prévoyait une table `concept_block` par version. Or la stratégie se versionne d'un bloc : une modification d'un terme crée une nouvelle version de l'ensemble.
+- **Options envisagées** :
+  1. **Document JSON validé par Pydantic** (`SearchStrategy`) : une ligne par version ; relecture identique à l'écriture.
+  2. Table `concept_block` : des jointures sans requête SQL qui en ait besoin.
+- **Justification** : aucun traitement n'interroge les blocs en SQL. Les codes de bloc (`B1`, `B2`…) restent stables d'une version à l'autre, et ne sont jamais réattribués : un nouveau bloc ne reprend pas le code d'un bloc retiré dans une version antérieure.
+- **Conséquences** : **écart à [03-architecture.md §5.3](03-architecture.md#53-recherche-et-collecte)**, que la section met à jour. Les requêtes produites (`query`) restent dans une table, une par base et par version.
+- **Renvois** : EF-REC-01, EF-REC-06 ; demande de fusion benoit-plante/revue-portee#6.
+
+### D-049 — Syntaxe d'une ligne de terme
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : un bloc contient un terme par ligne.
+  - Mots et expressions :
+    - un mot : `parent` ; troncature : `parent*` ;
+    - une expression exacte : `"parenting program"`. Une ligne de plusieurs mots est toujours cherchée comme une expression.
+  - Préfixes de champ : `ti:`, `ab:`, `tw:`, `all:`, `pt:` (titre et résumé par défaut).
+  - Descripteurs :
+    - MeSH : `mesh:` (avec les descripteurs plus spécifiques) ou `mesh-noexp:` ;
+    - thésaurus de l'APA : `apa:`, ou `apa+:` avec les descripteurs plus spécifiques.
+  - Texte recopié tel quel dans la requête d'une seule base : `pubmed:`, `openalex:`, `psycinfo:`.
+  - Interdits dans une ligne : AND, OR, NOT, parenthèses et crochets. Une ligne invalide est signalée avec son bloc et son texte.
+- **Contexte** : EF-REC-01 demande des blocs éditables (termes français et anglais, troncature, expressions) qui se traduisent automatiquement vers plusieurs bases.
+- **Options envisagées** :
+  1. **Une ligne par terme, avec préfixes** : lisible, et facile à traduire vers chaque base.
+  2. Saisie de la requête PubMed, ensuite traduite vers les autres bases : il faut analyser toute la syntaxe de PubMed, et le texte saisi est propre à une base.
+- **Justification** : la ligne de terme est la plus petite unité que toutes les bases savent exprimer. Les préfixes de texte brut couvrent ce qui est propre à une base.
+- **Conséquences** :
+  - Les suggestions de l'IA (`suggest_terms`) utilisent la même syntaxe ; une proposition illisible, déjà présente ou pour un bloc inconnu est écartée, et leur nombre est consigné.
+  - Le texte d'aide de la page « Recherche » décrit la syntaxe.
+- **Renvois** : EF-REC-01, EF-REC-02 ; demande de fusion benoit-plante/revue-portee#6.
+
+### D-050 — Traduction vers OpenAlex
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : la requête OpenAlex est la valeur du paramètre `filter` de l'API `works`. Elle se compose :
+  - d'un filtre `title_and_abstract.search.exact` qui contient l'expression booléenne ;
+  - des filtres `from_publication_date`, `to_publication_date` et `language` ;
+  - des termes bruts `openalex:` des blocs d'inclusion, combinés par AND.
+
+  Ce qu'OpenAlex ne sait pas exprimer est écarté avec un avertissement :
+  - descripteurs (OpenAlex n'a pas de vocabulaire contrôlé) ;
+  - types de publication ;
+  - virgules (interdites dans un filtre) ;
+  - champs autres que titre et résumé (la recherche est élargie au titre et au résumé) ;
+  - termes bruts d'un bloc d'exclusion (un filtre ne peut pas être retiré par NOT).
+- **Contexte** : le filtre `title_and_abstract.search` racinise les mots et refuse les jokers ; `title_and_abstract.search.exact` les accepte, ainsi que les opérateurs et les expressions entre guillemets (vérifié contre l'API en octobre 2026).
+- **Options envisagées** :
+  1. **`title_and_abstract.search.exact`** : la troncature et les expressions se comportent comme dans PubMed.
+  2. `title_and_abstract.search` : la racinisation élargit la recherche sans contrôle, et `*` est refusé.
+  3. Paramètre `search` : il cherche aussi dans le texte intégral, ce qui ne correspond pas aux champs des autres bases.
+- **Justification** : l'option 1 est la plus proche, en sens, de la requête PubMed.
+- **Conséquences** :
+  - Les avertissements sont affichés avec la requête et conservés avec elle.
+  - Un bloc qui n'a que des termes bruts OpenAlex a sa propre requête (ses filtres), pour le test de sensibilité.
+  - Chaque comptage consomme une petite part de l'allocation quotidienne d'OpenAlex.
+- **Renvois** : EF-REC-03, EF-REC-04 ; [01-etat-de-l-art.md §6](01-etat-de-l-art.md#6-sources-de-données-et-conditions-daccès-2026) ; demande de fusion benoit-plante/revue-portee#6.
+
+### D-051 — Test de sensibilité et bloc responsable
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : chaque article clé (DOI, PMID ou titre) est d'abord résolu en identifiant de la base. Un article sans correspondance unique est déclaré non indexé et exclu du rappel. On teste ensuite quels articles la requête complète retrouve :
+  - PubMed : `(<requête>) AND (<pmid>[uid] OR …)`, par lots de 200 ;
+  - OpenAlex : filtre `openalex:W…|W…`, par lots de 100 (limite des filtres OR d'OpenAlex).
+
+  Un article manqué est attribué :
+  - à chaque bloc d'inclusion qui, seul, ne le retrouve pas ;
+  - à chaque bloc d'exclusion qui, seul, le retrouve ;
+  - aux limites (années, langues), si elles seules ne le retrouvent pas ;
+  - si aucun de ces cas ne s'applique, à « la combinaison des blocs ».
+
+  Rappel = articles retrouvés / articles indexés, arrondi à trois décimales.
+- **Contexte** : EF-REC-05 demande de nommer les articles manqués et le bloc responsable.
+- **Options envisagées** :
+  1. **Tester chaque bloc seul, seulement contre les articles manqués** : peu de requêtes et une explication directe.
+  2. Retirer les blocs un à un de la requête complète : plus de requêtes, et une explication moins lisible quand plusieurs blocs sont en cause.
+- **Justification** : un article manqué par une conjonction de blocs l'est forcément par au moins un bloc seul ; l'option 1 le nomme.
+- **Conséquences** :
+  - Le calcul est une fonction pure (`domain/sensitivity.py`), testée sur un cas calculé à la main.
+  - Les réponses brutes sont conservées dans `brut/sources/`.
+  - PsycINFO n'a pas d'API publique : le test n'y est pas disponible.
+- **Renvois** : EF-REC-05 ; [05-plan-de-validation.md](05-plan-de-validation.md) ; demande de fusion benoit-plante/revue-portee#6.
+
+### D-052 — Années ouvertes et requêtes sans bloc d'inclusion
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - Dans PubMed, une année de fin absente devient `"3000"[dp]` et une année de début absente `"1800"[dp]`.
+  - Dans EBSCOhost, les années ne s'écrivent pas dans la requête : un avertissement demande de les fixer avec le limiteur de l'interface.
+  - Une stratégie sans bloc d'inclusion ni limites ne produit pas de requête : les blocs d'exclusion n'ont alors rien à retirer, et un avertissement est affiché.
+- **Contexte** : une limite d'années peut n'avoir qu'une borne, et un NOT isolé n'est pas une requête valide.
+- **Options envisagées** :
+  1. **Bornes conventionnelles** : `3000` est la convention de PubMed pour « jusqu'à aujourd'hui » ; le texte reste le même d'un jour à l'autre (ENF-REP-01).
+  2. Année courante comme borne : le texte de la requête changerait selon la date de production.
+- **Justification** : une requête produite doit être identique pour une même version de stratégie.
+- **Conséquences** : le comptage et le test de sensibilité refusent une base sans requête, avec un message qui demande un bloc d'inclusion.
+- **Renvois** : EF-REC-03, ENF-REP-01 ; demande de fusion benoit-plante/revue-portee#6.
