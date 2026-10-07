@@ -31,7 +31,8 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 
 - **Code, identifiants, commentaires, docstrings, messages de commit : anglais.** Documentation et interface : **français** (guillemets « », espace insécable avant `:` `;` `?` `!` dans l'interface). Chaînes d'interface externalisées (Babel).
 - Disposition `src/revue_portee/`, tests dans `tests/`. Le module `domain/` n'importe rien d'externe hors Pydantic.
-- Typage complet; Pydantic v2 pour les modèles; fonctions pures pour les calculs (métriques, impact, dédoublonnage, diagramme).
+- Typage complet, vérifié par **mypy en mode strict** (D-022); Pydantic v2 pour les modèles; fonctions pures pour les calculs (métriques, impact, dédoublonnage, diagramme).
+- Dans les chaînes d'interface du code, utiliser de vraies espaces insécables (U+00A0); ruff les autorise (D-018). ruff ignore `docs/` et les fichiers `*.md` (D-019) : ne pas lancer d'autre formateur sur la documentation.
 - Toute nouvelle dépendance : `uv add <paquet>`, vérifier sa licence (pas de licence non commerciale ni « sans dérivé »), la mentionner dans la demande de fusion. Licence du projet : **AGPL-3.0-or-later** (D-004); dépendances compatibles seulement.
 - Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main.
 
@@ -46,8 +47,12 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 
 - VM **Ubuntu 24.04 neuve à chaque session**; Python, **uv**, pytest, ruff préinstallés. Rien ne persiste hors du dépôt.
 - **Réseau limité à une liste** : `api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org` + registres de paquets. Toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) exige que **Benoit ajoute son domaine** dans les réglages : ne pas contourner, le signaler.
-- Variables disponibles : `ANTHROPIC_API_KEY`, `CONTACT_EMAIL`, `OPENALEX_API_KEY` (OpenAlex exige une clé depuis février 2026, D-013). Si une variable manque, le code échoue proprement avec un message clair en français.
-- Dépendances installées par un **hook SessionStart** dans `.claude/settings.json` (à créer au jalon 0). Forme attendue :
+- Variables disponibles :
+  - `REVUE_PORTEE_ANTHROPIC_KEY` : clé d'API Anthropic du projet. `ANTHROPIC_API_KEY` est lue seulement à défaut, car elle peut servir à l'authentification de la session Claude Code elle-même (D-020);
+  - `CONTACT_EMAIL` : adresse de contact transmise aux API bibliographiques;
+  - `OPENALEX_API_KEY` : **facultative**. Dans l'environnement infonuagique, le mandataire réseau ajoute lui-même la clé aux requêtes vers `api.openalex.org`, et la variable est absente (D-013, D-021).
+- Si une variable obligatoire manque, le code échoue proprement avec un message clair en français qui nomme la variable.
+- Dépendances installées par le **hook SessionStart** de `.claude/settings.json` (en place depuis le jalon 0) :
 
 ```json
 {
@@ -68,31 +73,35 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 
 ## Secrets — règles absolues
 
-- **Ne jamais afficher, journaliser, imprimer, écrire dans un fichier ni committer** la valeur de `ANTHROPIC_API_KEY`, `OPENALEX_API_KEY`, `CONTACT_EMAIL` ou de toute autre clé. Pas de `echo $ANTHROPIC_API_KEY`, pas de `env`/`printenv` sans filtre, pas de valeur dans un message d'erreur, une exception, un `repr`, une cassette de test ou un dossier de projet.
-- Pour vérifier qu'une variable existe : `test -n "$ANTHROPIC_API_KEY" && echo "défini"`.
-- Seul `src/revue_portee/config/secrets.py` lit ces variables (`SecretStr`).
-- Cassettes de test : filtrer `x-api-key`, `authorization`, `api_key`, `email`, `mailto` (remplacer par des valeurs fictives) **avant** de les committer.
+- **Ne jamais afficher, journaliser, imprimer, écrire dans un fichier ni committer** la valeur de `REVUE_PORTEE_ANTHROPIC_KEY`, `ANTHROPIC_API_KEY`, `OPENALEX_API_KEY`, `CONTACT_EMAIL` ou de toute autre clé. Pas de `echo $REVUE_PORTEE_ANTHROPIC_KEY`, pas de `env`/`printenv` sans filtre, pas de valeur dans un message d'erreur, une exception, un `repr`, une cassette de test ou un dossier de projet.
+- Pour vérifier qu'une variable existe : `test -n "$REVUE_PORTEE_ANTHROPIC_KEY" && echo "défini"`.
+- Seul `src/revue_portee/config/secrets.py` lit ces variables (`get_secret`, `get_optional_secret`, `configured_secrets`; valeurs en `SecretStr`). Un test d'architecture l'impose.
+- Tout point d'entrée (ligne de commande, serveur web) appelle `install_secret_redaction()` au démarrage : les secrets chargés et les motifs de clés connus sont alors masqués dans toutes les entrées de journal, dès leur création (D-024). Ne pas ajouter de gestionnaire qui rend lui-même les exceptions à partir de `record.exc_info` (par exemple `RichHandler`) : il contournerait le masquage des traces.
+- Cassettes de test : filtrer `x-api-key`, `authorization`, `api_key`, `email`, `mailto` **avant** de les committer, en les remplaçant par `DUMMY` (clés, en-têtes) et `contact@example.org` (adresses). `tests/conftest.py` applique déjà ce filtrage à l'enregistrement.
+- Le test anti-secrets de `tests/` n'accepte que des valeurs visiblement fictives : marqueurs `DUMMY`, `FAKE`, `REDACTED`, `example`…, ou domaines réservés (`example.org`, `.test`, `.invalid`) (D-017). Dans un test, construire toute chaîne qui ressemble à un secret par concaténation **explicite** (`"sk-" + "ant-"`, `"api_" + "key"`) : ruff fusionne les concaténations implicites.
 
 ## Tests
 
-- Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA.
+- Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016).
 - Les tests qui appellent de vrais services portent le marqueur `@pytest.mark.integration`, sont exclus par défaut et ne sont lancés **que sur demande explicite de Benoit** (ils coûtent et consomment des quotas).
-- Enregistrer une nouvelle cassette = test d'intégration lancé volontairement, puis nettoyage et vérification anti-secrets.
+- Enregistrer une nouvelle cassette = test d'intégration lancé volontairement (`uv run pytest -m integration --record-mode=once`), puis nettoyage et vérification anti-secrets.
+- **Couverture** : `uv run pytest` mesure la couverture (branches comprises) et **échoue** si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 % (D-023). Le seuil n'est vérifié que sur la suite complète : un fichier seul, `-k`, `-m` ou `--lf` l'ignorent, avec un avertissement. Réglages dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
-## Commandes (valides à partir du jalon 0)
+## Commandes
 
 ```bash
 uv sync                              # installer / mettre à jour l'environnement
-uv run pytest                        # tests (sans réseau, sans intégration)
+uv run pytest                        # tests (sans réseau, sans intégration), couverture et seuil de 90 %
 uv run pytest -m integration         # tests d'intégration — seulement sur demande
 uv run ruff check . && uv run ruff format --check .   # avant chaque commit
 uv run ruff format .                 # formater
+uv run mypy                          # vérification des types (mode strict)
 uv add <paquet> / uv add --dev <paquet>
-uv run revue-portee --help           # ligne de commande (nom à confirmer au jalon 0)
-uv run revue-portee serve            # interface web sur 127.0.0.1
+uv run revue-portee --version        # ligne de commande
+uv run revue-portee serve            # interface web sur 127.0.0.1 (à venir, tranche 1.1)
 ```
 
-Avant de proposer une demande de fusion : `ruff check`, `ruff format --check` et `pytest` doivent passer.
+Avant de proposer une demande de fusion : `ruff check`, `ruff format --check`, `mypy` et `pytest` (seuil de couverture compris) doivent passer. La CI GitHub (`.github/workflows/ci.yml`) les exécute sous Python 3.12 et 3.13.
 
 ## Si tu es bloqué
 
