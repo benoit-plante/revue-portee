@@ -55,7 +55,8 @@
 | DOCX | python-docx | MIT | Protocole, section méthode |
 | Diagramme de flux | Gabarit SVG paramétré (Jinja2), conversion PNG/PDF par CairoSVG (V2) | LGPL | Déterministe, pas de dépendance graphique lourde |
 | Internationalisation | Babel (catalogues gettext) | BSD | ENF-LAN-03 |
-| Tests | pytest, pytest-recording (VCR.py), respx, pytest-cov (coverage) | MIT / BSD / Apache-2.0 | Réponses enregistrées (ENF-QUA-01); couverture et seuil de 90 % par paquet (ENF-QUA-04, D-023) |
+| Client HTTP des connecteurs | httpx2 | BSD-3-Clause | Mandataire et certificats de l'environnement respectés (`trust_env`) |
+| Tests | pytest, pytest-recording (VCR.py), respx, pytest-cov (coverage) | MIT / BSD / Apache-2.0 | Réponses enregistrées (ENF-QUA-01) : vcrpy pour `httpx`, mécanisme du projet pour `httpx2` (D-047); couverture et seuil de 90 % par paquet (ENF-QUA-04, D-023) |
 | Qualité | ruff (vérification + formatage); mypy en mode strict (D-022) | MIT | ruff préinstallé; mypy vérifie la cohérence des types (ENF-QUA-03) |
 
 **Règle** : toute nouvelle dépendance est ajoutée avec `uv add`, sa licence est vérifiée (ENF-LIC-01) et mentionnée dans la demande de fusion.
@@ -79,6 +80,8 @@ revue-portee/
 │   │   ├── suggestions.py        # suggestions de l'IA pour le cadrage et leur décision
 │   │   ├── protocol.py           # sections du protocole, listes de contrôle, enregistrement
 │   │   ├── framing.py            # Framing, FramingVersion (question PCC versionnée)
+│   │   ├── search.py             # blocs de concepts, termes, limites, articles clés, versions
+│   │   ├── sensitivity.py        # test de sensibilité : articles manqués, bloc responsable (D-051)
 │   │   ├── project.py            # Project, Reviewer
 │   │   ├── decisions.py          # Decision, ReviewerRef, Stage, état courant
 │   │   ├── impact.py             # analyse d'impact des changements (EF-VER-04)
@@ -89,16 +92,21 @@ revue-portee/
 │   │   ├── project_folder.py     # création/ouverture du dossier de projet
 │   │   ├── db.py, repositories/  # accès SQLite; écritures par ProjectFolder.write() (D-036)
 │   │   ├── migrate.py, migrations/ # Alembic (migrations appliquées à l'ouverture)
-│   │   ├── raw.py                # réponses brutes des modèles (brut/ia/, gzip)
+│   │   ├── raw.py                # réponses brutes des modèles (brut/ia/) et des API (brut/sources/), gzip
 │   │   └── archive.py            # export autonome (EF-PRJ-04)
 │   ├── sources/
-│   │   ├── base.py               # interface Source, limiteur de débit, reprise
-│   │   ├── openalex.py, pubmed.py, crossref.py, unpaywall.py
+│   │   ├── __init__.py           # interface SearchSource, fabrique des connecteurs
+│   │   ├── http.py               # client httpx2, limiteur de débit, reprise, erreurs en français
+│   │   ├── openalex.py, pubmed.py # comptes, appartenance, résolution d'articles; MeSH (PubMed)
+│   │   ├── crossref.py, unpaywall.py
 │   │   ├── ris.py                # import RIS
 │   │   └── oai_pmh.py            # Érudit, HAL, dépôts (V2)
 │   ├── protocol/                 # cas d'usage de l'étape 1 : cadrage, critères, notes du journal,
 │   │                             # suggestions et qualification par l'IA (ai_assist.py), protocole
-│   ├── search/                   # blocs de concepts, traducteurs par base, test de sensibilité
+│   ├── search/                   # cas d'usage de l'étape 2 : versions de stratégie (strategies.py),
+│   │                             # comptes, articles clés, sensibilité, descripteurs (runs.py),
+│   │                             # suggestions de termes (suggestions.py); traducteurs (translate.py)
+│   │                             # et comparateur d'équivalence syntaxique (equivalence.py)
 │   ├── dedup/                    # dédoublonnage
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
 │   ├── ai/
@@ -117,20 +125,23 @@ revue-portee/
 │   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
 │   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
 │   ├── jobs/                     # tâches de fond persistantes
-│   ├── web/                      # FastAPI : routes (app.py), gabarits, statique (HTMX copié, D-033)
+│   ├── web/                      # FastAPI : routes (app.py), lecture du formulaire de stratégie
+│   │                             # (search_form.py), gabarits, statique (HTMX copié, D-033)
 │   ├── cli/                      # Typer : nouveau, serve, verifier-journal, protocole
 │   ├── i18n/                     # catalogues Babel (locale/fr/…/messages.po), D-031
 │   ├── clock.py, version.py      # heure UTC; version de l'outil et commit (D-034)
 │   └── resources/                # YAML datés : tarifs (model_prices), IA par défaut (ai_defaults),
 │                                 # protocol/ (Peters et al. 2022, formulaire OSF); plus tard PRISMA-ScR
 └── tests/
-    ├── conftest.py               # blocage du réseau, filtrage des cassettes
+    ├── conftest.py               # blocage du réseau, filtrage des cassettes, fixture http_cassette
+    ├── recording.py              # cassettes httpx2 : rejeu et enregistrement filtré (D-047)
     ├── support.py                # utilitaires partagés (horloge déterministe, projet de test)
     ├── _plugins/                 # greffons pytest du projet (seuil de couverture par paquet)
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
     ├── cassettes/                # réponses enregistrées, nettoyées
-    └── fixtures/                 # RIS réels anonymisés, petits jeux SYNERGY
+    └── fixtures/                 # stratégies de référence publiées (search/), RIS réels anonymisés,
+                                  # petits jeux SYNERGY
 ```
 
 ## 4. Format du dossier de projet
@@ -143,7 +154,8 @@ ecoanxiete-enfants.revue/
 ├── revue.sqlite          # source de vérité (toutes les tables de la section 5)
 ├── brut/
 │   ├── ia/AAAA/MM/<ai_call_id>.json.gz       # réponses brutes des modèles (ENF-TRA-03)
-│   └── sources/<search_run_id>/page-0001.json.gz
+│   └── sources/<id>/page-0001.json.gz        # réponses brutes des API, une par requête : comptes et
+│                                             # tests de sensibilité (search_run.id), vérifications MeSH
 ├── imports/<sha256>.ris  # copie exacte de chaque fichier importé
 ├── textes/               # PDF et texte extrait avec pages (V2)
 ├── etalonnage/           # modèles d'étalonnage sérialisés, par tour de pilote
@@ -171,7 +183,7 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 | `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
 
 ### 5.2 Critères versionnés
 
@@ -190,15 +202,19 @@ Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `fr
 
 ### 5.3 Recherche et collecte
 
-| Table | Champs principaux |
-|---|---|
-| `search_strategy_version` | id, number, created_at, author_id, rationale |
-| `concept_block` | strategy_version_id, code, label, pcc_element, terms_json (termes libres, descripteurs avec vocabulaire, langue, statut vérifié) |
-| `query` | id, strategy_version_id, database (`openalex`, `pubmed`, `psycinfo_ebsco`, …), syntax_text, generated_by, edited (bool) |
-| `search_run` | id, query_id, executed_at, result_count, status, raw_dir |
-| `import_file` | id, filename, sha256, format, database_declared, imported_at, record_count, warnings_json |
-| `key_article` | id, identifier (DOI/PMID/titre), note — pour le test de sensibilité |
-| `sensitivity_check` | id, query_id, executed_at, found_json, missing_json, recall |
+| Table | Champs principaux | Notes |
+|---|---|---|
+| `search_strategy_version` | id, number, created_at, author_id, rationale, strategy_json, journal_entry_id | La stratégie entière en JSON : blocs (code stable `B1`, `B2`…, libellé, élément PCC, rôle `include` / `exclude`, termes) et limites (années, langues) (D-048, D-049) |
+| `query` | id, strategy_version_id, database (`pubmed`, `openalex`, `psycinfo_ebsco`), syntax_text, blocks_json, limits_text, warnings_json, generated_by, edited (bool), created_at | Une requête par base et par version, produite en même temps que la version; `blocks_json` : requête de chaque bloc seul; avertissements de traduction (D-050, D-052) |
+| `search_run` | id, query_id, kind (`count` / `sensitivity`), executed_at, result_count, blocks_json, status, raw_dir, reviewer_id, journal_entry_id | Exécution d'une requête : nombre de résultats au total et par bloc (EF-REC-04) |
+| `key_article_set_version` | id, number, created_at, author_id, articles_json, journal_entry_id | Articles clés (DOI, PMID ou titre), versionnés (EF-REC-05) |
+| `sensitivity_check` | id, search_run_id, key_article_set_version_id, found, indexed, outcomes_json | Résultat par article : identifiant dans la base, retrouvé ou non, blocs responsables (D-051) |
+| `descriptor_check` | id, created_at, vocabulary, heading, found, official_heading, descriptor_ui, raw_dir, reviewer_id, journal_entry_id | Vérification d'un descripteur MeSH par E-utilities (EF-REC-02) |
+| `term_suggestion` | id, ai_call_id, strategy_version_id, position, block_code, kind (`free_term` / `descriptor`), line, rationale, created_at | Termes proposés par l'IA (tâche `suggest_terms`), dans la syntaxe des termes (D-049) |
+| `term_suggestion_review` | id, suggestion_id (unique), outcome, final_line, reviewer_id, created_at, strategy_version_id, journal_entry_id | Décision humaine; `strategy_version_id` : version créée par l'ajout du terme (D-042) |
+| `import_file` | id, filename, sha256, format, database_declared, imported_at, record_count, warnings_json | Tranche 1.4 |
+
+Toutes ces tables sont en ajout seulement (déclencheurs, migration 0003). La table `concept_block` envisagée au départ est remplacée par `strategy_json` (D-048).
 
 ### 5.4 Références, provenance, doublons
 
@@ -324,9 +340,11 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 
 ## 8. Connecteurs de sources
 
-- Interface `Source` : `count(query)`, `fetch(query) -> Iterator[RawRecord]` (paginé, reprenable), `normalize(raw) -> Reference`.
+- Interface `SearchSource` (tranche 1.3) : `count(query)`, `among(query, ids)` (lesquels de ces identifiants la requête retrouve, par lots), `resolve(article)` (identifiant d'un article clé dans la base). Les services reçoivent une fabrique (`SourceFactory`); les tests y substituent des connecteurs qui rejouent des réponses enregistrées. Un connecteur ferme le client HTTP qu'il a créé.
+- À venir (tranche 1.4) : `fetch(query) -> Iterator[RawRecord]` (paginé, reprenable), `normalize(raw) -> Reference`.
 - **Limiteur de débit** par source, paramétré selon les conditions de 2026 (voir [01-etat-de-l-art.md §6](01-etat-de-l-art.md#6-sources-de-données-et-conditions-daccès-2026)) : OpenAlex (clé requise, suivi de l'allocation quotidienne), PubMed (3 ou 10 requêtes/s, `tool` et `email`), Crossref (pool « poli », concurrence ≤ 3), Unpaywall (`email`).
-- Nouvelle tentative avec attente exponentielle sur 429 et 5xx; arrêt propre et message clair en français si le **domaine est bloqué par la liste réseau** de l'environnement.
+- Nouvelle tentative avec attente exponentielle sur 429, 5xx, délais dépassés et connexions coupées en cours de réponse; arrêt propre et message clair en français si le **domaine est bloqué par la liste réseau** de l'environnement, si l'accès est refusé ou si la réponse est illisible (`SourceError`, `sources/http.py`).
+- PubMed : `tool=revue-portee` et `email` (adresse de contact lue par `config/secrets.py`); vérification des descripteurs par `esearch` puis `esummary` sur la base `mesh`. OpenAlex : filtres de l'API `works` (D-050). PsycINFO (EBSCOhost) n'a pas d'API publique : la requête est produite pour être exécutée dans l'interface.
 - Chaque page brute est conservée dans `brut/sources/`.
 
 ## 9. Interface web
@@ -334,6 +352,7 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Rendu côté serveur, HTMX pour les interactions partielles (tri au clavier sans recharger la page).
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
+- Ajouts de la tranche 1.3 : page « Recherche » : blocs de concepts éditables et limites; requêtes de chaque base avec leurs avertissements; nombre de résultats au total et par bloc (PubMed, OpenAlex); vérification des descripteurs MeSH; articles clés et test de sensibilité; suggestions de termes par l'IA; historique des versions. Le protocole décrit la stratégie et donne les requêtes à l'annexe II.
 - Ajouts de la tranche 1.2 : suggestions de l'IA sur « Cadrage » (accepter, modifier, refuser); qualification des changements sur « Critères », avec proposition facultative de l'IA; page « Protocole » (téléchargement Markdown et DOCX en français et en anglais, enregistrement OSF, état des éléments de Peters et al., texte libre). Tout appel à l'IA passe par une page d'estimation du coût, puis une confirmation (ENF-COU-01).
 - Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
 - Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
@@ -363,7 +382,7 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 | Intégration réelle (API de sources, Claude) | `tests/integration/`, marqueur `integration` | **Oui** | `uv run pytest -m integration` — **volontairement seulement** |
 | Performance de tri sur SYNERGY (sous-ensemble) | `tests/benchmarks/` (V1, tranche 7) | Oui (modèle) | Manuel, résultats consignés |
 
-`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets.
+`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets. Les tests des connecteurs `httpx2` portent le marqueur `cassette` (D-047) : ils rejouent `tests/cassettes/<module>/<test>.json`; `uv run pytest <test> --record-mode=once` enregistre une cassette absente contre le vrai service, sur autorisation de Benoit.
 
 **Couverture** (ENF-QUA-04, D-023) : chaque exécution de `pytest` mesure la couverture de `revue_portee`, branches comprises (pytest-cov). Le greffon `tests/_plugins/coverage_gate.py` fait échouer la suite si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 %, chacun séparément. Le seuil n'est vérifié que sur la suite complète, et se règle dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 

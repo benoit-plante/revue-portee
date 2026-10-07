@@ -37,6 +37,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 - Cas d'usage dans des modules par étape (`protocol/` pour l'étape 1, puis `search/`, `screening/`…). Toute écriture dans un projet passe par `with folder.write() as connection:` (`BEGIN IMMEDIATE`, D-036), et chaque action consigne son entrée de journal dans la même transaction. Ne jamais modifier ni supprimer une ligne en ajout seulement : la base le refuse (déclencheurs, D-028).
 - Dans les chaînes d'interface du code, utiliser de vraies espaces insécables (U+00A0); ruff les autorise (D-018). ruff ignore `docs/` et les fichiers `*.md` (D-019) : ne pas lancer d'autre formateur sur la documentation.
 - Appels à l'IA : un cas d'usage affiche d'abord le coût (`protocol.ai_assist.preview`), puis appelle `run_and_record` après confirmation; chaque appel est consigné dans sa propre transaction avec sa réponse brute (D-041). Noms de modèles et paramètres seulement dans `resources/ai_defaults.yaml` et `[ia]` de `projet.toml`; tarifs datés dans `resources/model_prices.yaml`; gabarits d'invite dans `ai/prompts/<id>/` (modifier un gabarit = incrémenter sa version). Seul `ai/providers/anthropic.py` importe le SDK `anthropic`.
+- Appels aux API bibliographiques : seulement par `sources/` (client `httpx2` de `sources/http.py` : limiteur de débit, nouvelles tentatives, `SourceError` en français); les services reçoivent une fabrique de connecteurs (`SourceFactory`) et conservent chaque réponse brute dans `brut/sources/` avant d'en consigner le résultat. Les requêtes sont produites par `search/translate.py` à partir des blocs de concepts : ne pas écrire de requête à la main dans le code.
 - Toute nouvelle dépendance : `uv add <paquet>`, vérifier sa licence (pas de licence non commerciale ni « sans dérivé »), la mentionner dans la demande de fusion. Licence du projet : **AGPL-3.0-or-later** (D-004); dépendances compatibles seulement.
 - Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main.
 
@@ -88,7 +89,9 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 
 - Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016).
 - Les tests qui appellent de vrais services portent le marqueur `@pytest.mark.integration`, sont exclus par défaut et ne sont lancés **que sur demande explicite de Benoit** (ils coûtent et consomment des quotas).
-- Enregistrer une nouvelle cassette = test d'intégration lancé volontairement (`uv run pytest -m integration --record-mode=once`), puis nettoyage et vérification anti-secrets.
+- Enregistrer une nouvelle cassette = appel volontaire au vrai service, **sur autorisation de Benoit**, puis nettoyage et vérification anti-secrets :
+  - cassettes vcrpy (`httpx`) : `uv run pytest -m integration --record-mode=once`;
+  - connecteurs `httpx2` (PubMed, OpenAlex) : tests marqués `cassette`, fixture `http_cassette` (`tests/recording.py`, D-047), cassettes dans `tests/cassettes/<module>/<test>.json`; `uv run pytest <fichier ou test> --record-mode=once` enregistre seulement les cassettes absentes (supprimer une cassette pour la réenregistrer).
 - Utilitaires partagés dans `tests/support.py` : horloge déterministe (`make_clock`), projet de test (`new_project`), accès SQLite direct (`raw_sqlite`), fabrique de `FakeProvider` par tâche pour les services et l'interface (`fake_factory`).
 - **Couverture** : `uv run pytest` mesure la couverture (branches comprises) et **échoue** si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 % (D-023). Le seuil n'est vérifié que sur la suite complète : un fichier seul, `-k`, `-m` ou `--lf` l'ignorent, avec un avertissement. Réglages dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
@@ -98,6 +101,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 uv sync                              # installer / mettre à jour l'environnement
 uv run pytest                        # tests (sans réseau, sans intégration), couverture et seuil de 90 %
 uv run pytest -m integration         # tests d'intégration — seulement sur demande
+uv run pytest tests/unit/search --record-mode=once   # enregistre les cassettes absentes — seulement sur demande
 uv run ruff check . && uv run ruff format --check .   # avant chaque commit
 uv run ruff format .                 # formater
 uv run mypy                          # vérification des types (mode strict)
