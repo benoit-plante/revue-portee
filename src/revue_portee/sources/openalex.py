@@ -11,12 +11,14 @@ import httpx2
 from pydantic import SecretStr
 
 from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
-from revue_portee.sources.http import RateLimiter, SourceAnswer, get_json
+from revue_portee.sources.http import RateLimiter, SourceAnswer, chunks, get_json, merge_answers
 
 __all__ = ["WORKS", "OpenAlex"]
 
 WORKS = "https://api.openalex.org/works"
 SERVICE = "OpenAlex"
+# OpenAlex accepts at most 100 values in one OR filter (and 200 results per page).
+MAX_OR_VALUES = 100
 
 
 def _short(openalex_id: str) -> str:
@@ -32,10 +34,17 @@ class OpenAlex:
         *,
         api_key: SecretStr | None = None,
         limiter: RateLimiter | None = None,
+        owns_client: bool = False,
     ) -> None:
         self._client = client
         self._api_key = api_key
         self._limiter = limiter or RateLimiter(0.1)
+        self._owns_client = owns_client
+
+    def close(self) -> None:
+        """Close the HTTP client if this connector created it."""
+        if self._owns_client:
+            self._client.close()
 
     def _works(self, filter_value: str, per_page: int) -> SourceAnswer:
         params = {"filter": filter_value, "per-page": str(per_page), "select": "id"}
@@ -52,8 +61,12 @@ class OpenAlex:
         """Which of ``work_ids`` the filter retrieves."""
         if not work_ids:
             return SourceAnswer(count=0, ids=(), raw={})
-        joined = "|".join(work_ids)
-        return self._works(f"openalex:{joined},{filter_value}", min(200, len(work_ids)))
+        return merge_answers(
+            [
+                self._works(f"openalex:{'|'.join(part)},{filter_value}", len(part))
+                for part in chunks(work_ids, MAX_OR_VALUES)
+            ]
+        )
 
     def resolve(self, article: KeyArticle) -> tuple[str | None, dict[str, Any]]:
         """OpenAlex work of a key article, or None if there is no single match."""

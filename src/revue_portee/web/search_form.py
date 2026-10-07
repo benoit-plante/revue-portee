@@ -6,7 +6,7 @@ term per line) and ``-retirer``; the empty block at the end of the form uses the
 typed is shown again.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from revue_portee.domain.criteria import PccElement
@@ -75,15 +75,20 @@ def _year(value: str, errors: list[str]) -> int | None:
     return int(value)
 
 
-def read_strategy_form(form: Mapping[str, str], languages: Sequence[str]) -> StrategyForm:
-    """The strategy described by the form, or the errors that prevent reading it."""
+def read_strategy_form(
+    form: Mapping[str, str], languages: Sequence[str], *, used_codes: Iterable[str] = ()
+) -> StrategyForm:
+    """The strategy described by the form, or the errors that prevent reading it.
+
+    ``used_codes`` are the block codes of every earlier version: a new block never gets
+    the code of a removed one."""
     codes = []
     for key in form:
         if key.startswith("bloc-") and key.endswith("-termes"):
             code = key.removeprefix("bloc-").removesuffix("-termes")
             if BLOCK_CODE.match(code) or code == NEW_BLOCK:
                 codes.append(code)
-    known = [c for c in codes if c != NEW_BLOCK]
+    known = [c for c in codes if c != NEW_BLOCK] + list(used_codes)
     rows: list[BlockRow] = []
     blocks: list[ConceptBlock] = []
     errors: list[str] = []
@@ -114,6 +119,9 @@ def read_strategy_form(form: Mapping[str, str], languages: Sequence[str]) -> Str
                 continue
             if term not in terms:
                 terms.append(term)
+        if not row.label:
+            errors.append(_("Block « {block} »: the label is required.").format(block=name))
+            continue
         try:
             pcc = PccElement(row.pcc) if row.pcc else None
             role = BlockRole(row.role)

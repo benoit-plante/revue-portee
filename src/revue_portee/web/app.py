@@ -215,6 +215,12 @@ def warning_labels() -> dict[str, str]:
         WarningKind.PUBLICATION_TYPE_NOT_SUPPORTED: _("publication type left out"),
         WarningKind.COMMA_REMOVED: _("comma removed (not allowed in OpenAlex filters)"),
         WarningKind.EMPTY_BLOCK: _("block without usable term: left out"),
+        WarningKind.RAW_FILTER_IN_EXCLUSION: _(
+            "OpenAlex filter of an exclusion block left out (a filter cannot be removed with NOT)"
+        ),
+        WarningKind.EXCLUSION_WITHOUT_INCLUSION: _(
+            "exclusion blocks without inclusion block: no query (NOT needs records to remove from)"
+        ),
         WarningKind.YEARS_IN_INTERFACE: _(
             "set the publication years with the limiter of the interface"
         ),
@@ -705,7 +711,8 @@ def create_app(
         raw = await request.form()
         values = {key: value for key, value in raw.items() if isinstance(value, str)}
         languages = [value for value in raw.getlist("langues") if isinstance(value, str)]
-        form = read_strategy_form(values, languages)
+        used = await run_in_threadpool(strategies.used_block_codes, folder)
+        form = read_strategy_form(values, languages, used_codes=used)
         if form.strategy is None:
             return search_page(request, form=form, status_code=422)
         try:

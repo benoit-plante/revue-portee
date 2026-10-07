@@ -13,13 +13,15 @@ import httpx2
 from pydantic import SecretStr
 
 from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
-from revue_portee.sources.http import RateLimiter, SourceAnswer, get_json
+from revue_portee.sources.http import RateLimiter, SourceAnswer, chunks, get_json, merge_answers
 
 __all__ = ["EUTILS", "MeshCheck", "PubMed"]
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 SERVICE = "PubMed (E-utilities)"
 TOOL = "revue-portee"
+# Identifiers per request, to keep the URL short (GET requests).
+MAX_UIDS = 200
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,12 +44,19 @@ class PubMed:
         email: SecretStr,
         api_key: SecretStr | None = None,
         limiter: RateLimiter | None = None,
+        owns_client: bool = False,
     ) -> None:
         self._client = client
+        self._owns_client = owns_client
         self._email = email
         self._api_key = api_key
         interval = 0.11 if api_key is not None else 0.34
         self._limiter = limiter or RateLimiter(interval)
+
+    def close(self) -> None:
+        """Close the HTTP client if this connector created it."""
+        if self._owns_client:
+            self._client.close()
 
     def _params(self, **params: str) -> dict[str, str]:
         base = {"tool": TOOL, "email": self._email.get_secret_value(), "retmode": "json"}
@@ -76,8 +85,11 @@ class PubMed:
         """Which of ``pmids`` ``query`` retrieves."""
         if not pmids:
             return SourceAnswer(count=0, ids=(), raw={})
-        uids = " OR ".join(f"{pmid}[uid]" for pmid in pmids)
-        return self._esearch("pubmed", f"({query}) AND ({uids})", len(pmids))
+        answers = []
+        for part in chunks(pmids, MAX_UIDS):
+            uids = " OR ".join(f"{pmid}[uid]" for pmid in part)
+            answers.append(self._esearch("pubmed", f"({query}) AND ({uids})", len(part)))
+        return merge_answers(answers)
 
     def resolve(self, article: KeyArticle) -> tuple[str | None, dict[str, Any]]:
         """PMID of a key article, or None if PubMed has no single match."""

@@ -451,7 +451,7 @@ def _selection_generated(_: Translate, data: ProtocolData) -> list[Block]:
 
 def _search_generated(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     version = data.search
-    if version is None or not version.strategy.blocks:
+    if version is None or not version.strategy.included:
         return []
     strategy = version.strategy
     included = [b.label or b.code for b in strategy.included]
@@ -459,10 +459,10 @@ def _search_generated(_: Translate, data: ProtocolData, language: str) -> list[B
     blocks: list[Block] = [
         Paragraph(
             text=_(
-                "The search strategy is built from {count} concept blocks: the terms of a block "
-                "(free-text words and phrases searched in titles and abstracts, with truncation, "
-                "and subject headings) are combined with OR, and the blocks with AND ({blocks})."
-            ).format(count=len(strategy.blocks), blocks=", ".join(included))
+                "The search strategy combines the following concept blocks with AND: {blocks}. "
+                "The terms of a block (free-text words and phrases searched in titles and "
+                "abstracts, with truncation, and subject headings) are combined with OR."
+            ).format(blocks=", ".join(included))
         )
     ]
     if excluded:
@@ -488,7 +488,7 @@ def _search_generated(_: Translate, data: ProtocolData, language: str) -> list[B
                     languages=", ".join(_language_name(_, code) for code in limits.languages)
                 )
             )
-        separator = "\u00a0; " if language == "fr" else "; "
+        separator = " ; " if language == "fr" else "; "
         blocks.append(Paragraph(text=_("Limits: {limits}.").format(limits=separator.join(parts))))
     databases = [q.database.display_name for q in _ordered(data.queries) if q.translation.text]
     blocks.append(
@@ -547,10 +547,15 @@ def _language_name(_: Translate, code: str) -> str:
 
 def _integer(value: int, language: str) -> str:
     text = f"{value:,}"
-    return text.replace(",", "\u00a0") if language == "fr" else text
+    return text.replace(",", " ") if language == "fr" else text
 
 
-def _search_appendix(_: Translate, data: ProtocolData) -> list[Block]:
+def _separator(language: str) -> str:
+    """Separator of list items, with the French non-breaking space before « ; »."""
+    return " ; " if language == "fr" else "; "
+
+
+def _search_appendix(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     version = data.search
     if version is None or not data.queries:
         return [_todo(_, _("complete search strategy for at least one database"))]
@@ -559,7 +564,7 @@ def _search_appendix(_: Translate, data: ProtocolData) -> list[Block]:
             b.code,
             b.label,
             _("exclusion (NOT)") if b.role is BlockRole.EXCLUDE else _("inclusion (AND)"),
-            "; ".join(format_term(t) for t in b.terms),
+            _separator(language).join(format_term(t) for t in b.terms),
         )
         for b in version.strategy.blocks
     )
@@ -772,13 +777,13 @@ def _criteria_table(_: Translate, data: ProtocolData) -> list[Block]:
     ]
 
 
-def _appendices(_: Translate, data: ProtocolData) -> list[Block]:
+def _appendices(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     return [
         Heading(level=2, text=_("Appendices"), section=S.APPENDICES.value),
         Heading(level=3, text=_("Appendix I: Eligibility criteria in full")),
         *_criteria_table(_, data),
         Heading(level=3, text=_("Appendix II: Search strategy")),
-        *_search_appendix(_, data),
+        *_search_appendix(_, data, language),
         Heading(level=3, text=_("Appendix III: Data extraction instrument")),
         _todo(_, _("draft charting tool")),
     ]
@@ -854,7 +859,7 @@ def build_protocol(
         *_methods(_, data, language),
         *_deviations(_, data),
         *_closing(_, data),
-        *_appendices(_, data),
+        *_appendices(_, data, language),
     ]
     titles = {b.section: b.text for b in blocks if isinstance(b, Heading) and b.section is not None}
     blocks += _checklist_appendix(_, language, blocks, checklist, titles)

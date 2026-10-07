@@ -28,6 +28,7 @@ __all__ = [
     "save_strategy",
     "save_strategy_in",
     "strategy_history",
+    "used_block_codes",
 ]
 
 Clock = Callable[[], datetime]
@@ -51,6 +52,13 @@ def strategy_history(folder: ProjectFolder) -> list[tuple[StrategyVersion, list[
             (version, [q for q in queries if q.strategy_version_id == version.id])
             for version in search_repo.list_strategy_versions(connection)
         ]
+
+
+def used_block_codes(folder: ProjectFolder) -> set[str]:
+    """Codes of every block of every version: never given to a new block again."""
+    with folder.engine.connect() as connection:
+        versions = search_repo.list_strategy_versions(connection)
+    return {b.code for v in versions for b in v.strategy.blocks}
 
 
 def current_queries(folder: ProjectFolder) -> dict[Database, QueryVersion]:

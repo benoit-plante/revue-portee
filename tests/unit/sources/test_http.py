@@ -5,9 +5,11 @@ import pytest
 from pydantic import SecretStr
 
 from revue_portee.domain.search import KeyArticle, KeyArticleKind
+from revue_portee.sources import close_source
 from revue_portee.sources.http import (
     RateLimiter,
     SourceAccessError,
+    SourceInvalidAnswerError,
     SourceUnreachableError,
     get_json,
     make_client,
@@ -156,3 +158,69 @@ def test_mesh_lookup_without_exact_name() -> None:
     )
     assert not check.found
     assert len(check.raw) == 2
+
+
+def test_connections_cut_during_the_answer_are_retried() -> None:
+    client, seen = _client(
+        httpx2.ReadError("reset"),
+        httpx2.RemoteProtocolError("closed"),
+        httpx2.Response(200, json={"ok": 1}),
+    )
+    result = get_json(client, URL, {}, service="Test", limiter=_no_wait(), sleep=lambda _: None)
+    assert result == {"ok": 1}
+    assert len(seen) == 3
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx2.Response(200, text="<html>proxy</html>"),
+        httpx2.Response(200, json=["not", "an", "object"]),
+    ],
+)
+def test_unreadable_answers_are_reported(response: httpx2.Response) -> None:
+    client, _ = _client(response)
+    with pytest.raises(SourceInvalidAnswerError, match="Test"):
+        get_json(client, URL, {}, service="Test", limiter=_no_wait())
+
+
+def _ids_answer(request: httpx2.Request) -> httpx2.Response:
+    """OpenAlex or PubMed answer retrieving every identifier asked for."""
+    if "openalex" in str(request.url):
+        value = request.url.params["filter"].split(",")[0].removeprefix("openalex:")
+        works = [{"id": f"https://openalex.org/{w}"} for w in value.split("|")]
+        return httpx2.Response(200, json={"meta": {"count": len(works)}, "results": works})
+    term = request.url.params["term"]
+    pmids = [part.split("[uid]")[0].strip("( ") for part in term.split(" AND ")[1].split(" OR ")]
+    return httpx2.Response(200, json={"esearchresult": {"count": str(len(pmids)), "idlist": pmids}})
+
+
+def test_long_identifier_lists_are_split() -> None:
+    seen: list[httpx2.Request] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request)
+        return _ids_answer(request)
+
+    client = httpx2.Client(transport=httpx2.MockTransport(handler))
+    works = [f"W{n}" for n in range(150)]
+    answer = OpenAlex(client, limiter=_no_wait()).among("type:review", works)
+    assert answer.ids == tuple(works)
+    assert answer.count == 150
+    assert [r.url.params["per-page"] for r in seen] == ["100", "50"]  # at most 100 OR values
+    assert len(answer.raw["pages"]) == 2
+    seen.clear()
+    pmids = [str(n) for n in range(1, 251)]
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    assert pubmed.among("x[tiab]", pmids).ids == tuple(pmids)
+    assert [r.url.params["retmax"] for r in seen] == ["200", "50"]
+
+
+def test_connectors_close_only_the_clients_they_own() -> None:
+    owned = httpx2.Client(transport=httpx2.MockTransport(lambda _: httpx2.Response(200)))
+    lent = httpx2.Client(transport=httpx2.MockTransport(lambda _: httpx2.Response(200)))
+    OpenAlex(owned, owns_client=True).close()
+    PubMed(lent, email=SecretStr("contact@example.org")).close()
+    assert owned.is_closed
+    assert not lent.is_closed
+    close_source(object())  # connectors without client: nothing to do

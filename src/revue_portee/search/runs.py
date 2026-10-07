@@ -33,7 +33,12 @@ from revue_portee.domain.sensitivity import SensitivityCheck, assess_sensitivity
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.search.strategies import current_queries
-from revue_portee.sources import SearchSource, SourceFactory, default_source_factory
+from revue_portee.sources import (
+    SearchSource,
+    SourceFactory,
+    close_source,
+    default_source_factory,
+)
 from revue_portee.sources.pubmed import MeshCheck
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.raw import remove_source_pages, write_source_pages
@@ -73,7 +78,12 @@ def default_descriptor_source() -> DescriptorSource:
 
 class NoQueryError(LookupError):
     def __init__(self) -> None:
-        super().__init__(_("Save the search strategy first."))
+        super().__init__(
+            _(
+                "There is no query for this database yet: save a strategy with at least one "
+                "inclusion block that has terms for it."
+            )
+        )
 
 
 class NoKeyArticlesError(LookupError):
@@ -86,7 +96,7 @@ class InvalidKeyArticlesError(ValueError):
         self.lines = tuple(lines)
         super().__init__(
             _("Neither a DOI, a PMID nor a title (10 characters or more): {lines}").format(
-                lines=" ; ".join(f"« {line} »" for line in lines)
+                lines=" ; ".join(f"« {line} »" for line in lines)
             )
         )
 
@@ -96,6 +106,15 @@ def _query(folder: ProjectFolder, database: Database) -> QueryVersion:
     if query is None or not query.translation.text:
         raise NoQueryError
     return query
+
+
+@contextmanager
+def _connected[S](source: S) -> Iterator[S]:
+    """A connector, closed (its HTTP client released) once the calls are done."""
+    try:
+        yield source
+    finally:
+        close_source(source)
 
 
 @contextmanager
@@ -149,14 +168,14 @@ def count_results(
 ) -> SearchRun:
     """Number of results of the complete query and of each block alone (EF-REC-04)."""
     query = _query(folder, database)
-    source = factory(database)
-    total = source.count(query.translation.text)
-    pages: list[JsonValue] = [total.raw]
-    blocks: dict[str, int] = {}
-    for code, text in query.translation.blocks.items():
-        answer = source.count(text)
-        blocks[code] = answer.count
-        pages.append(answer.raw)
+    with _connected(factory(database)) as source:
+        total = source.count(query.translation.text)
+        pages: list[JsonValue] = [total.raw]
+        blocks: dict[str, int] = {}
+        for code, text in query.translation.blocks.items():
+            answer = source.count(text)
+            blocks[code] = answer.count
+            pages.append(answer.raw)
     moment = now()
     run = SearchRun(
         id=new_ulid(moment),
@@ -276,29 +295,33 @@ def check_sensitivity(
     with folder.engine.connect() as connection:
         version = search_repo.latest_strategy_version(connection)
     assert version is not None  # noqa: S101 - a query implies a strategy version
-    source = factory(database)
     pages: list[JsonValue] = []
-    record_ids: dict[KeyArticle, str | None] = {}
-    for article in key_articles.articles:
-        record_id, raw = source.resolve(article)
-        record_ids[article] = record_id
-        pages.append(raw)
-    indexed = sorted({r for r in record_ids.values() if r is not None})
-    translation = query.translation
-    found = _hits(source, translation.text, indexed, pages) if indexed else set()
-    missed = [r for r in indexed if r not in found]
-    included: dict[str, set[str]] = {}
-    excluded: dict[str, set[str]] = {}
-    limits: set[str] | None = None
-    if missed:
-        for block in version.strategy.included:
-            if block.code in translation.blocks:
-                included[block.code] = _hits(source, translation.blocks[block.code], missed, pages)
-        for block in version.strategy.excluded:
-            if block.code in translation.blocks:
-                excluded[block.code] = _hits(source, translation.blocks[block.code], missed, pages)
-        if translation.limits:
-            limits = _hits(source, translation.limits, missed, pages)
+    with _connected(factory(database)) as source:
+        record_ids: dict[KeyArticle, str | None] = {}
+        for article in key_articles.articles:
+            record_id, raw = source.resolve(article)
+            record_ids[article] = record_id
+            pages.append(raw)
+        indexed = sorted({r for r in record_ids.values() if r is not None})
+        translation = query.translation
+        found = _hits(source, translation.text, indexed, pages) if indexed else set()
+        missed = [r for r in indexed if r not in found]
+        included: dict[str, set[str]] = {}
+        excluded: dict[str, set[str]] = {}
+        limits: set[str] | None = None
+        if missed:
+            for block in version.strategy.included:
+                if block.code in translation.blocks:
+                    included[block.code] = _hits(
+                        source, translation.blocks[block.code], missed, pages
+                    )
+            for block in version.strategy.excluded:
+                if block.code in translation.blocks:
+                    excluded[block.code] = _hits(
+                        source, translation.blocks[block.code], missed, pages
+                    )
+            if translation.limits:
+                limits = _hits(source, translation.limits, missed, pages)
     result = assess_sensitivity(
         key_articles.articles,
         record_ids,
@@ -396,8 +419,8 @@ def check_descriptors(
     headings = headings_to_check(folder)
     if not headings:
         return []
-    mesh = source()
-    answers = [(heading, mesh.mesh(heading)) for heading in headings]
+    with _connected(source()) as mesh:
+        answers = [(heading, mesh.mesh(heading)) for heading in headings]
     pages: list[JsonValue] = [list(answer.raw) for _heading, answer in answers]
     moment = now()
     batch_id = new_ulid(moment)

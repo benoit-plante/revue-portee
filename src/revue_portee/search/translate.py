@@ -19,6 +19,7 @@ from collections.abc import Sequence
 
 from revue_portee.domain.search import (
     LANGUAGES,
+    BlockRole,
     ConceptBlock,
     Database,
     SearchStrategy,
@@ -169,13 +170,27 @@ def _warning(kind: WarningKind, block: str, term: Term) -> TranslationWarning:
     return TranslationWarning(kind=kind, block=block, term=format_term(term))
 
 
-def _combine(included: Sequence[str], excluded: Sequence[str], limits: str) -> str:
+def _combine(
+    included: Sequence[str],
+    excluded: Sequence[str],
+    limits: str,
+    warnings: list[TranslationWarning],
+) -> str:
+    """``(B1) AND (B2) AND limits NOT (B3)``; exclusions alone have nothing to remove from."""
     query = " AND ".join(f"({text})" for text in included)
     if limits:
         query = f"{query} AND {limits}" if query else limits
+    if not query:
+        if excluded:
+            warnings.append(TranslationWarning(kind=WarningKind.EXCLUSION_WITHOUT_INCLUSION))
+        return ""
     for text in excluded:
         query = f"{query} NOT ({text})"
     return query
+
+
+def _openalex_raw(block: ConceptBlock) -> list[str]:
+    return [t.text for t in block.terms_for(Database.OPENALEX) if t.kind is TermKind.RAW]
 
 
 def translate(strategy: SearchStrategy, database: Database) -> Translation:
@@ -187,31 +202,20 @@ def translate(strategy: SearchStrategy, database: Database) -> Translation:
             text = _ebsco_block(block, warnings)
         else:
             translate_term = _pubmed_term if database is Database.PUBMED else _openalex_term
-            raw_terms = [
+            terms = [
                 t for t in block.terms_for(database)
                 if not (database is Database.OPENALEX and t.kind is TermKind.RAW)
             ]  # fmt: skip
-            texts = [x for t in raw_terms if (x := translate_term(t, block.code, warnings))]
+            texts = [x for t in terms if (x := translate_term(t, block.code, warnings))]
             text = " OR ".join(texts) if texts else None
         if text:
             blocks[block.code] = text
-        else:
+        elif not (database is Database.OPENALEX and _openalex_raw(block)):
             warnings.append(TranslationWarning(kind=WarningKind.EMPTY_BLOCK, block=block.code))
     included = [blocks[b.code] for b in strategy.included if b.code in blocks]
     excluded = [blocks[b.code] for b in strategy.excluded if b.code in blocks]
     if database is Database.OPENALEX:
-        expression = _combine(included, excluded, "")
-        filters = [f"{OPENALEX_SEARCH_FILTER}:{expression}"] if expression else []
-        extra = _openalex_limits(strategy) + [
-            t.text for b in strategy.blocks for t in b.terms_for(database) if t.kind is TermKind.RAW
-        ]
-        return Translation(
-            database=database,
-            text=",".join(filters + extra),
-            blocks={code: f"{OPENALEX_SEARCH_FILTER}:{text}" for code, text in blocks.items()},
-            limits=",".join(_openalex_limits(strategy)),
-            warnings=tuple(warnings),
-        )
+        return _openalex_translation(strategy, blocks, included, excluded, warnings)
     limits = (
         _pubmed_limits(strategy)
         if database is Database.PUBMED
@@ -219,8 +223,50 @@ def translate(strategy: SearchStrategy, database: Database) -> Translation:
     )
     return Translation(
         database=database,
-        text=_combine(included, excluded, limits),
+        text=_combine(included, excluded, limits, warnings),
         blocks=blocks,
         limits=limits,
+        warnings=tuple(warnings),
+    )
+
+
+def _openalex_translation(
+    strategy: SearchStrategy,
+    blocks: dict[str, str],
+    included: list[str],
+    excluded: list[str],
+    warnings: list[TranslationWarning],
+) -> Translation:
+    """Raw OpenAlex terms are extra filters (combined with AND): they belong to the query
+    of their block and of the complete query; in an exclusion block they cannot be
+    negated in general, so they are left out with a warning."""
+    raw: dict[str, list[str]] = {}
+    for block in strategy.blocks:
+        filters = _openalex_raw(block)
+        if not filters:
+            continue
+        if block.role is BlockRole.EXCLUDE:
+            for term in block.terms_for(Database.OPENALEX):
+                if term.kind is TermKind.RAW:
+                    warnings.append(_warning(WarningKind.RAW_FILTER_IN_EXCLUSION, block.code, term))
+        else:
+            raw[block.code] = filters
+    limits = _openalex_limits(strategy)
+    included_raw = [f for b in strategy.included for f in raw.get(b.code, [])]
+    expression = _combine(included, excluded, "", warnings) if included else ""
+    if not included and excluded:  # NOT needs a search expression to remove from
+        warnings.append(TranslationWarning(kind=WarningKind.EXCLUSION_WITHOUT_INCLUSION))
+    search = [f"{OPENALEX_SEARCH_FILTER}:{expression}"] if expression else []
+    block_queries: dict[str, str] = {}
+    for block in strategy.blocks:
+        parts = [f"{OPENALEX_SEARCH_FILTER}:{blocks[block.code]}"] if block.code in blocks else []
+        parts += raw.get(block.code, [])
+        if parts:
+            block_queries[block.code] = ",".join(parts)
+    return Translation(
+        database=Database.OPENALEX,
+        text=",".join(search + limits + included_raw),
+        blocks=block_queries,
+        limits=",".join(limits),
         warnings=tuple(warnings),
     )

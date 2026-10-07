@@ -20,6 +20,7 @@ __all__ = [
     "SourceError",
     "SourceFactory",
     "UnsupportedDatabaseError",
+    "close_source",
     "default_source_factory",
 ]
 
@@ -50,7 +51,18 @@ SourceFactory = Callable[[Database], SearchSource]
 def default_source_factory(database: Database) -> SearchSource:
     """Connector for the real service (contact address and keys from the environment)."""
     if database is Database.PUBMED:
-        return PubMed(make_client(), email=get_secret(SecretName.CONTACT_EMAIL))
+        return PubMed(make_client(), email=get_secret(SecretName.CONTACT_EMAIL), owns_client=True)
     if database is Database.OPENALEX:
-        return OpenAlex(make_client(), api_key=get_optional_secret(SecretName.OPENALEX_API_KEY))
+        return OpenAlex(
+            make_client(),
+            api_key=get_optional_secret(SecretName.OPENALEX_API_KEY),
+            owns_client=True,
+        )
     raise UnsupportedDatabaseError(database)
+
+
+def close_source(source: object) -> None:
+    """Release a connector's HTTP client (connectors given by tests have none)."""
+    close = getattr(source, "close", None)
+    if callable(close):
+        close()

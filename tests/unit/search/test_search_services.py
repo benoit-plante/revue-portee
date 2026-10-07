@@ -59,6 +59,7 @@ class FakeSource:
     hits: dict[str, set[str]]
     counts: dict[str, int] = field(default_factory=dict)
     calls: list[tuple[str, str]] = field(default_factory=list)
+    closed: bool = False
 
     def count(self, query: str) -> SourceAnswer:
         self.calls.append(("count", query))
@@ -68,6 +69,9 @@ class FakeSource:
         self.calls.append(("among", query))
         found = tuple(i for i in ids if i in self.hits.get(query, set()))
         return SourceAnswer(count=len(found), ids=found, raw={"q": query, "ids": list(ids)})
+
+    def close(self) -> None:
+        self.closed = True
 
     def resolve(self, article: KeyArticle) -> tuple[str | None, dict[str, Any]]:
         record = None if article.value.startswith("absent") else f"R-{article.value}"
@@ -132,6 +136,7 @@ def test_counts_total_and_per_block(setup: tuple[ProjectFolder, Clock]) -> None:
         folder, Database.PUBMED, now=clock, tool_version=TOOL_VERSION, factory=lambda _: source
     )
     assert run.result_count == 42
+    assert source.closed  # its HTTP client is released
     assert run.block_counts == {"B1": 9000, "B2": 700, "B3": 0}
     assert len(read_source_pages(folder.path, run.raw_dir)) == 4
     assert runs.latest_runs(folder)[run.query_id] == run
@@ -429,3 +434,15 @@ def test_pcc_element_is_kept_in_blocks() -> None:
     b = ConceptBlock(code="B1", label="Parents", pcc_element=PccElement.POPULATION)
     assert TermSuggestionKind.DESCRIPTOR.value == "descriptor"
     assert b.pcc_element is PccElement.POPULATION
+
+
+def test_exclusion_blocks_alone_cannot_be_counted(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    only_not = SearchStrategy(blocks=(block("B1", "rat*", role=BlockRole.EXCLUDE),))
+    strategies.save_strategy(folder, only_not, now=clock, tool_version=TOOL_VERSION)
+    source = FakeSource(Database.PUBMED, hits={})
+    with pytest.raises(runs.NoQueryError, match="inclusion"):
+        runs.count_results(
+            folder, Database.PUBMED, now=clock, tool_version=TOOL_VERSION, factory=lambda _: source
+        )
+    assert source.calls == []

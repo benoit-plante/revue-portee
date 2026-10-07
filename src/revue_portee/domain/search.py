@@ -359,6 +359,10 @@ class WarningKind(StrEnum):
     COMMA_REMOVED = "comma_removed"  # OpenAlex filters cannot hold commas
     EMPTY_BLOCK = "empty_block"
     YEARS_IN_INTERFACE = "years_in_interface"  # limit to set in the database interface
+    RAW_FILTER_IN_EXCLUSION = "raw_filter_in_exclusion"  # OpenAlex filters cannot be NOT-ed
+    EXCLUSION_WITHOUT_INCLUSION = (
+        "exclusion_without_inclusion"  # NOT needs something to remove from
+    )
 
 
 class TranslationWarning(BaseModel):

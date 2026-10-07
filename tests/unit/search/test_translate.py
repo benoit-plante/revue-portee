@@ -73,7 +73,7 @@ def test_openalex() -> None:
     assert result.text == (
         f"{OPENALEX_SEARCH_FILTER}:({expression}) NOT (rat*),{result.limits},type:review"
     )
-    assert "B2" not in result.blocks  # only a publication type and raw text
+    assert result.blocks["B2"] == "type:review"  # its raw filter, for the sensitivity test
     assert (WarningKind.FIELD_WIDENED, "B1") in kinds(result)
     assert (WarningKind.PUBLICATION_TYPE_NOT_SUPPORTED, "B2") in kinds(result)
     assert kinds(result).count((WarningKind.DESCRIPTOR_NOT_SUPPORTED, "B1")) == 4
@@ -109,3 +109,31 @@ def test_limits_alone_and_open_ranges() -> None:
         "to_publication_date:2020-12-31,language:de"
     )
     assert translate(SearchStrategy(), Database.OPENALEX).text == ""
+
+
+def test_openalex_raw_filters_of_exclusion_blocks_are_left_out() -> None:
+    strategy = SearchStrategy(
+        blocks=(
+            block("B1", "parent*", "openalex: has_abstract:true"),
+            block("B2", "rat*", "openalex: type:review", role=BlockRole.EXCLUDE),
+        )
+    )
+    result = translate(strategy, Database.OPENALEX)
+    assert result.text == (f"{OPENALEX_SEARCH_FILTER}:(parent*) NOT (rat*),has_abstract:true")
+    assert result.blocks == {
+        "B1": f"{OPENALEX_SEARCH_FILTER}:parent*,has_abstract:true",
+        "B2": f"{OPENALEX_SEARCH_FILTER}:rat*",
+    }
+    assert kinds(result) == [(WarningKind.RAW_FILTER_IN_EXCLUSION, "B2")]
+
+
+def test_exclusion_blocks_alone_give_no_query() -> None:
+    strategy = SearchStrategy(blocks=(block("B1", "child*", role=BlockRole.EXCLUDE),))
+    for database in Database:
+        result = translate(strategy, database)
+        assert result.text == ""
+        assert (WarningKind.EXCLUSION_WITHOUT_INCLUSION, None) in kinds(result)
+    with_limits = strategy.model_copy(update={"limits": Limits(year_from=2020)})
+    assert translate(with_limits, Database.PUBMED).text == (
+        '("2020"[dp] : "3000"[dp]) NOT (child*[tiab])'
+    )

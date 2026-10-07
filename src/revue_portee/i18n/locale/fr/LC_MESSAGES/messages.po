@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 23:02+0000\n"
+"POT-Creation-Date: 2026-10-07 23:30+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -249,6 +249,10 @@ msgstr "Bloc « {block} », ligne « {line} » : {problem}"
 #, python-brace-format
 msgid "Block « {block} »: invalid choice."
 msgstr "Bloc « {block} » : choix invalide."
+
+#, python-brace-format
+msgid "Block « {block} »: the label is required."
+msgstr "Bloc « {block} » : le libellé est obligatoire."
 
 #, python-brace-format
 msgid ""
@@ -843,6 +847,9 @@ msgstr ""
 "clé d'API OpenAlex, exigée par OpenAlex depuis février 2026 sauf si un mandataire réseau l'ajoute"
 " aux requêtes"
 
+msgid "OpenAlex filter of an exclusion block left out (a filter cannot be removed with NOT)"
+msgstr "filtre OpenAlex d'un bloc d'exclusion écarté (un filtre ne peut pas être retiré par NOT)"
+
 msgid "PCC element"
 msgstr "Élément PCC"
 
@@ -1046,9 +1053,6 @@ msgstr "Enregistrez la question principale avant de demander des suggestions à 
 
 msgid "Save the main question first."
 msgstr "Enregistrez d'abord la question principale."
-
-msgid "Save the search strategy first."
-msgstr "Enregistrez d'abord la stratégie de recherche."
 
 msgid "Save the strategy"
 msgstr "Enregistrer la stratégie"
@@ -1291,13 +1295,13 @@ msgstr "La date de l'enregistrement ne peut pas être dans le futur."
 
 #, python-brace-format
 msgid ""
-"The search strategy is built from {count} concept blocks: the terms of a block (free-text words "
-"and phrases searched in titles and abstracts, with truncation, and subject headings) are combined"
-" with OR, and the blocks with AND ({blocks})."
+"The search strategy combines the following concept blocks with AND: {blocks}. The terms of a "
+"block (free-text words and phrases searched in titles and abstracts, with truncation, and subject"
+" headings) are combined with OR."
 msgstr ""
-"La stratégie de recherche repose sur {count} blocs de concepts : les termes d'un bloc (mots et "
-"expressions cherchés dans les titres et résumés, avec troncature, et descripteurs) sont combinés "
-"par OR, et les blocs par AND ({blocks})."
+"La stratégie de recherche combine par AND les blocs de concepts suivants : {blocks}. Les termes "
+"d'un bloc (mots et expressions cherchés dans les titres et résumés, avec troncature, et "
+"descripteurs) sont combinés par OR."
 
 msgid "The strategy was not saved:"
 msgstr "La stratégie n'a pas été enregistrée :"
@@ -1313,6 +1317,13 @@ msgstr "Le libellé du critère est obligatoire."
 
 msgid "There is no draft of the criteria."
 msgstr "Il n'y a aucun brouillon des critères."
+
+msgid ""
+"There is no query for this database yet: save a strategy with at least one inclusion block that "
+"has terms for it."
+msgstr ""
+"Il n'y a pas encore de requête pour cette base : enregistrez une stratégie avec au moins un bloc "
+"d'inclusion qui a des termes pour elle."
 
 msgid ""
 "This scoping review will be conducted in accordance with the JBI methodology for scoping reviews "
@@ -1523,6 +1534,11 @@ msgstr "exclusion"
 msgid "exclusion (NOT)"
 msgstr "exclusion (NOT)"
 
+msgid "exclusion blocks without inclusion block: no query (NOT needs records to remove from)"
+msgstr ""
+"blocs d'exclusion sans bloc d'inclusion : aucune requête (NOT doit retirer des notices d'un "
+"ensemble)"
+
 #, python-format
 msgid "exists (%(ui)s)"
 msgstr "existe (%(ui)s)"
@@ -1717,6 +1733,10 @@ msgstr ""
 #, python-brace-format
 msgid "{service} refused the request (HTTP error {status})."
 msgstr "{service} a refusé la requête (erreur HTTP {status})."
+
+#, python-brace-format
+msgid "{service} sent an answer that cannot be read (not a JSON document)."
+msgstr "{service} a envoyé une réponse illisible (pas un document JSON)."
 
 #, python-brace-format
 msgid "{title}: a scoping review protocol"

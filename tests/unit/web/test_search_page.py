@@ -219,7 +219,62 @@ def test_term_suggestions_flow(folder: ProjectFolder) -> None:
 
 def test_form_reader_keeps_unknown_fields_out() -> None:
     form = read_strategy_form(
-        {"bloc-x-termes": "a", "bloc-B1-termes": "a", "bloc-B1-pcc": "zz"}, ["xx"]
+        {"bloc-x-termes": "a", "bloc-B1-termes": "a", "bloc-B1-pcc": "zz", "bloc-B1-libelle": "P"},
+        ["xx"],
     )
     assert form.strategy is None
     assert any("choix" in e for e in form.errors)
+
+
+def test_block_without_label_is_refused() -> None:
+    form = read_strategy_form({"bloc-nouveau-termes": "parent*"}, [])
+    assert form.strategy is None
+    assert [e.replace("\u00a0", " ") for e in form.errors] == [
+        "Bloc « nouveau bloc » : le libellé est obligatoire."
+    ]
+
+
+def test_removed_block_codes_are_not_given_again(folder: ProjectFolder) -> None:
+    client = client_for(folder)
+    first = {
+        "bloc-nouveau-libelle": "Parents",
+        "bloc-nouveau-termes": "parent*",
+    }
+    post(client, "/recherche/strategie", first)
+    post(
+        client,
+        "/recherche/strategie",
+        {
+            "bloc-B1-libelle": "Parents",
+            "bloc-B1-termes": "parent*",
+            "bloc-nouveau-libelle": "Revues",
+            "bloc-nouveau-termes": "review*",
+        },
+    )
+    post(
+        client,
+        "/recherche/strategie",
+        {  # B2 removed
+            "bloc-B1-libelle": "Parents",
+            "bloc-B1-termes": "parent*",
+            "bloc-B2-libelle": "Revues",
+            "bloc-B2-termes": "review*",
+            "bloc-B2-retirer": "1",
+        },
+    )
+    post(
+        client,
+        "/recherche/strategie",
+        {
+            "bloc-B1-libelle": "Parents",
+            "bloc-B1-termes": "parent*",
+            "bloc-nouveau-libelle": "Enfants",
+            "bloc-nouveau-termes": "child*",
+        },
+    )
+    version = strategies.current_strategy(folder)
+    assert version is not None
+    assert [(b.code, b.label) for b in version.strategy.blocks] == [
+        ("B1", "Parents"),
+        ("B3", "Enfants"),
+    ]
