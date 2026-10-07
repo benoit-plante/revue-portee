@@ -183,7 +183,7 @@ def request_term_suggestions(
             entry_type=EntryType.SEARCH_TERMS_SUGGESTED,
             subject_type="ai_call",
             subject_id=stored.id,
-            summary_fr=french("{count} AI term suggestions received").format(
+            summary_fr=french("AI term suggestions received: {count}").format(
                 count=len(suggestions)
             ),
             tool_version=tool_version,

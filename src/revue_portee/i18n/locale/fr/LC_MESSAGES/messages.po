@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 22:07+0000\n"
+"POT-Creation-Date: 2026-10-07 23:02+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -26,8 +26,18 @@ msgstr "%(code)s : %(type)s (proposé par %(who)s, confirmé par le réviseur)"
 msgid "%(input)s in, %(output)s out"
 msgstr "%(input)s en entrée, %(output)s en sortie"
 
+msgid "(empty query)"
+msgstr "(requête vide)"
+
+msgid "(none)"
+msgstr "(aucun)"
+
 msgid "(required)"
 msgstr "(obligatoire)"
+
+#, python-format
+msgid "A MeSH descriptor: %(exploded)s (with narrower headings) or %(not_exploded)s."
+msgstr "Un descripteur MeSH : %(exploded)s (avec les descripteurs plus spécifiques) ou %(not_exploded)s."
 
 msgid "A modified suggestion needs a text."
 msgstr "Une suggestion modifiée doit avoir un texte."
@@ -37,6 +47,10 @@ msgstr "Une note ne peut pas être vide."
 
 msgid "A rationale is required to create a new version of the criteria."
 msgstr "Une justification est obligatoire pour créer une nouvelle version des critères."
+
+#, python-format
+msgid "A word: %(example)s; truncation with an asterisk: %(truncated)s."
+msgstr "Un mot : %(example)s ; troncature par un astérisque : %(truncated)s."
 
 #, python-brace-format
 msgid "AI answer recorded but not usable for the task {task}"
@@ -70,11 +84,30 @@ msgstr "Suggestion de l'IA refusée"
 msgid "AI suggestions"
 msgstr "Suggestions de l'IA"
 
+msgid "AI suggestions of terms"
+msgstr "Suggestions de termes par l'IA"
+
+msgid "AI term suggestion accepted"
+msgstr "Suggestion de terme de l'IA acceptée"
+
+msgid "AI term suggestion modified then accepted"
+msgstr "Suggestion de terme de l'IA modifiée puis acceptée"
+
+msgid "AI term suggestion rejected"
+msgstr "Suggestion de terme de l'IA rejetée"
+
+#, python-brace-format
+msgid "AI term suggestions received: {count}"
+msgstr "Suggestions de termes reçues de l'IA : {count}"
+
 msgid "Abstract"
 msgstr "Résumé"
 
 msgid "Accept"
 msgstr "Accepter"
+
+msgid "Accept with this term"
+msgstr "Accepter avec ce terme"
 
 msgid "Accept with this text"
 msgstr "Accepter avec ce texte"
@@ -100,6 +133,9 @@ msgstr "Ajouter un critère"
 
 msgid "Add a note"
 msgstr "Ajouter une note"
+
+msgid "Add at least one concept block before saving the strategy."
+msgstr "Ajoutez au moins un bloc de concepts avant d'enregistrer la stratégie."
 
 msgid "Add at least one criterion before activating."
 msgstr "Ajoutez au moins un critère avant d'activer la version."
@@ -129,6 +165,18 @@ msgid ""
 msgstr ""
 "Après avoir enregistré le protocole sur OSF, consignez ici son DOI : les changements ultérieurs "
 "des critères seront signalés comme des écarts au protocole."
+
+#, python-format
+msgid "An APA Thesaurus descriptor (PsycINFO): %(plain)s, or %(exploded)s with narrower headings."
+msgstr ""
+"Un descripteur du thésaurus de l'APA (PsycINFO) : %(plain)s, ou %(exploded)s avec les "
+"descripteurs plus spécifiques."
+
+#, python-format
+msgid "An exact phrase, in quotes (several words are always searched as a phrase): %(example)s."
+msgstr ""
+"Une expression exacte, entre guillemets (plusieurs mots sont toujours cherchés comme une "
+"expression) : %(example)s."
 
 msgid "Anthropic API key, used by the AI reviewer"
 msgstr "clé d'API Anthropic, utilisée par le réviseur IA"
@@ -164,6 +212,9 @@ msgstr "Interroger l'IA (confirmer le coût)"
 msgid "Ask the AI for suggestions…"
 msgstr "Demander des suggestions à l'IA…"
 
+msgid "Ask the AI for terms…"
+msgstr "Demander des termes à l'IA…"
+
 msgid "Ask the AI to qualify the changes…"
 msgstr "Demander à l'IA de qualifier les changements…"
 
@@ -175,6 +226,29 @@ msgstr "Retour au cadrage"
 
 msgid "Background and rationale"
 msgstr "Contexte et justification"
+
+msgid "Block"
+msgstr "Bloc"
+
+#, python-format
+msgid "Block %(code)s"
+msgstr "Bloc %(code)s"
+
+#, python-format
+msgid "Block %(code)s alone"
+msgstr "Bloc %(code)s seul"
+
+#, python-brace-format
+msgid "Block {code} no longer exists in the strategy."
+msgstr "Le bloc {code} n'existe plus dans la stratégie."
+
+#, python-brace-format
+msgid "Block « {block} », line « {line} »: {problem}"
+msgstr "Bloc « {block} », ligne « {line} » : {problem}"
+
+#, python-brace-format
+msgid "Block « {block} »: invalid choice."
+msgstr "Bloc « {block} » : choix invalide."
 
 #, python-brace-format
 msgid ""
@@ -203,6 +277,9 @@ msgstr "Modifier les critères (nouveau brouillon)"
 msgid "Changes compared with version %(number)s"
 msgstr "Changements par rapport à la version %(number)s"
 
+msgid "Check the MeSH descriptors"
+msgstr "Vérifier les descripteurs MeSH"
+
 msgid "Check the hash chain of the project journal."
 msgstr "Vérifier la chaîne d'empreintes du journal du projet."
 
@@ -214,6 +291,10 @@ msgstr "Comparer la version"
 
 msgid "Concept"
 msgstr "Concept"
+
+#, python-brace-format
+msgid "Concept blocks of version {number} of the search strategy ({date})."
+msgstr "Blocs de concepts de la version {number} de la stratégie de recherche ({date})."
 
 #, python-brace-format
 msgid ""
@@ -231,6 +312,13 @@ msgstr "Consultation"
 
 msgid "Context"
 msgstr "Contexte"
+
+#, python-format
+msgid "Count the results in %(database)s"
+msgstr "Compter les résultats dans %(database)s"
+
+msgid "Counted on"
+msgstr "Compté le"
 
 msgid "Counterexamples"
 msgstr "Contre-exemples"
@@ -312,6 +400,15 @@ msgstr "Extraction des données"
 msgid "Decision thresholds favour sensitivity, with a target of at least {target}."
 msgstr "Les seuils de décision favorisent la sensibilité, avec une cible d'au moins {target}."
 
+msgid ""
+"Describe each concept with a block of terms. The terms of a block are combined with OR, the "
+"inclusion blocks with AND; exclusion blocks are removed with NOT. The query of each database is "
+"generated from the blocks."
+msgstr ""
+"Décrivez chaque concept par un bloc de termes. Les termes d'un bloc sont combinés par OR, les "
+"blocs d'inclusion par AND ; les blocs d'exclusion sont retirés par NOT. La requête de chaque base"
+" est produite à partir des blocs."
+
 msgid "Describe the question with the PCC framework: Population, Concept and Context (JBI)."
 msgstr "Décrivez la question selon le cadre PCC : Population, Concept et Contexte (JBI)."
 
@@ -359,6 +456,14 @@ msgstr ""
 "l'activez pas."
 
 msgid ""
+"Each MeSH heading of the strategy and of the pending AI suggestions is looked up in MeSH (NCBI "
+"E-utilities). APA Thesaurus headings cannot be checked automatically."
+msgstr ""
+"Chaque descripteur MeSH de la stratégie et des suggestions de l'IA en attente est cherché dans "
+"MeSH (E-utilities du NCBI). Les descripteurs du thésaurus de l'APA ne peuvent pas être vérifiés "
+"automatiquement."
+
+msgid ""
 "Each modified criterion must be qualified before the new version comes into force: broadening "
 "(more inclusive), narrowing (more exclusive) or clarification (no intended change of scope). The "
 "AI can propose a qualification; you confirm or correct it."
@@ -381,6 +486,9 @@ msgstr "Élément"
 msgid "Eligibility criteria"
 msgstr "Critères d'admissibilité"
 
+msgid "English"
+msgstr "anglais"
+
 msgid "English, Markdown"
 msgstr "Anglais, Markdown"
 
@@ -389,6 +497,16 @@ msgstr "Anglais, Word (DOCX)"
 
 msgid "Enter a DOI such as 10.17605/OSF.IO/ABCDE (with or without https://doi.org/)."
 msgstr "Saisissez un DOI comme 10.17605/OSF.IO/ABCDE (avec ou sans https://doi.org/)."
+
+msgid ""
+"Enter articles that the search must retrieve, one per line: DOI, PMID or title. The test reports "
+"which ones the query retrieves and, for the others, the block that loses them."
+msgstr ""
+"Saisissez des articles que la recherche doit retrouver, un par ligne : DOI, PMID ou titre. Le "
+"test indique ceux que la requête retrouve et, pour les autres, le bloc qui les perd."
+
+msgid "Enter the key articles first."
+msgstr "Saisissez d'abord les articles clés."
 
 msgid "Enter the registration date."
 msgstr "Saisissez la date de l'enregistrement."
@@ -450,6 +568,9 @@ msgstr "Exemples :"
 msgid "Exclusion"
 msgstr "Exclusion"
 
+msgid "Exclusion (removed with NOT)"
+msgstr "Exclusion (retiré par NOT)"
+
 msgid "Folder to create (.revue is added)."
 msgstr "Dossier à créer (l'extension .revue est ajoutée)."
 
@@ -472,14 +593,26 @@ msgstr "Cadrage de la question de recherche"
 msgid "Framing saved."
 msgstr "Cadrage enregistré."
 
+msgid "French"
+msgstr "français"
+
+msgid "French and English terms can be mixed in a block."
+msgstr "Un bloc peut mêler des termes français et anglais."
+
 msgid "French, Markdown"
 msgstr "Français, Markdown"
 
 msgid "French, Word (DOCX)"
 msgstr "Français, Word (DOCX)"
 
+msgid "From the year"
+msgstr "À partir de l'année"
+
 msgid "Funding"
 msgstr "Financement"
+
+msgid "German"
+msgstr "allemand"
 
 msgid "Guidance"
 msgstr "Consignes"
@@ -493,11 +626,17 @@ msgstr "Consignes :"
 msgid "History"
 msgstr "Historique"
 
+msgid "How to write the terms (one per line)"
+msgstr "Comment écrire les termes (un par ligne)"
+
 msgid "In force since"
 msgstr "En vigueur depuis"
 
 msgid "Inclusion"
 msgstr "Inclusion"
+
+msgid "Inclusion (combined with AND)"
+msgstr "Inclusion (combiné par AND)"
 
 msgid "Information sources"
 msgstr "Sources d'information"
@@ -514,6 +653,13 @@ msgstr "Formulaire invalide."
 #, python-brace-format
 msgid "Invalid output for the task “{task}”."
 msgstr "Sortie invalide pour la tâche « {task} »."
+
+#, python-brace-format
+msgid "Invalid term: {detail}"
+msgstr "Terme invalide : {detail}"
+
+msgid "Italian"
+msgstr "italien"
 
 msgid "Journal"
 msgstr "Journal"
@@ -538,11 +684,42 @@ msgid_plural "Journal intact: {count} entries, hash chain verified."
 msgstr[0] "Journal intègre : {count} entrée, chaîne d'empreintes vérifiée."
 msgstr[1] "Journal intègre : {count} entrées, chaîne d'empreintes vérifiée."
 
+msgid "Key articles"
+msgstr "Articles clés"
+
+msgid "Key articles and sensitivity test"
+msgstr "Articles clés et test de sensibilité"
+
+#, python-brace-format
+msgid "Key articles retrieved in {database}: {found} of {indexed}"
+msgstr "Articles clés retrouvés dans {database} : {found} sur {indexed}"
+
+#, python-format
+msgid "Key articles retrieved: %(found)s of %(indexed)s"
+msgstr "Articles clés retrouvés : %(found)s sur %(indexed)s"
+
+#, python-brace-format
+msgid "Key articles updated ({count})"
+msgstr "Articles clés mis à jour ({count})"
+
 msgid "Kind"
 msgstr "Nature"
 
+msgid "Label"
+msgstr "Libellé"
+
 msgid "Language of the protocol: fr or en."
 msgstr "Langue du protocole : fr ou en."
+
+msgid "Languages (none: every language)"
+msgstr "Langues (aucune : toutes les langues)"
+
+msgid "Limits"
+msgstr "Limites"
+
+#, python-brace-format
+msgid "Limits: {limits}."
+msgstr "Limites : {limits}."
 
 msgid "Local port."
 msgstr "Port local."
@@ -556,11 +733,21 @@ msgstr "Navigation principale"
 msgid "Main question"
 msgstr "Question principale"
 
+msgid "MeSH descriptors"
+msgstr "Descripteurs MeSH"
+
+#, python-brace-format
+msgid "MeSH descriptors checked: {count}; not found: {absent}"
+msgstr "Descripteurs MeSH vérifiés : {count} ; introuvables : {absent}"
+
 msgid "Methodological framework"
 msgstr "Cadre méthodologique"
 
 msgid "Methods"
 msgstr "Méthode"
+
+msgid "Missed:"
+msgstr "Manqués :"
 
 #, python-brace-format
 msgid ""
@@ -576,6 +763,9 @@ msgstr "Modèle"
 msgid "Modified criteria"
 msgstr "Critères modifiés"
 
+msgid "Modified term"
+msgstr "Terme modifié"
+
 msgid "Modified text"
 msgstr "Texte modifié"
 
@@ -588,6 +778,16 @@ msgstr "Modifié : %(code)s"
 
 msgid "Name of the human reviewer."
 msgstr "Nom du réviseur humain."
+
+#, python-brace-format
+msgid "Neither a DOI, a PMID nor a title (10 characters or more): {lines}"
+msgstr "Ni un DOI, ni un PMID, ni un titre (10 caractères ou plus) : {lines}"
+
+msgid "New block"
+msgstr "Nouveau bloc"
+
+msgid "No MeSH descriptor yet."
+msgstr "Aucun descripteur MeSH pour l'instant."
 
 msgid "No change yet."
 msgstr "Aucun changement pour l'instant."
@@ -606,11 +806,19 @@ msgstr ""
 msgid "No version of the criteria is in force yet."
 msgstr "Aucune version des critères n'est encore en vigueur."
 
+#, python-format
+msgid "Not found in %(database)s (left out of the recall):"
+msgstr "Introuvables dans %(database)s (exclus du rappel) :"
+
 msgid "Note (for example, minutes of a team meeting)"
 msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
 
 msgid "Note added to the journal"
 msgstr "Note ajoutée au journal"
+
+#, python-brace-format
+msgid "Number of results in {database}: {count}"
+msgstr "Nombre de résultats dans {database} : {count}"
 
 msgid "OSF field"
 msgstr "Champ OSF"
@@ -647,6 +855,12 @@ msgstr "Participants"
 
 msgid "Population"
 msgstr "Population"
+
+msgid "Portuguese"
+msgstr "portugais"
+
+msgid "Preliminary number of records retrieved by the queries of Appendix II:"
+msgstr "Nombre préliminaire de notices retrouvées par les requêtes de l'annexe II :"
 
 msgid "Preliminary search for existing reviews"
 msgstr "Recherche préliminaire de revues existantes"
@@ -708,6 +922,13 @@ msgstr "Protocole écrit : {path}"
 msgid "Provider and model"
 msgstr "Fournisseur et modèle"
 
+msgid ""
+"PsycINFO has no public API: run this query in EBSCOhost and enter the number of results in the "
+"journal."
+msgstr ""
+"PsycINFO n'a pas d'API publique : exécutez cette requête dans EBSCOhost et notez le nombre de "
+"résultats dans le journal."
+
 msgid "Qualification of criteria changes (broadening, narrowing, clarification)"
 msgstr "Qualification des changements de critères (élargissement, restriction, clarification)"
 
@@ -716,6 +937,10 @@ msgstr "Changements qualifiés"
 
 msgid "Qualify the changes"
 msgstr "Qualifier les changements"
+
+#, python-format
+msgid "Queries of version %(number)s"
+msgstr "Requêtes de la version %(number)s"
 
 msgid "Rationale"
 msgstr "Justification"
@@ -726,11 +951,18 @@ msgstr "Justification du changement"
 msgid "Rationale of the AI:"
 msgstr "Justification de l'IA :"
 
+msgid "Reason for the change (kept with the version)"
+msgstr "Raison du changement (conservée avec la version)"
+
 msgid "Record a new registration"
 msgstr "Consigner un nouvel enregistrement"
 
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
+
+#, python-brace-format
+msgid "Records matching the following blocks are removed with NOT: {blocks}."
+msgstr "Les notices qui répondent aux blocs suivants sont retirées par NOT : {blocks}."
 
 msgid "References"
 msgstr "Références"
@@ -761,12 +993,18 @@ msgstr "Refusée"
 msgid "Remove %(code)s"
 msgstr "Retirer %(code)s"
 
+msgid "Remove this block"
+msgstr "Retirer ce bloc"
+
 msgid "Removed criteria"
 msgstr "Critères retirés"
 
 #, python-format
 msgid "Removed: %(code)s"
 msgstr "Retiré : %(code)s"
+
+msgid "Results"
+msgstr "Résultats"
 
 msgid "Review protocol"
 msgstr "Protocole de la revue"
@@ -781,17 +1019,39 @@ msgstr "Question de recherche cadrée (version {number})"
 msgid "Review team"
 msgstr "Équipe de revue"
 
+msgid "Role"
+msgstr "Rôle"
+
+#, python-format
+msgid "Run the sensitivity test in %(database)s"
+msgstr "Lancer le test de sensibilité dans %(database)s"
+
+msgid "Save at least one concept block before asking the AI for terms."
+msgstr "Enregistrez au moins un bloc de concepts avant de demander des termes à l'IA."
+
+msgid "Save at least one concept block first."
+msgstr "Enregistrez au moins un bloc de concepts d'abord."
+
 msgid "Save in the draft"
 msgstr "Enregistrer dans le brouillon"
 
 msgid "Save the framing"
 msgstr "Enregistrer le cadrage"
 
+msgid "Save the key articles"
+msgstr "Enregistrer les articles clés"
+
 msgid "Save the main question before asking the AI for suggestions."
 msgstr "Enregistrez la question principale avant de demander des suggestions à l'IA."
 
 msgid "Save the main question first."
 msgstr "Enregistrez d'abord la question principale."
+
+msgid "Save the search strategy first."
+msgstr "Enregistrez d'abord la stratégie de recherche."
+
+msgid "Save the strategy"
+msgstr "Enregistrer la stratégie"
 
 msgid "Save the text"
 msgstr "Enregistrer le texte"
@@ -804,8 +1064,15 @@ msgstr ""
 msgid "Scoping review (JBI, PRISMA-ScR) with AI as a traceable second reviewer."
 msgstr "Revue de portée (JBI, PRISMA-ScR) avec l'IA comme second réviseur traçable."
 
+msgid "Search"
+msgstr "Recherche"
+
 msgid "Search strategy"
 msgstr "Stratégie de recherche"
+
+#, python-brace-format
+msgid "Search strategy saved (version {number})"
+msgstr "Stratégie de recherche enregistrée (version {number})"
 
 msgid "Second reviewer at title and abstract screening"
 msgstr "Second réviseur au tri des titres et résumés"
@@ -847,11 +1114,17 @@ msgstr "Sélection des sources"
 msgid "Source of evidence selection (in addition to the generated text)"
 msgstr "Sélection des sources (en plus du texte produit)"
 
+msgid "Spanish"
+msgstr "espagnol"
+
 msgid "Start the criteria"
 msgstr "Commencer les critères"
 
 msgid "Status"
 msgstr "Statut"
+
+msgid "Strategy saved."
+msgstr "Stratégie enregistrée."
 
 msgid "Suggestions for the framing (reformulations, PCC elements)"
 msgstr "Suggestions pour le cadrage (reformulations, éléments PCC)"
@@ -869,6 +1142,16 @@ msgstr ""
 msgid "Task"
 msgstr "Tâche"
 
+msgid "Terms"
+msgstr "Termes"
+
+msgid "Terms (one per line)"
+msgstr "Termes (un par ligne)"
+
+#, python-format
+msgid "Text copied as is in the query of one database: %(prefixes)s."
+msgstr "Texte recopié tel quel dans la requête d'une seule base : %(prefixes)s."
+
 msgid "Text of the protocol"
 msgstr "Texte du protocole"
 
@@ -879,6 +1162,15 @@ msgstr ""
 "L'IA peut proposer des reformulations de la question, des questions secondaires et des éléments "
 "PCC. Chaque suggestion doit être acceptée, modifiée ou refusée ; votre choix est consigné au "
 "journal."
+
+msgid ""
+"The AI can propose synonyms, variants and descriptors for each block. Each suggestion must be "
+"accepted, modified or rejected; an accepted term is added to its block (new version of the "
+"strategy)."
+msgstr ""
+"L'IA peut proposer des synonymes, des variantes et des descripteurs pour chaque bloc. Chaque "
+"suggestion doit être acceptée, modifiée ou rejetée ; un terme accepté est ajouté à son bloc "
+"(nouvelle version de la stratégie)."
 
 #, python-brace-format
 msgid "The AI task “{task}” is not enabled in the project configuration."
@@ -920,6 +1212,9 @@ msgstr "Le brouillon n'a aucun critère modifié à qualifier."
 #, python-brace-format
 msgid "The file {file} is unreadable."
 msgstr "Le fichier {file} est illisible."
+
+msgid "The first year comes after the last year."
+msgstr "La première année vient après la dernière."
 
 #, python-brace-format
 msgid "The folder {folder} already exists and is not empty."
@@ -981,8 +1276,31 @@ msgstr ""
 "Le fournisseur « {provider} » a renvoyé des résultats incohérents pour la tâche « {task} » : "
 "{mismatch}."
 
+#, python-brace-format
+msgid ""
+"The query of each database ({databases}) is generated from version {number} of the strategy "
+"({date}) and given in Appendix II; each version of the strategy and of the queries is kept with "
+"its date and its number of results."
+msgstr ""
+"La requête de chaque base ({databases}) est produite à partir de la version {number} de la "
+"stratégie ({date}) et figure à l'annexe II ; chaque version de la stratégie et des requêtes est "
+"conservée avec sa date et son nombre de résultats."
+
 msgid "The registration date cannot be in the future."
 msgstr "La date de l'enregistrement ne peut pas être dans le futur."
+
+#, python-brace-format
+msgid ""
+"The search strategy is built from {count} concept blocks: the terms of a block (free-text words "
+"and phrases searched in titles and abstracts, with truncation, and subject headings) are combined"
+" with OR, and the blocks with AND ({blocks})."
+msgstr ""
+"La stratégie de recherche repose sur {count} blocs de concepts : les termes d'un bloc (mots et "
+"expressions cherchés dans les titres et résumés, avec troncature, et descripteurs) sont combinés "
+"par OR, et les blocs par AND ({blocks})."
+
+msgid "The strategy was not saved:"
+msgstr "La stratégie n'a pas été enregistrée :"
 
 msgid "The title of the review is required."
 msgstr "Le titre de la revue est obligatoire."
@@ -1008,6 +1326,10 @@ msgstr ""
 msgid "This suggestion has already been reviewed."
 msgstr "Cette suggestion a déjà été examinée."
 
+#, python-format
+msgid "Title and abstract by default; other fields with a prefix: %(prefixes)s."
+msgstr "Titre et résumé par défaut ; autres champs avec un préfixe : %(prefixes)s."
+
 msgid "Title of the review."
 msgstr "Titre de la revue."
 
@@ -1032,6 +1354,9 @@ msgstr ""
 #, python-brace-format
 msgid "To be completed: {hint}"
 msgstr "À compléter : {hint}"
+
+msgid "To the year"
+msgstr "Jusqu'à l'année"
 
 msgid "Tokens (estimate)"
 msgstr "Jetons (estimation)"
@@ -1070,6 +1395,9 @@ msgstr "Version des critères inconnue : {number}."
 msgid "Unknown criterion: {code}."
 msgstr "Critère inconnu : {code}."
 
+msgid "Unknown database."
+msgstr "Base inconnue."
+
 msgid "Unknown export."
 msgstr "Exportation inconnue."
 
@@ -1091,6 +1419,9 @@ msgstr "Format de projet non pris en charge : {version}."
 
 msgid "Use of artificial intelligence"
 msgstr "Usage de l'intelligence artificielle"
+
+msgid "Value of the « filter » parameter of the OpenAlex API (works)."
+msgstr "Valeur du paramètre « filter » de l'API OpenAlex (works)."
 
 #, python-format
 msgid "Version %(number)s"
@@ -1116,8 +1447,17 @@ msgstr "Libellé"
 msgid "Write the protocol (Markdown and DOCX) in the exports folder."
 msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations."
 
+msgid "Years are written with four digits, from 1800 to 2100."
+msgstr "Les années s'écrivent avec quatre chiffres, de 1800 à 2100."
+
+msgid "a prefix needs a term"
+msgstr "un préfixe doit être suivi d'un terme"
+
 msgid "added"
 msgstr "ajout"
+
+msgid "block without usable term: left out"
+msgstr "bloc sans terme utilisable : écarté"
 
 msgid "broadening"
 msgstr "élargissement"
@@ -1128,6 +1468,9 @@ msgstr "modifié : %(fields)s"
 
 msgid "clarification"
 msgstr "clarification"
+
+msgid "comma removed (not allowed in OpenAlex filters)"
+msgstr "virgule retirée (interdite dans les filtres OpenAlex)"
 
 msgid "complete search strategy for at least one database"
 msgstr "stratégie de recherche complète pour au moins une base de données"
@@ -1153,8 +1496,14 @@ msgstr "données à extraire, ébauche de la grille (annexe III), essai pilote e
 msgid "databases, interfaces and grey literature sources"
 msgstr "bases de données, interfaces et sources de littérature grise"
 
+msgid "descriptor left out: vocabulary absent here"
+msgstr "descripteur écarté : vocabulaire absent de cette base"
+
 msgid "deviation from the protocol"
 msgstr "écart au protocole"
+
+msgid "does not exist in MeSH"
+msgstr "n'existe pas dans MeSH"
 
 msgid "draft"
 msgstr "brouillon"
@@ -1165,8 +1514,21 @@ msgstr "ébauche de la grille d'extraction"
 msgid "eligibility criteria (Criteria page)"
 msgstr "critères d'admissibilité (page « Critères »)"
 
+msgid "empty term"
+msgstr "terme vide"
+
 msgid "exclusion"
 msgstr "exclusion"
+
+msgid "exclusion (NOT)"
+msgstr "exclusion (NOT)"
+
+#, python-format
+msgid "exists (%(ui)s)"
+msgstr "existe (%(ui)s)"
+
+msgid "field not available: searched in title and abstract"
+msgstr "champ indisponible : cherché dans le titre et le résumé"
 
 msgid "funding sources, or the absence of funding"
 msgstr "sources de financement, ou absence de financement"
@@ -1180,6 +1542,22 @@ msgstr "en vigueur"
 msgid "inclusion"
 msgstr "inclusion"
 
+msgid "inclusion (AND)"
+msgstr "inclusion (AND)"
+
+msgid "invalid descriptor"
+msgstr "descripteur invalide"
+
+#, python-brace-format
+msgid "languages: {languages}"
+msgstr "langues : {languages}"
+
+msgid "limits (years, languages)"
+msgstr "limites (années, langues)"
+
+msgid "lost by:"
+msgstr "perdu par :"
+
 msgid "main question (Framing page)"
 msgstr "question principale (page « Cadrage »)"
 
@@ -1192,11 +1570,24 @@ msgstr "noms des membres de l'équipe de revue"
 msgid "narrowing"
 msgstr "restriction"
 
+msgid "new block"
+msgstr "nouveau bloc"
+
+msgid "not checked yet"
+msgstr "pas encore vérifié"
+
 msgid "objective of the review"
 msgstr "objectif de la revue"
 
 msgid "objective, introduction, inclusion criteria and methods, in 250 words or less"
 msgstr "objectif, introduction, critères d'inclusion et méthode, en 250 mots au plus"
+
+#, python-format
+msgid "official form: %(heading)s"
+msgstr "forme officielle : %(heading)s"
+
+msgid "one term per line: use separate lines instead of AND, OR, NOT"
+msgstr "un terme par ligne : utilisez des lignes distinctes plutôt que AND, OR, NOT"
 
 msgid "or"
 msgstr "ou"
@@ -1210,11 +1601,28 @@ msgstr "prévue"
 msgid "population of interest (Framing and Criteria pages)"
 msgstr "population d'intérêt (pages « Cadrage » et « Critères »)"
 
+msgid "publication type left out"
+msgstr "type de publication écarté"
+
+#, python-brace-format
+msgid "publication years {start} to {end}"
+msgstr "années de publication de {start} à {end}"
+
+msgid "quotes, parentheses and brackets are not allowed in a term"
+msgstr "guillemets, parenthèses et crochets sont interdits dans un terme"
+
+#, python-format
+msgid "recall %(value)s"
+msgstr "rappel %(value)s"
+
 msgid "removed"
 msgstr "retrait"
 
 msgid "repeated:"
 msgstr "en double :"
+
+msgid "set the publication years with the limiter of the interface"
+msgstr "fixez les années de publication avec le limiteur de l'interface"
 
 msgid ""
 "steps of the search, draft search for one database (Appendix II), language and date limits with "
@@ -1232,6 +1640,9 @@ msgstr "remplacée"
 msgid "the AI"
 msgstr "l'IA"
 
+msgid "the combination of blocks"
+msgstr "la combinaison des blocs"
+
 msgid "the reviewer"
 msgstr "le réviseur"
 
@@ -1246,6 +1657,9 @@ msgstr "à déterminer"
 
 msgid "to be filled in directly in the OSF form, or not applicable"
 msgstr "à remplir directement dans le formulaire OSF, ou sans objet"
+
+msgid "unbalanced parentheses or quotes"
+msgstr "parenthèses ou guillemets non appariés"
 
 msgid "unexpected:"
 msgstr "inattendus :"
@@ -1277,12 +1691,32 @@ msgid "{count} AI suggestions received for the framing"
 msgstr "{count} suggestions de l'IA reçues pour le cadrage"
 
 #, python-brace-format
+msgid "{database} ({date}): {count}"
+msgstr "{database} ({date}) : {count}"
+
+#, python-brace-format
+msgid "{database} has no API: run the query in its interface."
+msgstr "{database} n'a pas d'API : exécutez la requête dans son interface."
+
+#, python-brace-format
 msgid "{file} and the database describe different projects."
 msgstr "{file} et la base de données décrivent des projets différents."
 
 #, python-brace-format
 msgid "{folder} is not a revue-portee project folder."
 msgstr "{folder} n'est pas un dossier de projet revue-portee."
+
+#, python-brace-format
+msgid ""
+"{service} cannot be reached: check the network connection (the domain {host} must be allowed in "
+"the environment)."
+msgstr ""
+"{service} est injoignable : vérifiez la connexion réseau (le domaine {host} doit être autorisé "
+"dans l'environnement)."
+
+#, python-brace-format
+msgid "{service} refused the request (HTTP error {status})."
+msgstr "{service} a refusé la requête (erreur HTTP {status})."
 
 #, python-brace-format
 msgid "{title}: a scoping review protocol"

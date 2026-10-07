@@ -175,7 +175,7 @@ def count_results(
             folder,
             run,
             database=database,
-            summary=french("{database}: {count} results").format(
+            summary=french("Number of results in {database}: {count}").format(
                 database=database.display_name, count=total.count
             ),
             tool_version=tool_version,
@@ -330,7 +330,7 @@ def check_sensitivity(
             folder,
             run,
             database=database,
-            summary=french("{database}: {found} of {indexed} key articles retrieved").format(
+            summary=french("Key articles retrieved in {database}: {found} of {indexed}").format(
                 database=database.display_name, found=result.found, indexed=result.indexed
             ),
             tool_version=tool_version,
@@ -424,7 +424,7 @@ def check_descriptors(
             entry_type=EntryType.SEARCH_DESCRIPTORS_CHECKED,
             subject_type="descriptor_check",
             subject_id=batch_id,
-            summary_fr=french("{count} MeSH descriptors checked, {absent} not found").format(
+            summary_fr=french("MeSH descriptors checked: {count}; not found: {absent}").format(
                 count=len(checks), absent=len(absent)
             ),
             tool_version=tool_version,
