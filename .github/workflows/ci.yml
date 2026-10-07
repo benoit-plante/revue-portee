@@ -25,5 +25,12 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
-      - name: Domain coverage >= 90% (ENF-QUA-04)
-        run: uv run coverage report --include="src/revue_portee/domain/*" --fail-under=90
+      - name: Coverage >= 90% per core package (ENF-QUA-04)
+        run: |
+          status=0
+          for package in domain dedup reporting; do
+            echo "::group::$package"
+            uv run coverage report --include="src/revue_portee/$package/*" --fail-under=90 || status=1
+            echo "::endgroup::"
+          done
+          exit $status
