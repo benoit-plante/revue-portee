@@ -36,6 +36,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 - Typage complet, vérifié par **mypy en mode strict** (D-022); Pydantic v2 pour les modèles; fonctions pures pour les calculs (métriques, impact, dédoublonnage, diagramme).
 - Cas d'usage dans des modules par étape (`protocol/` pour l'étape 1, puis `search/`, `screening/`…). Toute écriture dans un projet passe par `with folder.write() as connection:` (`BEGIN IMMEDIATE`, D-036), et chaque action consigne son entrée de journal dans la même transaction. Ne jamais modifier ni supprimer une ligne en ajout seulement : la base le refuse (déclencheurs, D-028).
 - Dans les chaînes d'interface du code, utiliser de vraies espaces insécables (U+00A0); ruff les autorise (D-018). ruff ignore `docs/` et les fichiers `*.md` (D-019) : ne pas lancer d'autre formateur sur la documentation.
+- Appels à l'IA : un cas d'usage affiche d'abord le coût (`protocol.ai_assist.preview`), puis appelle `run_and_record` après confirmation; chaque appel est consigné dans sa propre transaction avec sa réponse brute (D-041). Noms de modèles et paramètres seulement dans `resources/ai_defaults.yaml` et `[ia]` de `projet.toml`; tarifs datés dans `resources/model_prices.yaml`; gabarits d'invite dans `ai/prompts/<id>/` (modifier un gabarit = incrémenter sa version). Seul `ai/providers/anthropic.py` importe le SDK `anthropic`.
 - Toute nouvelle dépendance : `uv add <paquet>`, vérifier sa licence (pas de licence non commerciale ni « sans dérivé »), la mentionner dans la demande de fusion. Licence du projet : **AGPL-3.0-or-later** (D-004); dépendances compatibles seulement.
 - Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main.
 
@@ -49,7 +50,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 ## Environnement infonuagique
 
 - VM **Ubuntu 24.04 neuve à chaque session**; Python, **uv**, pytest, ruff préinstallés. Rien ne persiste hors du dépôt.
-- **Réseau limité à une liste** : `api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org` + registres de paquets. Toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) exige que **Benoit ajoute son domaine** dans les réglages : ne pas contourner, le signaler.
+- **Réseau limité à une liste** : `api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org` + registres de paquets. `api.anthropic.com` n'y est pas : les tests d'intégration avec Claude exigent que Benoit l'ajoute. Toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) exige que **Benoit ajoute son domaine** dans les réglages : ne pas contourner, le signaler.
 - Variables disponibles :
   - `REVUE_PORTEE_ANTHROPIC_KEY` : clé d'API Anthropic du projet. `ANTHROPIC_API_KEY` est lue seulement à défaut, car elle peut servir à l'authentification de la session Claude Code elle-même (D-020);
   - `CONTACT_EMAIL` : adresse de contact transmise aux API bibliographiques;
@@ -88,7 +89,7 @@ Projet personnel de Benoit Plante (dépôt privé `benoit-plante/revue-portee`).
 - Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016).
 - Les tests qui appellent de vrais services portent le marqueur `@pytest.mark.integration`, sont exclus par défaut et ne sont lancés **que sur demande explicite de Benoit** (ils coûtent et consomment des quotas).
 - Enregistrer une nouvelle cassette = test d'intégration lancé volontairement (`uv run pytest -m integration --record-mode=once`), puis nettoyage et vérification anti-secrets.
-- Utilitaires partagés dans `tests/support.py` : horloge déterministe (`make_clock`), projet de test (`new_project`), accès SQLite direct (`raw_sqlite`).
+- Utilitaires partagés dans `tests/support.py` : horloge déterministe (`make_clock`), projet de test (`new_project`), accès SQLite direct (`raw_sqlite`), fabrique de `FakeProvider` par tâche pour les services et l'interface (`fake_factory`).
 - **Couverture** : `uv run pytest` mesure la couverture (branches comprises) et **échoue** si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 % (D-023). Le seuil n'est vérifié que sur la suite complète : un fichier seul, `-k`, `-m` ou `--lf` l'ignorent, avec un avertissement. Réglages dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
 ## Commandes
@@ -105,6 +106,7 @@ uv run revue-portee --version        # ligne de commande
 uv run revue-portee nouveau ma-revue --titre "…" --reviseur "…"   # crée ma-revue.revue/
 uv run revue-portee serve ma-revue   # interface web sur http://127.0.0.1:8000/
 uv run revue-portee verifier-journal ma-revue   # vérifie la chaîne d'empreintes (lecture seule)
+uv run revue-portee protocole ma-revue --langue fr   # écrit protocole-fr.md et .docx dans exports/
 ```
 
 Avant de proposer une demande de fusion : `ruff check`, `ruff format --check`, `mypy` et `pytest` (seuil de couverture compris) doivent passer. La CI GitHub (`.github/workflows/ci.yml`) les exécute sous Python 3.12 et 3.13.

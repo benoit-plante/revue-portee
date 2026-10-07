@@ -556,3 +556,158 @@ Propositions de la tranche 1.1 (2026-10-07), mises en œuvre dans la demande de 
 - **Justification** : le verrou de la base vaut pour tous les processus.
 - **Conséquences** : règle de développement dans CLAUDE.md (« Conventions »); un test fait écrire six fils d'exécution en même temps.
 - **Renvois** : EF-PRJ-02; ENF-TRA-02; [03-architecture.md §5](03-architecture.md#5-modèle-de-données); demande de fusion benoit-plante/revue-portee#2.
+
+Propositions de la tranche 1.2 (2026-10-07), mises en œuvre dans la demande de fusion benoit-plante/revue-portee#4 :
+
+### D-037 — Fournisseur Claude : sorties structurées et replis côté serveur
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - `AnthropicProvider` envoie le schéma JSON de la tâche en sortie structurée (`output_config.format`, type `json_schema`); les mots-clés que l'API refuse (`minLength`, `maximum`, `pattern`…) sont retirés du schéma envoyé, sans toucher aux noms de champs, et Pydantic revalide la sortie;
+  - un appel par entrée; le bloc d'instructions est marqué pour la mise en cache des invites (`cache_control`);
+  - une réponse refusée, tronquée ou non conforme au schéma est un **appel en échec**, consigné comme tel;
+  - les **replis côté serveur** (`fallbacks: "default"`) sont activés par défaut : si le modèle refuse, l'API relance la même demande sur un autre modèle; le modèle qui a réellement répondu (`model_returned`) est consigné et facturé à son propre tarif. Quand l'API n'a renvoyé aucun modèle (erreur), `model_returned` reste vide.
+- **Contexte** : ENF-TRA-01 exige la version exacte du modèle; les sorties libres seraient fragiles à interpréter.
+- **Options envisagées** :
+  1. **Sorties structurées + validation Pydantic, replis activés** — format garanti; moins d'échecs pour refus; le modèle réel reste traçable.
+  2. Sans replis — un refus reste un refus; traçabilité plus simple (un seul modèle par configuration).
+- **Justification** : un refus de sécurité sur une question de recherche ordinaire bloquerait l'équipe sans raison; le modèle effectivement servi est consigné à chaque appel.
+- **Conséquences** : les replis se désactivent en retirant `fallbacks` de `[ia]` dans `projet.toml`; l'étude de validation (05) devra déclarer les modèles effectivement servis.
+- **Renvois** : ENF-TRA-01, ENF-TRA-03; [03-architecture.md §6](03-architecture.md#6-couche-dabstraction-des-modèles); demande de fusion benoit-plante/revue-portee#4.
+
+### D-038 — Modèle par défaut des tâches de cadrage
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : les tâches `suggest_pcc` et `qualify_criterion_change` utilisent par défaut `claude-opus-5-5`, effort `medium`, `max_tokens` 16 000 (`resources/ai_defaults.yaml`). Les tâches `suggest_terms` et `screen_reference` restent « prévues », sans modèle.
+- **Contexte** : aucun nom de modèle dans le code (CLAUDE.md); il faut néanmoins une configuration de départ.
+- **Options envisagées** :
+  1. **Modèle le plus capable pour les tâches de cadrage** — peu d'appels par projet; coût négligeable (quelques cents).
+  2. Modèle plus rapide et moins cher — économie sans intérêt à ce volume.
+- **Justification** : le cadrage et la qualification des changements engagent la méthode; le volume est faible.
+- **Conséquences** : le modèle du tri (tranche 1.6) sera choisi au banc d'essai, selon la cible de coût de D-015.
+- **Renvois** : D-015; ENF-COU-07; demande de fusion benoit-plante/revue-portee#4.
+
+### D-039 — Configuration de l'IA dans le projet
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : la configuration de l'IA (supervision, et pour chaque tâche : statut, fournisseur, modèle, paramètres, sortie attendue) est la section `[ia]` de `projet.toml`, copiée des valeurs par défaut à la création; un projet antérieur reçoit les valeurs par défaut. Chaque configuration effectivement utilisée est consignée en ajout seulement (`ai_config`, entrée `ai.config_recorded`).
+- **Contexte** : §4 prévoyait les réviseurs IA dans `projet.toml`; §6.1 définit le réviseur IA comme un couple tâche + fournisseur + modèle + gabarit + paramètres.
+- **Options envisagées** :
+  1. **`projet.toml` + consignation à l'usage** — lisible et modifiable sans outil; la base garde la trace de ce qui a servi.
+  2. Table de configuration modifiée par l'interface — plus de code, sans gain pour la V1.
+- **Justification** : la configuration demandée reste dans le fichier du projet; la configuration réellement utilisée est dans la base et au journal.
+- **Conséquences** : pas encore de page pour modifier `[ia]`; la section « Usage de l'intelligence artificielle » du protocole en est tirée.
+- **Renvois** : EF-CAD-07; [03-architecture.md §4](03-architecture.md#4-format-du-dossier-de-projet), §6; demande de fusion benoit-plante/revue-portee#4.
+
+### D-040 — Estimation du coût avant l'appel
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - jetons d'entrée estimés à environ 4 caractères par jeton, arrondis au supérieur (invite et schéma);
+  - les instructions sont comptées au tarif d'écriture en cache, le reste au tarif d'entrée, sans remise de lecture du cache : c'est le cas le plus coûteux pour le modèle demandé;
+  - jetons de sortie : valeur `expected_output_tokens` de la configuration;
+  - tarifs datés dans `resources/model_prices.yaml` (2026-10-06); **un modèle sans tarif connu bloque l'appel**;
+  - l'interface affiche le modèle, le nombre d'appels, les jetons, le montant et la date des tarifs, puis demande confirmation. Un repli vers un autre modèle est facturé à ses propres tarifs.
+- **Contexte** : ENF-COU-01 exige une estimation et une confirmation avant tout lot d'appels; compter les jetons exactement demanderait un appel réseau.
+- **Options envisagées** :
+  1. **Estimation locale prudente** — aucun appel, aucune clé requise pour estimer.
+  2. API de comptage des jetons — exacte, mais un appel réseau et une clé avant même de décider.
+- **Justification** : l'estimation sert à décider; une surestimation est préférable.
+- **Conséquences** : le coût réel de chaque appel est consigné (`ai_call.cost_estimate`) à partir des jetons renvoyés par l'API; un test vérifie les calculs sur des cas faits à la main.
+- **Renvois** : ENF-COU-01, ENF-COU-03, ENF-COU-05; demande de fusion benoit-plante/revue-portee#4.
+
+### D-041 — Consignation des appels aux modèles
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - l'appel au modèle se fait sans tenir le verrou d'écriture SQLite (il peut durer une minute);
+  - l'appel est ensuite consigné dans **sa propre transaction** : configuration si nouvelle, appel, réponse brute compressée (`brut/ia/AAAA/MM/<id>.json.gz`), entrée `ai.call_failed` en cas d'échec;
+  - ce que le cas d'usage tire de la réponse (suggestions, propositions) est enregistré dans une seconde transaction; si cette étape échoue, l'appel reste consigné et le journal reçoit une entrée `ai.result_unusable`;
+  - une réponse brute écrite pour un appel qui n'a pas pu être consigné est supprimée.
+- **Contexte** : un appel payé ne doit jamais disparaître de la traçabilité (ENF-TRA-01), et l'écriture concurrente doit rester possible (D-036).
+- **Options envisagées** :
+  1. **Deux transactions** — l'appel est toujours consigné; l'exploitation peut échouer séparément.
+  2. Une seule transaction — plus simple, mais une erreur d'exploitation effaçait la trace d'un appel payé (constat de la revue de code).
+- **Justification** : traçabilité des coûts et des appels avant tout.
+- **Conséquences** : la table `ai_call` est en ajout seulement; un appel « réussi » dont la réponse n'a pas pu être exploitée se reconnaît à l'entrée `ai.result_unusable`.
+- **Renvois** : ENF-TRA-01, ENF-TRA-03; D-036; demande de fusion benoit-plante/revue-portee#4.
+
+### D-042 — Décision sur une suggestion de l'IA
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - une seule décision par suggestion (acceptée, modifiée ou refusée), imposée par la base;
+  - la décision est appliquée immédiatement au cadrage : une reformulation remplace la question principale; une suggestion de population, de concept ou de contexte remplace l'élément; une question secondaire est ajoutée si elle n'y est pas déjà;
+  - une suggestion « modifiée » dont le texte est inchangé est consignée comme « acceptée »; une décision qui ne change rien au cadrage n'est liée à aucune version.
+- **Contexte** : EF-CAD-02 exige un choix explicite, consigné, pour chaque suggestion.
+- **Options envisagées** :
+  1. **Application immédiate** — chaque décision produit sa version du cadrage; la provenance est complète.
+  2. Panier de suggestions appliqué en bloc — moins de versions, mais une décision moins lisible au journal.
+- **Justification** : la trace « telle suggestion de tel appel a produit telle version » est directe.
+- **Conséquences** : tables `ai_suggestion` et `suggestion_review` (en ajout seulement).
+- **Renvois** : EF-CAD-01, EF-CAD-02; demande de fusion benoit-plante/revue-portee#4.
+
+### D-043 — Qualification des changements à l'activation
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - à partir de la version 2, l'activation exige un type confirmé par l'humain pour **chaque critère modifié** : élargissement, restriction ou clarification; les ajouts et les retraits sont qualifiés automatiquement;
+  - l'IA peut proposer un type (tâche `qualify_criterion_change`), avec sa confiance et sa justification; une proposition devient caduque si le critère est modifié de nouveau;
+  - `proposed_by = ai` seulement si l'humain confirme le type proposé par l'IA; sinon `human`, avec un lien vers la proposition écartée.
+- **Contexte** : EF-VER-03 (l'IA peut proposer, l'humain confirme); l'analyse d'impact (EF-VER-04) reposera sur ces types.
+- **Options envisagées** :
+  1. **Qualification obligatoire à l'activation** — aucune version sans qualification complète.
+  2. Qualification facultative, ajoutable plus tard — risque de versions non qualifiées, inutilisables pour l'analyse d'impact.
+- **Justification** : la qualification se fait au moment où l'équipe comprend le mieux son changement.
+- **Conséquences** : tables `qualification_proposal` et `criterion_change`; entrées `criteria.change_proposed` et `criteria.change_qualified`.
+- **Renvois** : EF-VER-03, EF-VER-04; demande de fusion benoit-plante/revue-portee#4.
+
+### D-044 — Écart au protocole
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : l'enregistrement du protocole (DOI normalisé, date, version des critères en vigueur) est consigné en ajout seulement; le plus récent fait foi. Toute version des critères **activée** après un enregistrement est marquée `after_protocol_registration` (« écart au protocole ») et le journal le signale.
+- **Contexte** : EF-CAD-08.
+- **Options envisagées** :
+  1. **Marquage à l'activation** — la règle est simple et vérifiable.
+  2. Marquage à la création du brouillon — un brouillon commencé avant l'enregistrement échapperait au marquage.
+- **Justification** : c'est l'entrée en vigueur qui modifie la méthode.
+- **Conséquences** : la section « Écarts au protocole » du protocole liste ces versions et leurs changements qualifiés; EF-VER-07 (section méthode) s'appuiera sur ce marquage.
+- **Renvois** : EF-CAD-08, EF-VER-07; demande de fusion benoit-plante/revue-portee#4.
+
+### D-045 — Production du protocole
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** :
+  - le protocole est construit une fois comme un document neutre (titres, paragraphes, listes, tableaux), puis rendu en Markdown et en DOCX (python-docx);
+  - les sections suivent les éléments de Peters et al. (2022); celles que l'outil ne peut pas remplir (contexte, stratégie de recherche, extraction…) viennent d'un texte libre versionné (`protocol_text_version`) et affichent « À compléter » quand il manque;
+  - français et anglais : le texte fixe passe par le catalogue de traduction, l'anglais étant la langue des identifiants de message (pas de catalogue anglais); le texte de l'équipe est reproduit tel quel;
+  - annexes : critères complets, état des éléments de Peters et al., correspondance avec les 65 éléments du formulaire OSF *Generalized Systematic Review Registration*.
+- **Contexte** : EF-CAD-06, EF-CAD-07, ENF-LAN-04.
+- **Options envisagées** :
+  1. **Document neutre + deux rendus** — un seul constructeur testé, deux formats identiques.
+  2. Gabarits séparés par format — duplication du contenu.
+- **Justification** : la couverture des éléments se vérifie une seule fois, par un test.
+- **Conséquences** : les exports vont dans `exports/` (`protocole-fr.md`, `protocole-en.docx`…), régénérables; commande `revue-portee protocole`.
+- **Renvois** : EF-CAD-06, EF-CAD-07; ENF-LAN-04; demande de fusion benoit-plante/revue-portee#4.
+
+### D-046 — Liste des éléments de Peters et al. (2022) à vérifier
+
+- **Date** : 2026-10-07
+- **Statut** : proposée
+- **Décision** : la liste de contrôle `resources/protocol/peters_2022.yaml` (23 éléments) est reconstituée à partir du gabarit de protocole JBI décrit par l'article; elle porte `verified: false`, ce que le protocole indique en annexe. Benoit la compare à la liste de contrôle de l'article, puis la passe à `verified: true` (ou la corrige).
+- **Contexte** : l'article n'est pas en libre accès (absent de PubMed Central) et était inaccessible depuis l'environnement de développement. Le formulaire OSF, lui, a été lu à la source (PMC10514995) et porte `verified: true`.
+- **Options envisagées** :
+  1. **Liste reconstituée, signalée comme non vérifiée** — la tranche avance; la vérification reste visible.
+  2. Attendre l'accès à l'article — bloque la tranche.
+- **Justification** : la structure (une section par élément, test de couverture) ne dépend pas du libellé exact; corriger la liste est une modification de données.
+- **Conséquences** : tant que la liste n'est pas vérifiée, le critère « 100 % des éléments de Peters et al. » est satisfait sous réserve.
+- **Renvois** : EF-CAD-06; [01-etat-de-l-art.md §5](01-etat-de-l-art.md#5-normes-et-recommandations); demande de fusion benoit-plante/revue-portee#4.
