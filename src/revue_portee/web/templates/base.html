@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% endblock %} — {{ project.title }} — revue-portee</title>
   <link rel="stylesheet" href="/statique/app.css">
+  {#- HTMX 2 does not swap 4xx/5xx responses by default; the app returns its form
+      errors (422) and error pages (403, 404) as full pages, which must be shown. #}
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"[45]..","swap":true,"error":true},{"code":"...","swap":false}]}'>
   <script src="/statique/vendor/htmx-2.0.11.min.js" defer></script>
 </head>
 <body hx-boost="true">

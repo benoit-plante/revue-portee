@@ -8,6 +8,8 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import Engine
 
+from revue_portee.storage.db import write_transaction
+
 __all__ = ["current_revision", "head_revision", "upgrade"]
 
 
@@ -32,6 +34,6 @@ def current_revision(engine: Engine) -> str | None:
 def upgrade(engine: Engine) -> None:
     """Bring the database to the latest schema."""
     config = _config()
-    with engine.begin() as connection:
+    with write_transaction(engine) as connection:
         config.attributes["connection"] = connection
         command.upgrade(config, "head")

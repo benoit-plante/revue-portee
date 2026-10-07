@@ -7,6 +7,7 @@ Writes that the database refuses (immutable version) surface as
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime
 
 from sqlalchemy import Connection, select
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +19,7 @@ from revue_portee.domain.criteria import (
     VersionStatus,
     code_sort_key,
 )
-from revue_portee.storage.db import criteria_version, criterion
+from revue_portee.storage.db import criteria_version, criterion, criterion_code
 
 __all__ = [
     "delete_draft",
@@ -28,6 +29,7 @@ __all__ = [
     "get_version_by_number",
     "insert_version",
     "list_versions",
+    "register_code",
     "replace_draft_criteria",
     "update_version_status",
     "used_codes",
@@ -167,6 +169,22 @@ def list_versions(connection: Connection) -> list[CriteriaVersion]:
     return [_load(connection, dict(row)) for row in rows.mappings()]
 
 
+def register_code(
+    connection: Connection, value: Criterion, *, version_id: str, now: datetime
+) -> None:
+    """Record a newly assigned code, so that it is never given to another criterion,
+    even if it only ever existed in a draft that was later discarded (D-026)."""
+    connection.execute(
+        criterion_code.insert().values(
+            code=value.code,
+            pcc_element=value.pcc_element.value,
+            first_version_id=version_id,
+            created_at=now,
+        )
+    )
+
+
 def used_codes(connection: Connection) -> set[str]:
-    """Every code present in any stored version (codes are never reused)."""
-    return set(connection.execute(select(criterion.c.code).distinct()).scalars())
+    """Every code ever assigned in the project (codes are never reused)."""
+    registered = set(connection.execute(select(criterion_code.c.code)).scalars())
+    return registered | set(connection.execute(select(criterion.c.code).distinct()).scalars())

@@ -240,3 +240,15 @@ def test_pages_are_usable_with_the_keyboard(client: TestClient, path: str) -> No
     assert unlabeled == []
     assert audit.skip_link
     assert not audit.positive_tabindex
+
+
+def test_htmx_shows_error_responses(client: TestClient) -> None:
+    # hx-boost would otherwise drop the 4xx pages that carry form errors (checked in
+    # Chromium: without this setting, « La question principale est obligatoire. » never shows).
+    page = client.get("/cadrage").text
+    match = re.search(r"<meta name=\"htmx-config\" content='([^']+)'>", page)
+    assert match is not None
+    import json
+
+    rules = json.loads(match.group(1))["responseHandling"]
+    assert {"code": "[45]..", "swap": True, "error": True} in rules

@@ -21,7 +21,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from revue_portee.clock import utc_now
 from revue_portee.domain.criteria import (
-    CriteriaVersion,
     CriterionKind,
     EmptyCriteriaError,
     MissingRationaleError,
@@ -30,6 +29,7 @@ from revue_portee.domain.criteria import (
     diff_versions,
 )
 from revue_portee.domain.framing import Framing
+from revue_portee.domain.journal import verify_chain
 from revue_portee.i18n import gettext as _
 from revue_portee.i18n import translations
 from revue_portee.protocol import criteria, framing, notes
@@ -151,11 +151,12 @@ def create_app(
         CriterionKind=CriterionKind,
     )
 
+    with folder.engine.connect() as connection:
+        project = projects.get_project(connection)  # never changes once created
+
     def render(
         request: Request, name: str, values: Mapping[str, Any], *, status_code: int = 200
     ) -> HTMLResponse:
-        with folder.engine.connect() as connection:
-            project = projects.get_project(connection)
         return templates.TemplateResponse(
             request,
             name,
@@ -270,12 +271,6 @@ def create_app(
         )
         return see_other(f"/criteres#critere-{added.code}")
 
-    def draft_or_404() -> CriteriaVersion:
-        draft = criteria.criteria_state(folder).draft
-        if draft is None:
-            raise HTTPException(status_code=404, detail=_("There is no draft of the criteria."))
-        return draft
-
     @app.get("/criteres/brouillon/{code}", response_class=HTMLResponse)
     def edit_criterion_form(request: Request, code: str) -> HTMLResponse:
         state = criteria.criteria_state(folder)
@@ -334,11 +329,12 @@ def create_app(
     def activate(
         request: Request, _csrf: Csrf, justification: Annotated[str, Form()] = ""
     ) -> Response:
-        draft_or_404()
         try:
             activated = criteria.activate_draft(
                 folder, rationale=justification, now=now, tool_version=context.tool_version
             )
+        except criteria.NoDraftError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
         except MissingRationaleError:
             return criteria_page(
                 request,
@@ -353,8 +349,10 @@ def create_app(
 
     @app.post("/criteres/abandonner")
     def discard(_csrf: Csrf) -> RedirectResponse:
-        draft_or_404()
-        criteria.discard_draft(folder, now=now, tool_version=context.tool_version)
+        try:
+            criteria.discard_draft(folder, now=now, tool_version=context.tool_version)
+        except criteria.NoDraftError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
         return see_other("/criteres")
 
     @app.get("/criteres/versions/{number}", response_class=HTMLResponse)
@@ -390,7 +388,7 @@ def create_app(
             "journal.html",
             {
                 "entries": list(reversed(entries)),
-                "check": notes.verify_journal(folder),
+                "check": verify_chain(entries),
                 "error": error,
             },
             status_code=status_code,

@@ -6,17 +6,25 @@ from pathlib import Path
 
 from revue_portee import __version__
 
-__all__ = ["tool_version"]
+__all__ = ["commit_of", "tool_version"]
 
 
 @cache
 def _commit() -> str | None:
-    """Short commit hash of the source tree, when running from a git checkout."""
-    source = Path(__file__).resolve().parent
+    return commit_of(Path(__file__).resolve().parent)
+
+
+def commit_of(package: Path) -> str | None:
+    """Short commit hash of the revue-portee checkout that contains ``package``, if any.
+
+    Only a git work tree whose ``src/revue_portee`` is this very package counts: an
+    installed copy that merely sits inside some other repository (for example a
+    research project's own ``.venv``) must not report that repository's commit.
+    """
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--short=12", "HEAD"],  # noqa: S607 - git from PATH
-            cwd=source,
+            ["git", "rev-parse", "--show-toplevel", "--short=12", "HEAD"],  # noqa: S607
+            cwd=package,
             capture_output=True,
             text=True,
             timeout=5,
@@ -24,8 +32,13 @@ def _commit() -> str | None:
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    commit = result.stdout.strip()
-    return commit or None
+    lines = result.stdout.split()
+    if len(lines) != 2:
+        return None
+    toplevel, commit = lines
+    if (Path(toplevel) / "src" / "revue_portee").resolve() != package.resolve():
+        return None
+    return commit
 
 
 def tool_version() -> str:

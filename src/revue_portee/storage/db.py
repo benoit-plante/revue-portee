@@ -6,12 +6,15 @@ Append-only rules (ENF-TRA-02) are enforced by SQLite triggers, so that they hol
 for code that bypasses the repositories.
 """
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
     Column,
+    Connection,
     Dialect,
     Engine,
     ForeignKey,
@@ -34,11 +37,13 @@ __all__ = [
     "create_project_engine",
     "criteria_version",
     "criterion",
+    "criterion_code",
     "framing_version",
     "journal_entry",
     "metadata",
     "project",
     "reviewer",
+    "write_transaction",
 ]
 
 
@@ -160,14 +165,52 @@ criterion = Table(
 )
 
 
-def _enable_foreign_keys(dbapi_connection: object, _record: ConnectionPoolEntry) -> None:
+# Registry of every criterion code ever assigned, append-only (D-026, option A).
+# No foreign key: a code first assigned in a discarded draft keeps its row.
+criterion_code = Table(
+    "criterion_code",
+    metadata,
+    Column("code", String(16), primary_key=True),
+    Column("pcc_element", String(16), nullable=False),
+    Column("first_version_id", String(26), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+
+def _on_connect(dbapi_connection: object, _record: ConnectionPoolEntry) -> None:
+    # Let SQLAlchemy emit BEGIN itself (see _on_begin) instead of the sqlite3 module.
+    dbapi_connection.isolation_level = None  # type: ignore[attr-defined]
     cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
     cursor.execute("PRAGMA foreign_keys = ON")
     cursor.close()
 
 
+def _on_begin(connection: Connection) -> None:
+    # Writes take the database lock as soon as the transaction starts: a use case
+    # that reads (e.g. the last journal entry) before writing cannot then collide
+    # with a concurrent writer (concurrent web requests, two browser tabs).
+    mode = "IMMEDIATE" if connection.get_execution_options().get(WRITE_OPTION) else "DEFERRED"
+    connection.exec_driver_sql(f"BEGIN {mode}")
+
+
+WRITE_OPTION = "revue_portee_write"
+
+
 def create_project_engine(database: Path) -> Engine:
-    """Engine for one project database, with foreign keys enforced."""
-    engine = create_engine(f"sqlite:///{database}")
-    event.listen(engine, "connect", _enable_foreign_keys)
+    """Engine for one project database, with foreign keys enforced.
+
+    Use :func:`write_transaction` for every transaction that writes.
+    """
+    engine = create_engine(f"sqlite:///{database}", connect_args={"timeout": 30})
+    event.listen(engine, "connect", _on_connect)
+    event.listen(engine, "begin", _on_begin)
     return engine
+
+
+@contextmanager
+def write_transaction(engine: Engine) -> Iterator[Connection]:
+    """Transaction that holds the write lock from its first statement (BEGIN IMMEDIATE)."""
+    with engine.connect() as connection:
+        connection.execution_options(**{WRITE_OPTION: True})
+        with connection.begin():
+            yield connection

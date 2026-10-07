@@ -91,6 +91,28 @@ def diff(folder: ProjectFolder, from_number: int, to_number: int) -> CriteriaDif
     return dom.diff_versions(version(folder, from_number), version(folder, to_number))
 
 
+def _build_criterion(
+    *,
+    code: str,
+    pcc_element: PccElement,
+    kind: CriterionKind,
+    text: str,
+    guidance: str,
+    examples: Iterable[str],
+    counterexamples: Iterable[str],
+) -> Criterion:
+    """One normalization for added and edited criteria: trimmed text, no empty lines."""
+    return Criterion(
+        code=code,
+        pcc_element=pcc_element,
+        kind=kind,
+        text=text.strip(),
+        guidance=guidance.strip(),
+        examples=tuple(e.strip() for e in examples if e.strip()),
+        counterexamples=tuple(e.strip() for e in counterexamples if e.strip()),
+    )
+
+
 def _criterion_json(criterion: Criterion) -> dict[str, JsonValue]:
     return criterion.model_dump(mode="json")
 
@@ -150,7 +172,7 @@ def _ensure_draft(
 
 def start_draft(folder: ProjectFolder, *, now: Clock, tool_version: str) -> CriteriaVersion:
     """Return the current draft, creating it from the active version if needed."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         return _ensure_draft(connection, folder, now(), tool_version)
 
 
@@ -192,19 +214,20 @@ def add_criterion(
     tool_version: str,
 ) -> Criterion:
     """Add a criterion to the draft (created if needed), with the next free code."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         moment = now()
         draft = _ensure_draft(connection, folder, moment, tool_version)
         code = next_criterion_code(pcc_element, repo.used_codes(connection))
-        criterion = Criterion(
+        criterion = _build_criterion(
             code=code,
             pcc_element=pcc_element,
             kind=kind,
-            text=text.strip(),
-            guidance=guidance.strip(),
-            examples=tuple(e.strip() for e in examples if e.strip()),
-            counterexamples=tuple(e.strip() for e in counterexamples if e.strip()),
+            text=text,
+            guidance=guidance,
+            examples=examples,
+            counterexamples=counterexamples,
         )
+        repo.register_code(connection, criterion, version_id=draft.id, now=moment)
         _save_draft(
             connection,
             folder,
@@ -230,24 +253,28 @@ def update_criterion(
     now: Clock,
     tool_version: str,
 ) -> Criterion:
-    """Change a criterion in the draft. Its code and PCC element never change."""
-    with folder.engine.begin() as connection:
+    """Change a criterion in the draft. Its code and PCC element never change.
+
+    An edit that changes nothing writes nothing: no draft is started for it.
+    """
+    with folder.write() as connection:
         moment = now()
-        draft = _ensure_draft(connection, folder, moment, tool_version)
-        before = draft.criterion(code)
+        base = repo.get_draft_version(connection) or repo.get_active_version(connection)
+        before = None if base is None else base.criterion(code)
         if before is None:
             raise UnknownCriterionError(code)
-        after = Criterion(
+        after = _build_criterion(
             code=code,
             pcc_element=before.pcc_element,
             kind=kind,
-            text=text.strip(),
-            guidance=guidance.strip(),
-            examples=tuple(e.strip() for e in examples if e.strip()),
-            counterexamples=tuple(e.strip() for e in counterexamples if e.strip()),
+            text=text,
+            guidance=guidance,
+            examples=examples,
+            counterexamples=counterexamples,
         )
         if after == before:
             return before
+        draft = _ensure_draft(connection, folder, moment, tool_version)
         _save_draft(
             connection,
             folder,
@@ -267,7 +294,7 @@ def update_criterion(
 
 def remove_criterion(folder: ProjectFolder, code: str, *, now: Clock, tool_version: str) -> None:
     """Remove a criterion from the draft (it stays in every earlier version)."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         moment = now()
         draft = _ensure_draft(connection, folder, moment, tool_version)
         removed = draft.criterion(code)
@@ -287,7 +314,7 @@ def remove_criterion(folder: ProjectFolder, code: str, *, now: Clock, tool_versi
 
 def discard_draft(folder: ProjectFolder, *, now: Clock, tool_version: str) -> None:
     """Abandon the draft; the active version stays in force."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         draft = repo.get_draft_version(connection)
         if draft is None:
             raise NoDraftError
@@ -308,7 +335,7 @@ def activate_draft(
     folder: ProjectFolder, *, rationale: str, now: Clock, tool_version: str
 ) -> CriteriaVersion:
     """Make the draft the version in force; the previous active version is superseded."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         moment = now()
         draft = repo.get_draft_version(connection)
         if draft is None:

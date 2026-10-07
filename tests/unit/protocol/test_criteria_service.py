@@ -249,3 +249,74 @@ def test_empty_note_is_refused(setup: tuple[ProjectFolder, Clock]) -> None:
     folder, clock = setup
     with pytest.raises(notes.EmptyNoteError, match="vide"):
         notes.add_note(folder, "   ", now=clock, tool_version=TOOL_VERSION)
+
+
+def test_codes_of_discarded_or_removed_draft_criteria_are_never_reused(
+    setup: tuple[ProjectFolder, Clock],
+) -> None:
+    folder, clock = setup
+    criteria.add_criterion(
+        folder, pcc_element=POP, kind=INC, text="A", now=clock, tool_version=TOOL_VERSION
+    )
+    criteria.activate_draft(folder, rationale="", now=clock, tool_version=TOOL_VERSION)
+    # P2 only ever exists in a draft that is discarded.
+    added = criteria.add_criterion(
+        folder, pcc_element=POP, kind=INC, text="Adultes", now=clock, tool_version=TOOL_VERSION
+    )
+    assert added.code == "P2"
+    criteria.discard_draft(folder, now=clock, tool_version=TOOL_VERSION)
+    # P3 is added then removed within the same draft.
+    p3 = criteria.add_criterion(
+        folder, pcc_element=POP, kind=INC, text="Aînés", now=clock, tool_version=TOOL_VERSION
+    )
+    criteria.remove_criterion(folder, p3.code, now=clock, tool_version=TOOL_VERSION)
+    later = criteria.add_criterion(
+        folder,
+        pcc_element=POP,
+        kind=INC,
+        text="Familles d'accueil",
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
+    assert (p3.code, later.code) == ("P3", "P4")
+
+
+def test_code_registry_is_append_only(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    criteria.add_criterion(
+        folder, pcc_element=POP, kind=INC, text="A", now=clock, tool_version=TOOL_VERSION
+    )
+    for statement in ("DELETE FROM criterion_code", "UPDATE criterion_code SET code = 'P9'"):
+        with (
+            pytest.raises(IntegrityError, match="append-only"),
+            folder.engine.begin() as connection,
+        ):
+            connection.execute(text(statement))
+
+
+def test_unchanged_edit_of_the_active_version_starts_no_draft(
+    setup: tuple[ProjectFolder, Clock],
+) -> None:
+    folder, clock = setup
+    criteria.add_criterion(
+        folder,
+        pcc_element=POP,
+        kind=INC,
+        text="A",
+        examples=["e"],
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
+    criteria.activate_draft(folder, rationale="", now=clock, tool_version=TOOL_VERSION)
+    count = len(notes.journal_entries(folder))
+    criteria.update_criterion(
+        folder,
+        "P1",
+        kind=INC,
+        text=" A ",
+        examples=["e", " "],
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
+    assert criteria.criteria_state(folder).draft is None
+    assert len(notes.journal_entries(folder)) == count

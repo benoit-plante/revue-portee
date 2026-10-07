@@ -28,7 +28,7 @@ def save_framing(
     folder: ProjectFolder, framing: Framing, *, now: Callable[[], datetime], tool_version: str
 ) -> FramingVersion:
     """Store a new framing version, unless it is identical to the current one."""
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         latest = framing_repo.latest_framing_version(connection)
         if latest is not None and latest.framing == framing:
             return latest

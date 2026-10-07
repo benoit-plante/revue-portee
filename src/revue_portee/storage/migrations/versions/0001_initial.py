@@ -1,4 +1,4 @@
-"""Initial schema: project, reviewers, journal, framing and criteria versions.
+"""Initial schema: project, reviewers, journal, framing and criteria versions, codes.
 
 Revision ID: 0001
 Revises:
@@ -51,6 +51,11 @@ _TRIGGERS = (
     """CREATE TRIGGER criterion_no_delete BEFORE DELETE ON criterion
     WHEN (SELECT status FROM criteria_version WHERE id = OLD.version_id) != 'draft'
     BEGIN SELECT RAISE(ABORT, 'immutable: criterion'); END""",
+    # Criterion codes are never reassigned (D-026).
+    """CREATE TRIGGER criterion_code_no_update BEFORE UPDATE ON criterion_code
+    BEGIN SELECT RAISE(ABORT, 'append-only: criterion_code'); END""",
+    """CREATE TRIGGER criterion_code_no_delete BEFORE DELETE ON criterion_code
+    BEGIN SELECT RAISE(ABORT, 'append-only: criterion_code'); END""",
     # The project row is never removed.
     """CREATE TRIGGER project_no_delete BEFORE DELETE ON project
     BEGIN SELECT RAISE(ABORT, 'append-only: project'); END""",
@@ -154,6 +159,13 @@ def upgrade() -> None:
         sa.Column("examples_json", sa.Text, nullable=False, server_default="[]"),
         sa.Column("counterexamples_json", sa.Text, nullable=False, server_default="[]"),
         sa.PrimaryKeyConstraint("version_id", "code"),
+    )
+    op.create_table(
+        "criterion_code",
+        sa.Column("code", sa.String(16), primary_key=True),
+        sa.Column("pcc_element", sa.String(16), nullable=False),
+        sa.Column("first_version_id", sa.String(26), nullable=False),
+        sa.Column("created_at", UTCDateTime, nullable=False),
     )
     for statement in _TRIGGERS:
         op.execute(statement)

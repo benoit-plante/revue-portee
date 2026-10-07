@@ -184,3 +184,93 @@ def test_create_appends_suffix_only_once(tmp_path: Path) -> None:
     )
     assert folder.path.name == "deja.revue"
     folder.close()
+
+
+@pytest.mark.parametrize(
+    ("title", "language", "reviewer", "message"),
+    [
+        (" ", "fr", "R", "titre de la revue est obligatoire"),
+        ("T", "fr", "  ", "nom du réviseur est obligatoire"),
+        ("T", "fra", "R", "code ISO 639-1"),
+        ("T", "f1", "R", "code ISO 639-1"),
+    ],
+)
+def test_invalid_input_is_refused_in_french_before_writing(
+    tmp_path: Path, title: str, language: str, reviewer: str, message: str
+) -> None:
+    with pytest.raises(ProjectFolderError, match=message):
+        create_project_folder(
+            tmp_path / "demo",
+            title=title,
+            language=language,
+            reviewer_name=reviewer,
+            now=make_clock(),
+            tool_version=TOOL_VERSION,
+        )
+    assert not (tmp_path / "demo.revue").exists()
+
+
+def test_language_is_normalized(tmp_path: Path) -> None:
+    folder = create_project_folder(
+        tmp_path / "demo", title="T", language=" FR ", reviewer_name="R",
+        now=make_clock(), tool_version=TOOL_VERSION,
+    )  # fmt: skip
+    with folder.engine.connect() as connection:
+        assert projects.get_project(connection).language == "fr"
+    folder.close()
+
+
+@pytest.mark.parametrize("pre_existing_empty_folder", [False, True])
+def test_failed_creation_leaves_nothing_behind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pre_existing_empty_folder: bool
+) -> None:
+    target = tmp_path / "demo.revue"
+    if pre_existing_empty_folder:
+        target.mkdir()
+
+    def broken_upgrade(engine: object) -> None:
+        raise OSError("disque plein")
+
+    monkeypatch.setattr(migrate, "upgrade", broken_upgrade)
+    with pytest.raises(OSError, match="disque plein"):
+        new_project(tmp_path)
+    if pre_existing_empty_folder:
+        assert list(target.iterdir()) == []
+    else:
+        assert not target.exists()
+    monkeypatch.undo()
+    new_project(tmp_path).close()  # the same name can be used again
+
+
+def test_open_accepts_the_name_given_at_creation(tmp_path: Path) -> None:
+    folder = new_project(tmp_path)
+    folder.close()
+    reopened = open_project_folder(tmp_path / "demo", now=make_clock(), tool_version=TOOL_VERSION)
+    assert reopened.path == tmp_path / "demo.revue"
+    reopened.close()
+
+
+def test_concurrent_writers_keep_a_valid_chain(tmp_path: Path) -> None:
+    import threading
+
+    from revue_portee.clock import utc_now
+
+    folder = new_project(tmp_path)
+    failures: list[BaseException] = []
+
+    def write_notes() -> None:
+        for index in range(8):
+            try:
+                notes.add_note(folder, f"note {index}", now=utc_now, tool_version=TOOL_VERSION)
+            except BaseException as error:  # collected and asserted below
+                failures.append(error)
+
+    threads = [threading.Thread(target=write_notes) for _ in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert failures == []
+    assert len(notes.journal_entries(folder)) == 1 + 6 * 8
+    assert notes.verify_journal(folder).valid
+    folder.close()

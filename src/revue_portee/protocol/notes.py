@@ -23,7 +23,7 @@ def add_note(
     text = text.strip()
     if not text:
         raise EmptyNoteError
-    with folder.engine.begin() as connection:
+    with folder.write() as connection:
         return journal.append_entry(
             connection,
             now=now(),

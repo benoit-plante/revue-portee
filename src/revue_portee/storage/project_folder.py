@@ -4,16 +4,18 @@
 the source of truth. No secret is ever written in the folder (ENF-SEC-01).
 """
 
+import re
 import shutil
 import tomllib
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import tomli_w
 from alembic.util.exc import CommandError
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine
 
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
@@ -21,7 +23,7 @@ from revue_portee.domain.project import FORMAT_VERSION, Project, Reviewer, Revie
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.storage import migrate
-from revue_portee.storage.db import create_project_engine
+from revue_portee.storage.db import create_project_engine, write_transaction
 from revue_portee.storage.repositories import journal, projects
 
 __all__ = [
@@ -33,6 +35,7 @@ __all__ = [
     "ProjectFolderError",
     "create_project_folder",
     "open_project_folder",
+    "resolve_project_path",
 ]
 
 FOLDER_SUFFIX = ".revue"
@@ -55,12 +58,31 @@ class ProjectFolder:
     project_id: str
     reviewer_id: str
 
+    def write(self) -> AbstractContextManager[Connection]:
+        """Transaction for a use case that writes (holds the lock from the start)."""
+        return write_transaction(self.engine)
+
     def close(self) -> None:
         self.engine.dispose()
 
 
 def _with_suffix(path: Path) -> Path:
     return path if path.name.endswith(FOLDER_SUFFIX) else path.with_name(path.name + FOLDER_SUFFIX)
+
+
+def _validated_inputs(title: str, language: str, reviewer_name: str) -> tuple[str, str, str]:
+    """Check user input before anything is written (French messages, no traceback)."""
+    title, reviewer_name = title.strip(), reviewer_name.strip()
+    language = language.strip().lower()
+    if not title:
+        raise ProjectFolderError(_("The title of the review is required."))
+    if not reviewer_name:
+        raise ProjectFolderError(_("The name of the reviewer is required."))
+    if not re.fullmatch(r"[a-z]{2}", language):
+        raise ProjectFolderError(
+            _("The language must be a two-letter ISO 639-1 code, for example fr or en.")
+        )
+    return title, language, reviewer_name
 
 
 def create_project_folder(
@@ -73,16 +95,22 @@ def create_project_folder(
     tool_version: str,
     description: str = "",
 ) -> ProjectFolder:
-    """Create a new project folder (``.revue`` is appended to the name if missing)."""
+    """Create a new project folder (``.revue`` is appended to the name if missing).
+
+    If any step fails, what was created is removed, so that the creation can be
+    retried with the same name.
+    """
+    title, language, reviewer_name = _validated_inputs(title, language, reviewer_name)
     folder = _with_suffix(path)
-    if folder.exists() and any(folder.iterdir()):
+    existed = folder.exists()
+    if existed and any(folder.iterdir()):
         raise ProjectFolderError(
             _("The folder {folder} already exists and is not empty.").format(folder=folder)
         )
     created_at = now()
     project = Project(
         id=new_ulid(created_at),
-        title=title.strip(),
+        title=title,
         language=language,
         description=description.strip(),
         created_at=created_at,
@@ -90,49 +118,80 @@ def create_project_folder(
     reviewer = Reviewer(
         id=new_ulid(created_at),
         kind=ReviewerKind.HUMAN,
-        display_name=reviewer_name.strip(),
+        display_name=reviewer_name,
         role="reviewer",
     )
-    folder.mkdir(parents=True, exist_ok=True)
-    for sub in SUBDIRECTORIES:
-        (folder / sub).mkdir(parents=True, exist_ok=True)
-    (folder / PROJECT_FILE).write_text(
-        tomli_w.dumps(
-            {
-                "format_version": FORMAT_VERSION,
-                "project": {
-                    "id": project.id,
+    engine: Engine | None = None
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        for sub in SUBDIRECTORIES:
+            (folder / sub).mkdir(parents=True, exist_ok=True)
+        (folder / PROJECT_FILE).write_text(
+            tomli_w.dumps(
+                {
+                    "format_version": FORMAT_VERSION,
+                    "project": {
+                        "id": project.id,
+                        "title": project.title,
+                        "language": project.language,
+                        "created_at": project.created_at.isoformat(),
+                        "main_reviewer_id": reviewer.id,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        engine = create_project_engine(folder / DATABASE_FILE)
+        migrate.upgrade(engine)
+        with write_transaction(engine) as connection:
+            projects.insert_project(connection, project)
+            projects.insert_reviewer(connection, reviewer, now=created_at)
+            journal.append_entry(
+                connection,
+                now=created_at,
+                actor_reviewer_id=reviewer.id,
+                entry_type=EntryType.PROJECT_CREATED,
+                subject_type="project",
+                subject_id=project.id,
+                summary_fr=french("Project created: {title}").format(title=project.title),
+                tool_version=tool_version,
+                payload={
                     "title": project.title,
                     "language": project.language,
-                    "created_at": project.created_at.isoformat(),
-                    "main_reviewer_id": reviewer.id,
+                    "format_version": FORMAT_VERSION,
+                    "reviewer": {"id": reviewer.id, "display_name": reviewer.display_name},
                 },
-            }
-        ),
-        encoding="utf-8",
-    )
-    engine = create_project_engine(folder / DATABASE_FILE)
-    migrate.upgrade(engine)
-    with engine.begin() as connection:
-        projects.insert_project(connection, project)
-        projects.insert_reviewer(connection, reviewer, now=created_at)
-        journal.append_entry(
-            connection,
-            now=created_at,
-            actor_reviewer_id=reviewer.id,
-            entry_type=EntryType.PROJECT_CREATED,
-            subject_type="project",
-            subject_id=project.id,
-            summary_fr=french("Project created: {title}").format(title=project.title),
-            tool_version=tool_version,
-            payload={
-                "title": project.title,
-                "language": project.language,
-                "format_version": FORMAT_VERSION,
-                "reviewer": {"id": reviewer.id, "display_name": reviewer.display_name},
-            },
-        )
+            )
+    except BaseException:
+        if engine is not None:
+            engine.dispose()
+        _remove_partial_folder(folder, keep_folder=existed)
+        raise
     return ProjectFolder(path=folder, engine=engine, project_id=project.id, reviewer_id=reviewer.id)
+
+
+def _remove_partial_folder(folder: Path, *, keep_folder: bool) -> None:
+    """Undo a failed creation: the folder was empty (or absent) before it started."""
+    if not folder.exists():
+        return
+    if keep_folder:
+        for child in folder.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+    else:
+        shutil.rmtree(folder)
+
+
+def resolve_project_path(path: Path) -> Path:
+    """The folder to open for ``path``: the name given to ``nouveau`` also works,
+    since ``.revue`` is appended to it at creation."""
+    if not (path / PROJECT_FILE).exists():
+        suffixed = _with_suffix(path)
+        if suffixed != path and (suffixed / PROJECT_FILE).exists():
+            return suffixed
+    return path
 
 
 def _read_metadata(folder: Path) -> dict[str, object]:
@@ -172,7 +231,7 @@ def _open(
                     "a backup copy was made before any change."
                 ).format(revision=current)
             ) from error
-    with engine.begin() as connection:
+    with write_transaction(engine) as connection:
         project = projects.get_project(connection)
         if project.id != project_meta.get("id"):
             raise ProjectFolderError(
@@ -207,7 +266,7 @@ def open_project_folder(
     Each opening is recorded in the journal with the tool version (ENF-REP-05), except
     for read-only checks (``record_opening=False``), which must not change the project.
     """
-    folder = path
+    folder = resolve_project_path(path)
     metadata = _read_metadata(folder)
     format_version = str(metadata.get("format_version", ""))
     if format_version not in SUPPORTED_FORMATS:

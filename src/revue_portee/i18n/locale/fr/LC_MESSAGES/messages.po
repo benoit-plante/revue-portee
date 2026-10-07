@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 15:51+0000\n"
+"POT-Creation-Date: 2026-10-07 16:49+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -425,11 +425,17 @@ msgstr "Le fichier {file} est illisible."
 msgid "The folder {folder} already exists and is not empty."
 msgstr "Le dossier {folder} existe déjà et n'est pas vide."
 
+msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
+msgstr "La langue doit être un code ISO 639-1 de deux lettres, par exemple fr ou en."
+
 msgid "The main question is required."
 msgstr "La question principale est obligatoire."
 
 msgid "The main reviewer of the project is missing."
 msgstr "Le réviseur principal du projet est introuvable."
+
+msgid "The name of the reviewer is required."
+msgstr "Le nom du réviseur est obligatoire."
 
 #, python-brace-format
 msgid "The project has an unknown database schema ({revision}); a backup copy was made before any change."
@@ -446,6 +452,9 @@ msgid "The provider “{provider}” returned inconsistent results for the task 
 msgstr ""
 "Le fournisseur « {provider} » a renvoyé des résultats incohérents pour la tâche « {task} » : "
 "{mismatch}."
+
+msgid "The title of the review is required."
+msgstr "Le titre de la revue est obligatoire."
 
 msgid "The two versions have the same criteria."
 msgstr "Les deux versions ont les mêmes critères."

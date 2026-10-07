@@ -70,3 +70,18 @@ def test_verify_journal_on_a_non_project(tmp_path: Path) -> None:
     result = runner.invoke(app, ["verifier-journal", str(tmp_path)])
     assert result.exit_code == 1
     assert "n'est pas un dossier de projet" in result.output
+
+
+def test_new_project_reports_invalid_input_in_french(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["nouveau", str(tmp_path / "demo"), "--titre", " ", "--reviseur", "R"]
+    )
+    assert result.exit_code == 1
+    assert "Le titre de la revue est obligatoire." in result.output
+    assert "Traceback" not in result.output
+
+
+def test_commands_accept_the_name_given_at_creation(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "T", "--reviseur", "R"])
+    result = runner.invoke(app, ["verifier-journal", str(tmp_path / "demo")])
+    assert result.exit_code == 0, result.output
