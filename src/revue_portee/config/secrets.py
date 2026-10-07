@@ -1,8 +1,9 @@
 """Single access point to sensitive environment variables (ENF-SEC-01, ENF-SEC-02).
 
-No other module may read ``ANTHROPIC_API_KEY``, ``OPENALEX_API_KEY`` or ``CONTACT_EMAIL``
-from the environment. Values are returned as :class:`pydantic.SecretStr`, whose ``repr``
-and ``str`` are masked, and every loaded value is registered so that
+No other module may read ``REVUE_PORTEE_ANTHROPIC_KEY``/``ANTHROPIC_API_KEY``,
+``OPENALEX_API_KEY`` or ``CONTACT_EMAIL`` from the environment. Values are returned as
+:class:`pydantic.SecretStr`, whose ``repr`` and ``str`` are masked, and every loaded
+value is registered so that
 :class:`SecretRedactingFilter` can mask it in log output (ENF-SEC-03).
 
 Error messages are user-facing and therefore in French; they name the missing variable
@@ -34,17 +35,41 @@ MASK = "***"
 
 
 class SecretName(StrEnum):
-    """Sensitive environment variables known to the application."""
+    """Sensitive values known to the application."""
 
     ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY"
     OPENALEX_API_KEY = "OPENALEX_API_KEY"
     CONTACT_EMAIL = "CONTACT_EMAIL"
 
+    @property
+    def env_vars(self) -> tuple[str, ...]:
+        """Environment variables holding the value, in priority order."""
+        return _ENV_VARS.get(self, (self.value,))
+
+    @property
+    def required(self) -> bool:
+        """Whether the application cannot work without this value."""
+        return self not in _OPTIONAL
+
+
+# The project-specific name comes first: in Claude Code sessions, ANTHROPIC_API_KEY may
+# be reserved for the session's own authentication.
+_ENV_VARS: dict[SecretName, tuple[str, ...]] = {
+    SecretName.ANTHROPIC_API_KEY: ("REVUE_PORTEE_ANTHROPIC_KEY", "ANTHROPIC_API_KEY"),
+}
+
+# Optional: in the cloud environment the network proxy injects the OpenAlex key into
+# requests to api.openalex.org, so connectors send the key only when it is configured.
+_OPTIONAL: frozenset[SecretName] = frozenset({SecretName.OPENALEX_API_KEY})
+
 
 # User-facing descriptions (French interface).
 _DESCRIPTIONS: dict[SecretName, str] = {
     SecretName.ANTHROPIC_API_KEY: "clé d'API Anthropic, utilisée par le réviseur IA",
-    SecretName.OPENALEX_API_KEY: "clé d'API OpenAlex, exigée par OpenAlex depuis février 2026",
+    SecretName.OPENALEX_API_KEY: (
+        "clé d'API OpenAlex, exigée par OpenAlex depuis février 2026 "
+        "sauf si un mandataire réseau l'ajoute aux requêtes"
+    ),
     SecretName.CONTACT_EMAIL: "adresse de contact transmise aux API bibliographiques",
 }
 
@@ -55,7 +80,8 @@ class MissingSecretError(RuntimeError):
     def __init__(self, name: SecretName) -> None:
         self.name = name
         super().__init__(
-            f"Variable d'environnement manquante : {name.value} ({_DESCRIPTIONS[name]}). "
+            f"Variable d'environnement manquante : {' ou '.join(name.env_vars)} "
+            f"({_DESCRIPTIONS[name]}). "
             "Définissez-la dans les réglages de l'environnement, puis relancez la commande."
         )
 
@@ -84,16 +110,18 @@ def forget_loaded_secrets() -> None:
 def get_optional_secret(
     name: SecretName, *, environ: Mapping[str, str] | None = None
 ) -> SecretStr | None:
-    """Return the secret, or ``None`` if the variable is absent or blank.
+    """Return the secret, or ``None`` if none of its variables is set (blank counts as unset).
 
-    ``environ`` defaults to :data:`os.environ`; tests pass a mapping instead.
+    The first non-blank variable of :attr:`SecretName.env_vars` wins. ``environ`` defaults
+    to :data:`os.environ`; tests pass a mapping instead.
     """
     source = os.environ if environ is None else environ
-    raw = source.get(name.value, "").strip()
-    if not raw:
-        return None
-    _register(raw)
-    return SecretStr(raw)
+    for var in name.env_vars:
+        raw = source.get(var, "").strip()
+        if raw:
+            _register(raw)
+            return SecretStr(raw)
+    return None
 
 
 def get_secret(name: SecretName, *, environ: Mapping[str, str] | None = None) -> SecretStr:

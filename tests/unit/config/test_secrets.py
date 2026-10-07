@@ -37,12 +37,37 @@ def capture() -> Iterator[tuple[logging.Logger, io.StringIO]]:
     logger.removeHandler(handler)
 
 
-@pytest.mark.parametrize("name", list(SecretName))
-def test_get_secret_returns_secret_str(name: SecretName) -> None:
+@pytest.mark.parametrize(
+    ("name", "var"),
+    [(name, var) for name in SecretName for var in name.env_vars],
+)
+def test_get_secret_returns_secret_str(name: SecretName, var: str) -> None:
     value = token_source.token_hex(16)
-    secret = get_secret(name, environ={name.value: f"  {value}\n"})
+    secret = get_secret(name, environ={var: f"  {value}\n"})
     assert isinstance(secret, SecretStr)
     assert secret.get_secret_value() == value
+
+
+def test_anthropic_key_variables_and_priority() -> None:
+    name = SecretName.ANTHROPIC_API_KEY
+    assert name.env_vars == ("REVUE_PORTEE_ANTHROPIC_KEY", "ANTHROPIC_API_KEY")
+    project, generic = token_source.token_hex(16), token_source.token_hex(16)
+    both = {"REVUE_PORTEE_ANTHROPIC_KEY": project, "ANTHROPIC_API_KEY": generic}
+    assert get_secret(name, environ=both).get_secret_value() == project
+    blank_first = {"REVUE_PORTEE_ANTHROPIC_KEY": "  ", "ANTHROPIC_API_KEY": generic}
+    assert get_secret(name, environ=blank_first).get_secret_value() == generic
+
+
+def test_missing_anthropic_key_names_both_variables() -> None:
+    with pytest.raises(MissingSecretError) as excinfo:
+        get_secret(SecretName.ANTHROPIC_API_KEY, environ={})
+    assert "REVUE_PORTEE_ANTHROPIC_KEY ou ANTHROPIC_API_KEY" in str(excinfo.value)
+
+
+def test_only_openalex_key_is_optional() -> None:
+    assert not SecretName.OPENALEX_API_KEY.required
+    assert SecretName.ANTHROPIC_API_KEY.required
+    assert SecretName.CONTACT_EMAIL.required
 
 
 @pytest.mark.parametrize("raw", [None, "", "   "])
@@ -63,6 +88,7 @@ def test_optional_secret_is_none_when_absent() -> None:
 
 def test_reads_process_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     value = make_fake_key()
+    monkeypatch.delenv("REVUE_PORTEE_ANTHROPIC_KEY", raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", value)
     assert get_secret(SecretName.ANTHROPIC_API_KEY).get_secret_value() == value
 
@@ -91,7 +117,7 @@ def test_secret_never_appears_in_repr_or_str() -> None:
 
 def test_missing_secret_error_repr_contains_no_value() -> None:
     value = make_fake_key()
-    environ = {"ANTHROPIC_API_KEY": value, "CONTACT_EMAIL": "  "}
+    environ = {"REVUE_PORTEE_ANTHROPIC_KEY": value, "CONTACT_EMAIL": "  "}
     get_secret(SecretName.ANTHROPIC_API_KEY, environ=environ)
     with pytest.raises(MissingSecretError) as excinfo:
         get_secret(SecretName.CONTACT_EMAIL, environ=environ)
@@ -106,7 +132,7 @@ def test_loaded_secret_is_masked_in_every_log_output(
     install_secret_redaction(caplog.handler)
     key = make_fake_key()
     email = f"{token_source.token_hex(6)}@example.org"
-    environ = {"ANTHROPIC_API_KEY": key, "CONTACT_EMAIL": email}
+    environ = {"REVUE_PORTEE_ANTHROPIC_KEY": key, "CONTACT_EMAIL": email}
     raw_key = get_secret(SecretName.ANTHROPIC_API_KEY, environ=environ).get_secret_value()
     raw_email = get_secret(SecretName.CONTACT_EMAIL, environ=environ).get_secret_value()
 
