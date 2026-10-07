@@ -18,6 +18,7 @@ from revue_portee.i18n import gettext as _
 __all__ = [
     "RateLimiter",
     "SourceAccessError",
+    "SourceAnswer",
     "SourceError",
     "SourceUnreachableError",
     "get_json",
@@ -26,6 +27,15 @@ __all__ = [
 
 USER_AGENT = f"revue-portee/{__version__} (+https://github.com/benoit-plante/revue-portee)"
 _RETRY_STATUSES = {429, 500, 502, 503, 504}
+
+
+@dataclass(frozen=True, slots=True)
+class SourceAnswer:
+    """What a database answered: number of records, identifiers asked for, raw JSON."""
+
+    count: int
+    ids: tuple[str, ...]
+    raw: dict[str, Any]
 
 
 class SourceError(RuntimeError):

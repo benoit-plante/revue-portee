@@ -1,0 +1,11 @@
+Review question: {{ question or "(not specified)" }}
+Population: {{ population or "(not specified)" }}
+Concept: {{ concept or "(not specified)" }}
+Context: {{ context or "(not specified)" }}
+
+Concept blocks of the current strategy:
+{% for block in blocks %}
+Block {{ block.code }}{% if block.label %} — {{ block.label }}{% endif %} ({{ "exclusion, removed with NOT" if block.role == "exclude" else "inclusion" }}{% if block.pcc_element %}, PCC element: {{ block.pcc_element }}{% endif %})
+{% for term in block.terms %}- {{ term }}
+{% else %}(no term yet)
+{% endfor %}{% endfor %}

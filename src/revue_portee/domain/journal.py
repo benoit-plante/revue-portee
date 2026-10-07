@@ -46,6 +46,13 @@ class EntryType:
     FRAMING_SUGGESTION_REVIEWED = "framing.suggestion_reviewed"
     PROTOCOL_TEXT_UPDATED = "protocol.text_updated"
     PROTOCOL_REGISTERED = "protocol.registered"
+    SEARCH_QUERY_VERSIONED = "search.query_versioned"
+    SEARCH_RUN_COMPLETED = "search.run_completed"
+    SEARCH_KEY_ARTICLES_UPDATED = "search.key_articles_updated"
+    SEARCH_SENSITIVITY_CHECKED = "search.sensitivity_checked"
+    SEARCH_DESCRIPTORS_CHECKED = "search.descriptors_checked"
+    SEARCH_TERMS_SUGGESTED = "search.terms_suggested"
+    SEARCH_TERM_SUGGESTION_REVIEWED = "search.term_suggestion_reviewed"
 
 
 class JournalEntry(BaseModel):

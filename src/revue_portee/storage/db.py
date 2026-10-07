@@ -46,15 +46,23 @@ __all__ = [
     "criterion",
     "criterion_change",
     "criterion_code",
+    "descriptor_check",
     "framing_version",
     "journal_entry",
+    "key_article_set_version",
     "metadata",
     "project",
     "protocol_registration",
     "protocol_text_version",
     "qualification_proposal",
+    "query",
     "reviewer",
+    "search_run",
+    "search_strategy_version",
+    "sensitivity_check",
     "suggestion_review",
+    "term_suggestion",
+    "term_suggestion_review",
     "write_transaction",
 ]
 
@@ -330,6 +338,138 @@ protocol_registration = Table(
     Column("criteria_version_id", String(26), ForeignKey("criteria_version.id"), nullable=True),
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+# --- Search (EF-REC-01 to 06) ---------------------------------------------------
+
+search_strategy_version = Table(
+    "search_strategy_version",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, unique=True, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("author_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("strategy_json", Text, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+query = Table(
+    "query",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column(
+        "strategy_version_id", String(26), ForeignKey("search_strategy_version.id"), nullable=False
+    ),
+    Column("database", String(32), nullable=False),
+    Column("syntax_text", Text, nullable=False),
+    Column("blocks_json", Text, nullable=False),
+    Column("limits_text", Text, nullable=False),
+    Column("warnings_json", Text, nullable=False),
+    Column("generated_by", String(32), nullable=False),
+    Column("edited", Boolean, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Index("ix_query_strategy_version", "strategy_version_id", "database", unique=True),
+)
+
+
+search_run = Table(
+    "search_run",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("query_id", String(26), ForeignKey("query.id"), nullable=False),
+    Column("kind", String(16), nullable=False),
+    Column("executed_at", UTCDateTime, nullable=False),
+    Column("result_count", Integer, nullable=True),
+    Column("blocks_json", Text, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("raw_dir", Text, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+    Index("ix_search_run_query", "query_id"),
+)
+
+
+key_article_set_version = Table(
+    "key_article_set_version",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, unique=True, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("author_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("articles_json", Text, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+sensitivity_check = Table(
+    "sensitivity_check",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("search_run_id", String(26), ForeignKey("search_run.id"), nullable=False),
+    Column(
+        "key_article_set_version_id",
+        String(26),
+        ForeignKey("key_article_set_version.id"),
+        nullable=False,
+    ),
+    Column("found", Integer, nullable=False),
+    Column("indexed", Integer, nullable=False),
+    Column("outcomes_json", Text, nullable=False),
+)
+
+
+descriptor_check = Table(
+    "descriptor_check",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("vocabulary", String(16), nullable=False),
+    Column("heading", Text, nullable=False),
+    Column("found", Boolean, nullable=False),
+    Column("official_heading", Text, nullable=True),
+    Column("descriptor_ui", Text, nullable=True),
+    Column("raw_dir", Text, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+    Index("ix_descriptor_check_heading", "vocabulary", "heading"),
+)
+
+
+term_suggestion = Table(
+    "term_suggestion",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=False),
+    Column(
+        "strategy_version_id", String(26), ForeignKey("search_strategy_version.id"), nullable=False
+    ),
+    Column("position", Integer, nullable=False),
+    Column("block_code", String(16), nullable=False),
+    Column("kind", String(32), nullable=False),
+    Column("line", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+)
+
+
+term_suggestion_review = Table(
+    "term_suggestion_review",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column(
+        "suggestion_id", String(26), ForeignKey("term_suggestion.id"), unique=True, nullable=False
+    ),
+    Column("outcome", String(16), nullable=False),
+    Column("final_line", Text, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column(
+        "strategy_version_id", String(26), ForeignKey("search_strategy_version.id"), nullable=True
+    ),
     Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
 )
 

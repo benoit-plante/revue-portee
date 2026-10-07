@@ -1,0 +1,7 @@
+id: suggest_terms
+version: "1"
+task: suggest_terms
+changelog:
+  - version: "1"
+    date: "2026-10-07"
+    change: First version (tranche 1.3).

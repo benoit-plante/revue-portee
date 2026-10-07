@@ -12,21 +12,14 @@ from typing import Any
 import httpx2
 from pydantic import SecretStr
 
-from revue_portee.domain.search import KeyArticle, KeyArticleKind
-from revue_portee.sources.http import RateLimiter, get_json
+from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
+from revue_portee.sources.http import RateLimiter, SourceAnswer, get_json
 
-__all__ = ["EUTILS", "MeshCheck", "PubMed", "PubMedAnswer"]
+__all__ = ["EUTILS", "MeshCheck", "PubMed"]
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 SERVICE = "PubMed (E-utilities)"
 TOOL = "revue-portee"
-
-
-@dataclass(frozen=True, slots=True)
-class PubMedAnswer:
-    count: int
-    ids: tuple[str, ...]
-    raw: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +33,8 @@ class MeshCheck:
 
 
 class PubMed:
+    database = Database.PUBMED
+
     def __init__(
         self,
         client: httpx2.Client,
@@ -60,7 +55,7 @@ class PubMed:
             base["api_key"] = self._api_key.get_secret_value()
         return base | params
 
-    def _esearch(self, database: str, term: str, retmax: int) -> PubMedAnswer:
+    def _esearch(self, database: str, term: str, retmax: int) -> SourceAnswer:
         raw = get_json(
             self._client,
             EUTILS + "esearch.fcgi",
@@ -69,18 +64,18 @@ class PubMed:
             limiter=self._limiter,
         )
         result = raw.get("esearchresult", {})
-        return PubMedAnswer(
+        return SourceAnswer(
             count=int(result.get("count", 0)), ids=tuple(result.get("idlist", ())), raw=raw
         )
 
-    def count(self, query: str) -> PubMedAnswer:
+    def count(self, query: str) -> SourceAnswer:
         """Number of records found by ``query`` (no identifiers returned)."""
         return self._esearch("pubmed", query, 0)
 
-    def among(self, query: str, pmids: Sequence[str]) -> PubMedAnswer:
+    def among(self, query: str, pmids: Sequence[str]) -> SourceAnswer:
         """Which of ``pmids`` ``query`` retrieves."""
         if not pmids:
-            return PubMedAnswer(count=0, ids=(), raw={})
+            return SourceAnswer(count=0, ids=(), raw={})
         uids = " OR ".join(f"{pmid}[uid]" for pmid in pmids)
         return self._esearch("pubmed", f"({query}) AND ({uids})", len(pmids))
 

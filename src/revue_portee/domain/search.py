@@ -28,6 +28,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 
 from revue_portee.domain.criteria import PccElement
 from revue_portee.domain.protocol import normalize_doi
+from revue_portee.domain.suggestions import SuggestionOutcome
 
 __all__ = [
     "BLOCK_CODE",
@@ -35,17 +36,27 @@ __all__ = [
     "BlockRole",
     "ConceptBlock",
     "Database",
+    "DescriptorCheck",
     "KeyArticle",
     "KeyArticleKind",
     "KeyArticleSetVersion",
     "Limits",
+    "QueryVersion",
+    "RunKind",
+    "SearchRun",
     "SearchStrategy",
     "StrategyVersion",
     "Term",
     "TermField",
     "TermKind",
+    "TermSuggestion",
+    "TermSuggestionKind",
+    "TermSuggestionReview",
     "TermSyntaxError",
+    "Translation",
+    "TranslationWarning",
     "Vocabulary",
+    "WarningKind",
     "format_term",
     "next_block_code",
     "parse_key_article",
@@ -57,6 +68,18 @@ class Database(StrEnum):
     PUBMED = "pubmed"
     OPENALEX = "openalex"
     PSYCINFO_EBSCO = "psycinfo_ebsco"
+
+    @property
+    def display_name(self) -> str:
+        """Proper name of the database (not translated)."""
+        return _DATABASE_NAMES[self]
+
+
+_DATABASE_NAMES = {
+    Database.PUBMED: "PubMed",
+    Database.OPENALEX: "OpenAlex",
+    Database.PSYCINFO_EBSCO: "PsycINFO (EBSCOhost)",
+}
 
 
 class TermKind(StrEnum):
@@ -324,3 +347,130 @@ class KeyArticleSetVersion(BaseModel):
     created_at: AwareDatetime
     author_id: str
     articles: tuple[KeyArticle, ...]
+
+
+# --- Translated queries (the translators are in search/translate.py) ----------------
+
+
+class WarningKind(StrEnum):
+    DESCRIPTOR_NOT_SUPPORTED = "descriptor_not_supported"  # vocabulary absent there
+    FIELD_WIDENED = "field_widened"  # field not available: searched more broadly
+    PUBLICATION_TYPE_NOT_SUPPORTED = "publication_type_not_supported"
+    COMMA_REMOVED = "comma_removed"  # OpenAlex filters cannot hold commas
+    EMPTY_BLOCK = "empty_block"
+    YEARS_IN_INTERFACE = "years_in_interface"  # limit to set in the database interface
+
+
+class TranslationWarning(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: WarningKind
+    block: str | None = None  # block code
+    term: str | None = None  # the term line concerned
+    detail: str = ""
+
+
+class Translation(BaseModel):
+    """The query of one database, with the query of each block alone (for counts and
+    for the sensitivity test) and the warnings."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    database: Database
+    text: str  # the complete query (for OpenAlex: the value of the "filter" parameter)
+    blocks: dict[str, str]  # block code -> query of that block alone
+    limits: str = ""  # the limits alone ("" when none)
+    warnings: tuple[TranslationWarning, ...] = ()
+
+
+# --- Stored records ---------------------------------------------------------------
+
+
+class QueryVersion(BaseModel):
+    """The query generated for one database from one strategy version (EF-REC-06)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    strategy_version_id: str
+    created_at: AwareDatetime
+    translation: Translation
+    generated_by: str = "translator"
+    edited: bool = False
+
+    @property
+    def database(self) -> Database:
+        return self.translation.database
+
+
+class RunKind(StrEnum):
+    COUNT = "count"
+    SENSITIVITY = "sensitivity"
+
+
+class SearchRun(BaseModel):
+    """One execution of a query against a database API; raw answers in ``raw_dir``."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    query_id: str
+    kind: RunKind
+    executed_at: AwareDatetime
+    result_count: int | None  # total of the complete query (None for a sensitivity test)
+    block_counts: dict[str, int] = Field(default_factory=dict)
+    raw_dir: str
+    reviewer_id: str
+
+
+class DescriptorCheck(BaseModel):
+    """Whether a controlled-vocabulary heading exists (EF-REC-04)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    created_at: AwareDatetime
+    vocabulary: Vocabulary
+    heading: str
+    found: bool
+    official_heading: str | None = None
+    descriptor_ui: str | None = None
+    raw_dir: str
+    reviewer_id: str
+
+
+class TermSuggestionKind(StrEnum):
+    FREE_TERM = "free_term"  # synonym, variant, truncation, phrase
+    DESCRIPTOR = "descriptor"  # MeSH or APA Thesaurus heading
+
+
+class TermSuggestion(BaseModel):
+    """A term proposed by the AI for one block (EF-REC-02), in the term syntax."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    ai_call_id: str
+    strategy_version_id: str
+    position: int = Field(ge=0)
+    block_code: str = Field(pattern=BLOCK_CODE.pattern)
+    kind: TermSuggestionKind
+    line: str = Field(min_length=1)
+    rationale: str
+    created_at: AwareDatetime
+
+    @property
+    def term(self) -> Term:
+        return parse_term(self.line)
+
+
+class TermSuggestionReview(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    suggestion_id: str
+    outcome: SuggestionOutcome
+    final_line: str
+    reviewer_id: str
+    created_at: AwareDatetime
+    strategy_version_id: str | None = None  # version created by this review

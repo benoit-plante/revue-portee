@@ -5,26 +5,18 @@ proxy adds it itself (D-021). Each count costs a little of the daily allowance.
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Any
 
 import httpx2
 from pydantic import SecretStr
 
-from revue_portee.domain.search import KeyArticle, KeyArticleKind
-from revue_portee.sources.http import RateLimiter, get_json
+from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
+from revue_portee.sources.http import RateLimiter, SourceAnswer, get_json
 
-__all__ = ["WORKS", "OpenAlex", "OpenAlexAnswer"]
+__all__ = ["WORKS", "OpenAlex"]
 
 WORKS = "https://api.openalex.org/works"
 SERVICE = "OpenAlex"
-
-
-@dataclass(frozen=True, slots=True)
-class OpenAlexAnswer:
-    count: int
-    ids: tuple[str, ...]  # short identifiers such as W2741809807
-    raw: dict[str, Any]
 
 
 def _short(openalex_id: str) -> str:
@@ -32,6 +24,8 @@ def _short(openalex_id: str) -> str:
 
 
 class OpenAlex:
+    database = Database.OPENALEX
+
     def __init__(
         self,
         client: httpx2.Client,
@@ -43,21 +37,21 @@ class OpenAlex:
         self._api_key = api_key
         self._limiter = limiter or RateLimiter(0.1)
 
-    def _works(self, filter_value: str, per_page: int) -> OpenAlexAnswer:
+    def _works(self, filter_value: str, per_page: int) -> SourceAnswer:
         params = {"filter": filter_value, "per-page": str(per_page), "select": "id"}
         if self._api_key is not None:
             params["api_key"] = self._api_key.get_secret_value()
         raw = get_json(self._client, WORKS, params, service=SERVICE, limiter=self._limiter)
         ids = tuple(_short(work["id"]) for work in raw.get("results", []) if work.get("id"))
-        return OpenAlexAnswer(count=int(raw.get("meta", {}).get("count", 0)), ids=ids, raw=raw)
+        return SourceAnswer(count=int(raw.get("meta", {}).get("count", 0)), ids=ids, raw=raw)
 
-    def count(self, filter_value: str) -> OpenAlexAnswer:
+    def count(self, filter_value: str) -> SourceAnswer:
         return self._works(filter_value, 1)
 
-    def among(self, filter_value: str, work_ids: Sequence[str]) -> OpenAlexAnswer:
+    def among(self, filter_value: str, work_ids: Sequence[str]) -> SourceAnswer:
         """Which of ``work_ids`` the filter retrieves."""
         if not work_ids:
-            return OpenAlexAnswer(count=0, ids=(), raw={})
+            return SourceAnswer(count=0, ids=(), raw={})
         joined = "|".join(work_ids)
         return self._works(f"openalex:{joined},{filter_value}", min(200, len(work_ids)))
 

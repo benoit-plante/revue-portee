@@ -16,9 +16,6 @@ reported as a warning, never silently.
 """
 
 from collections.abc import Sequence
-from enum import StrEnum
-
-from pydantic import BaseModel, ConfigDict
 
 from revue_portee.domain.search import (
     LANGUAGES,
@@ -28,7 +25,10 @@ from revue_portee.domain.search import (
     Term,
     TermField,
     TermKind,
+    Translation,
+    TranslationWarning,
     Vocabulary,
+    WarningKind,
     format_term,
 )
 
@@ -41,37 +41,6 @@ __all__ = [
 ]
 
 OPENALEX_SEARCH_FILTER = "title_and_abstract.search.exact"
-
-
-class WarningKind(StrEnum):
-    DESCRIPTOR_NOT_SUPPORTED = "descriptor_not_supported"  # vocabulary absent there
-    FIELD_WIDENED = "field_widened"  # field not available: searched more broadly
-    PUBLICATION_TYPE_NOT_SUPPORTED = "publication_type_not_supported"
-    COMMA_REMOVED = "comma_removed"  # OpenAlex filters cannot hold commas
-    EMPTY_BLOCK = "empty_block"
-    YEARS_IN_INTERFACE = "years_in_interface"  # limit to set in the database interface
-
-
-class TranslationWarning(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: WarningKind
-    block: str | None = None  # block code
-    term: str | None = None  # the term line concerned
-    detail: str = ""
-
-
-class Translation(BaseModel):
-    """The query of one database, with the query of each block alone (for counts and
-    for the sensitivity test) and the warnings."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    database: Database
-    text: str  # the complete query (for OpenAlex: the value of the "filter" parameter)
-    blocks: dict[str, str]  # block code -> query of that block alone
-    limits: str = ""  # the limits alone ("" when none)
-    warnings: tuple[TranslationWarning, ...] = ()
 
 
 def _quoted(term: Term) -> str:

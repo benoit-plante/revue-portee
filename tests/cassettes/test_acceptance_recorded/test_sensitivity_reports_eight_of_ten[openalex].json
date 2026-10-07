@@ -1,0 +1,106 @@
+[
+ {
+  "request": "GET https://api.openalex.org/works?filter=doi%3A10.1080%2F03036758.2024.2399359&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 10, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where DOI is (10.1080/03036758.2024.2399359)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"doi\", \"value\": \"10.1080/03036758.2024.2399359\"}]}, \"url\": \"/works?filter=doi:10.1080%2F03036758.2024.2399359&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4402838653\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=pmid%3A39938532&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 10, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where PMID is (39938532)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"ids.pmid\", \"value\": \"39938532\"}]}, \"url\": \"/works?filter=ids.pmid:39938532&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4403381249\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=doi%3A10.3389%2Fphrs.2024.1607651&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 9, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where DOI is (10.3389/phrs.2024.1607651)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"doi\", \"value\": \"10.3389/phrs.2024.1607651\"}]}, \"url\": \"/works?filter=doi:10.3389%2Fphrs.2024.1607651&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4406604971\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=pmid%3A39757795&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 9, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where PMID is (39757795)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"ids.pmid\", \"value\": \"39757795\"}]}, \"url\": \"/works?filter=ids.pmid:39757795&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4403498101\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=pmid%3A39713846&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 9, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where PMID is (39713846)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"ids.pmid\", \"value\": \"39713846\"}]}, \"url\": \"/works?filter=ids.pmid:39713846&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4405725455\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=doi%3A10.1186%2Fs13643-024-02690-2&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 10, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where DOI is (10.1186/s13643-024-02690-2)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"doi\", \"value\": \"10.1186/s13643-024-02690-2\"}]}, \"url\": \"/works?filter=doi:10.1186%2Fs13643-024-02690-2&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4405586315\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=pmid%3A39696198&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 9, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where PMID is (39696198)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"ids.pmid\", \"value\": \"39696198\"}]}, \"url\": \"/works?filter=ids.pmid:39696198&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4405510357\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=doi%3A10.2196%2F60352&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 9, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where DOI is (10.2196/60352)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"doi\", \"value\": \"10.2196/60352\"}]}, \"url\": \"/works?filter=doi:10.2196%2F60352&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4403781391\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=doi%3A10.12688%2Fopenresafrica.14092.4&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 10, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where DOI is (10.12688/openresafrica.14092.4)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"doi\", \"value\": \"10.12688/openresafrica.14092.4\"}]}, \"url\": \"/works?filter=doi:10.12688%2Fopenresafrica.14092.4&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W7126242625\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=pmid%3A39086663&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 1, \"db_response_time_ms\": 8, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where PMID is (39086663)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"ids.pmid\", \"value\": \"39086663\"}]}, \"url\": \"/works?filter=ids.pmid:39086663&per_page=2\"}, \"cost_usd\": 0.0001}, \"results\": [{\"id\": \"https://openalex.org/W4382361996\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=openalex%3AW4382361996%7CW4402838653%7CW4403381249%7CW4403498101%7CW4403781391%7CW4405510357%7CW4405586315%7CW4405725455%7CW4406604971%7CW7126242625%2Ctitle_and_abstract.search.exact%3A%28parent%2A+OR+father%2A+OR+mother%2A%29+AND+%28%22scoping+review%22%29&per-page=10&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 8, \"db_response_time_ms\": 151, \"page\": 1, \"per_page\": 10, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where title-abstract has (\\\"scoping review\\\" AND (\\\"father*\\\" OR \\\"mother*\\\" OR \\\"parent*\\\"))\\n  and openalex id is (\\n    W4382361996 or W4402838653 or W4403381249 or W4403498101 or W4403781391\\n    or W4405510357 or W4405586315 or W4405725455 or W4406604971 or W7126242625\\n  )\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"\\\"scoping review\\\"\", \"operator\": \"has\"}, {\"join\": \"or\", \"filters\": [{\"column_id\": \"ids.openalex\", \"value\": \"W4382361996\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4402838653\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4403381249\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4403498101\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4403781391\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4405510357\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4405586315\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4405725455\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W4406604971\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W7126242625\"}]}, {\"join\": \"or\", \"filters\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"father*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"mother*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"parent*\", \"operator\": \"has\"}]}]}, \"url\": \"/works?filter=title_and_abstract.search.exact:%22scoping review%22,ids.openalex:W4382361996|W4402838653|W4403381249|W4403498101|W4403781391|W4405510357|W4405586315|W4405725455|W4406604971|W7126242625,title_and_abstract.search.exact:father%2A|mother%2A|parent%2A&per_page=10\"}, \"cost_usd\": 0.001}, \"results\": [{\"id\": \"https://openalex.org/W4405586315\"}, {\"id\": \"https://openalex.org/W4405725455\"}, {\"id\": \"https://openalex.org/W4402838653\"}, {\"id\": \"https://openalex.org/W4403498101\"}, {\"id\": \"https://openalex.org/W4403781391\"}, {\"id\": \"https://openalex.org/W4403381249\"}, {\"id\": \"https://openalex.org/W4406604971\"}, {\"id\": \"https://openalex.org/W4405510357\"}], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=openalex%3AW4382361996%7CW7126242625%2Ctitle_and_abstract.search.exact%3Aparent%2A+OR+father%2A+OR+mother%2A&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 0, \"db_response_time_ms\": 145, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where openalex id is (W4382361996 or W7126242625)\\n  and title-abstract has (\\\"father*\\\" OR \\\"mother*\\\" OR \\\"parent*\\\")\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"join\": \"or\", \"filters\": [{\"column_id\": \"ids.openalex\", \"value\": \"W4382361996\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W7126242625\"}]}, {\"join\": \"or\", \"filters\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"father*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"mother*\", \"operator\": \"has\"}, {\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"parent*\", \"operator\": \"has\"}]}]}, \"url\": \"/works?filter=ids.openalex:W4382361996|W7126242625,title_and_abstract.search.exact:father%2A|mother%2A|parent%2A&per_page=2\"}, \"cost_usd\": 0.001}, \"results\": [], \"group_by\": []}"
+  }
+ },
+ {
+  "request": "GET https://api.openalex.org/works?filter=openalex%3AW4382361996%7CW7126242625%2Ctitle_and_abstract.search.exact%3A%22scoping+review%22&per-page=2&select=id",
+  "response": {
+   "status": 200,
+   "content_type": "application/json",
+   "body": "{\"meta\": {\"count\": 2, \"db_response_time_ms\": 46, \"page\": 1, \"per_page\": 2, \"groups_count\": null, \"x_query\": {\"oql\": \"get works where title-abstract has (\\\"scoping review\\\")\\n  and openalex id is (W4382361996 or W7126242625)\", \"oqo\": {\"get_rows\": \"works\", \"filter_rows\": [{\"column_id\": \"title_and_abstract.search.exact\", \"value\": \"\\\"scoping review\\\"\", \"operator\": \"has\"}, {\"join\": \"or\", \"filters\": [{\"column_id\": \"ids.openalex\", \"value\": \"W4382361996\"}, {\"column_id\": \"ids.openalex\", \"value\": \"W7126242625\"}]}]}, \"url\": \"/works?filter=title_and_abstract.search.exact:%22scoping review%22,ids.openalex:W4382361996|W7126242625&per_page=2\"}, \"cost_usd\": 0.001}, \"results\": [{\"id\": \"https://openalex.org/W4382361996\"}, {\"id\": \"https://openalex.org/W7126242625\"}], \"group_by\": []}"
+  }
+ }
+]
