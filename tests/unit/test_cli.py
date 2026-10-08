@@ -144,3 +144,16 @@ def test_archive_export(tmp_path: Path) -> None:
     assert len(list((folder / "exports").glob("archive-*.zip"))) == 2
     missing = runner.invoke(app, ["archive", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_retained_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["retenues", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert result.output.count("0 référence retenue, écrite") == 2
+    assert "Le tri n'est pas terminé" in result.output
+    assert (folder / "exports" / "references-retenues.ris").read_text(encoding="utf-8") == ""
+    assert (folder / "exports" / "references-retenues.csv").is_file()
+    missing = runner.invoke(app, ["retenues", str(tmp_path / "absent")])
+    assert missing.exit_code == 1

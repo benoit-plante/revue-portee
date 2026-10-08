@@ -251,6 +251,38 @@ def export_archive(
 
 
 @app.command(
+    "retenues",
+    help=_("Write the references kept for the full text (RIS and CSV) in the exports folder."),
+)
+def export_retained(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.screening.report import RetainedFormat
+    from revue_portee.screening.report import export_retained as write
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        for export_format in RetainedFormat:
+            result = write(folder, format=export_format, now=utc_now, tool_version=tool_version())
+            typer.echo(
+                ngettext(
+                    "{count} reference kept, written: {path}",
+                    "{count} references kept, written: {path}",
+                    result.count,
+                ).format(count=result.count, path=result.path)
+            )
+    finally:
+        folder.close()
+    if result.provisional:
+        typer.echo(_("The screening is not finished: this list may still change."), err=True)
+
+
+@app.command(
     "banc-synergy",
     help=_("Measure the AI screener on a labelled SYNERGY dataset (calls the model)."),
 )

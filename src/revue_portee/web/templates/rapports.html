@@ -28,6 +28,15 @@
   </ul>
 </section>
 
+<section aria-labelledby="retenues">
+  <h2 id="retenues">{{ _("References kept for the full text") }}</h2>
+  <p>{{ ngettext("%(num)s reference kept (include or uncertain), to import in a reference manager (Zotero, EndNote) or a screening tool (Covidence, Rayyan).", "%(num)s references kept (include or uncertain), to import in a reference manager (Zotero, EndNote) or a screening tool (Covidence, Rayyan).", retained) }}</p>
+  {% if numbers.provisional %}<p class="small">{{ _("The screening is not finished: this list may still change.") }}</p>{% endif %}
+  <ul>
+    <li><a href="/rapports/retenues?format=ris">RIS</a> · <a href="/rapports/retenues?format=csv">CSV</a></li>
+  </ul>
+</section>
+
 <section aria-labelledby="methode">
   <h2 id="methode">{{ _("Methods section (draft)") }}</h2>
   <p>{{ _("Use of the AI in title and abstract screening, following RAISE and the CEE guidance: models and exact versions, pilot and thresholds, disagreements, reassessments, costs. What only the team can write is left to complete.") }}</p>

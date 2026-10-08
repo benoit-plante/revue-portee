@@ -62,13 +62,14 @@ from revue_portee.reporting.flow_svg import render_flow_svg
 from revue_portee.reporting.formats import separator
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
+from revue_portee.reporting.retained import write_csv, write_ris
 from revue_portee.resources import flow_template, peters_checklist
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
 from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
 from revue_portee.screening.archive import ArchiveKind, SecretInArchiveError, export_archive
 from revue_portee.screening.methods import methods_document
-from revue_portee.screening.report import flow_report
+from revue_portee.screening.report import flow_report, retained_references
 from revue_portee.search import runs, strategies
 from revue_portee.search import suggestions as term_suggestions
 from revue_portee.search.runs import DescriptorSource, default_descriptor_source
@@ -1974,6 +1975,7 @@ def create_app(
                 ),
                 "archives": archives(),
                 "archive": archive,
+                "retained": len(retained_references(folder)),
                 "error": error,
             },
             status_code=status_code,
@@ -2015,6 +2017,18 @@ def create_app(
             render_docx(document),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers=disposition,
+        )
+
+    @app.get("/rapports/retenues")
+    def download_retained(format: str = "ris") -> Response:
+        if format not in {"ris", "csv"}:
+            raise HTTPException(status_code=404, detail=_("Unknown export."))
+        items = retained_references(folder)
+        media = "application/x-research-info-systems" if format == "ris" else "text/csv"
+        return Response(
+            write_ris(items) if format == "ris" else write_csv(items),
+            media_type=f"{media}; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="references-retenues.{format}"'},
         )
 
     @app.post("/rapports/archive")

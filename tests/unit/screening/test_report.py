@@ -15,7 +15,13 @@ from demo import (
     screen_by_hand,
 )
 from revue_portee.reporting.flow import FlowNumbers, Pending, ReassessmentCounts
-from revue_portee.screening.report import export_flow, flow_report
+from revue_portee.screening.report import (
+    RetainedFormat,
+    export_flow,
+    export_retained,
+    flow_report,
+    retained_references,
+)
 from support import TOOL_VERSION, make_clock
 
 SVG = "{http://www.w3.org/2000/svg}"
@@ -99,3 +105,39 @@ def test_export_in_both_languages(tmp_path: Path) -> None:
     assert "Soutien à la parentalité et santé mentale des enfants" in lines
     assert any("critères, version 2" in line for line in lines)
     assert "PROVISOIRE" not in lines
+
+
+def test_references_kept_for_the_full_text(tmp_path: Path) -> None:
+    demo = build(tmp_path)
+    try:
+        kept = retained_references(demo.folder)
+        ids = demo.ids()
+        exports = [
+            export_retained(demo.folder, format=f, now=make_clock(), tool_version=TOOL_VERSION)
+            for f in RetainedFormat
+        ]
+    finally:
+        demo.folder.close()
+    # counted by hand: the caregivers study (uncertain), the housing study (included after
+    # the reassessment) and the loneliness study, sorted by title
+    expected = [ids["caregivers"], ids["housing"], ids["loneliness"]]
+    assert [k.reference.id for k in kept] == expected
+    assert [k.decision.value.value for k in kept] == ["uncertain", "include", "include"]
+    assert [k.criteria_version for k in kept] == [1, 2, 1]
+    assert [(e.path.name, e.count, e.provisional) for e in exports] == [
+        ("references-retenues.ris", 3, False),
+        ("references-retenues.csv", 3, False),
+    ]
+    assert exports[0].path.read_text(encoding="utf-8").count("ER  - ") == 3
+
+
+def test_nothing_kept_before_the_screening(tmp_path: Path) -> None:
+    demo = create(tmp_path)
+    try:
+        assert retained_references(demo.folder) == []
+        result = export_retained(
+            demo.folder, format=RetainedFormat.CSV, now=make_clock(), tool_version=TOOL_VERSION
+        )
+    finally:
+        demo.folder.close()
+    assert (result.count, result.provisional) == (0, True)

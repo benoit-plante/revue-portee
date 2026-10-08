@@ -109,3 +109,17 @@ def test_archive_written_then_downloaded(demo: Demo) -> None:
     complete = post(client, "/rapports/archive", sorte="complete")
     assert complete.status_code == 303  # type: ignore[attr-defined]
     assert text_of(client.get("/rapports")).count("archive-") >= 2
+
+
+def test_references_kept_downloads(demo: Demo) -> None:
+    client = client_for(demo)
+    page = text_of(client.get("/rapports"))
+    assert "3 références retenues (inclure ou incertain)" in page
+    ris = client.get("/rapports/retenues?format=ris")
+    assert ris.headers["content-type"] == "application/x-research-info-systems; charset=utf-8"
+    assert 'filename="references-retenues.ris"' in ris.headers["content-disposition"]
+    assert ris.text.count("ER  - ") == 3
+    table = client.get("/rapports/retenues?format=csv")
+    assert table.headers["content-type"] == "text/csv; charset=utf-8"
+    assert len(table.text.strip().splitlines()) == 4  # header and three references
+    assert client.get("/rapports/retenues?format=xlsx").status_code == 404
