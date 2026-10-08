@@ -49,9 +49,9 @@ def key_of(title: str) -> str:
     return next(key for key in KEYS if key in lowered)
 
 
-def _assessments(p1: str, c1: str, x1: str) -> list[dict[str, str]]:
+def _assessments(p1: str, c1: str, x1: str, quote: str = "") -> list[dict[str, str]]:
     return [
-        {"code": "P1", "status": p1, "evidence_quote": ""},
+        {"code": "P1", "status": p1, "evidence_quote": quote},
         {"code": "C1", "status": c1, "evidence_quote": ""},
         {"code": "X1", "status": x1, "evidence_quote": ""},
     ]
@@ -73,9 +73,9 @@ def _output(decision: str, assessments: list[dict[str, str]]) -> dict[str, Any]:
 AI_V1 = {
     "correction": _output("exclude", _assessments("not_met", "met", "met")),
     "housing": _output("exclude", _assessments("not_met", "met", "not_met")),
-    "caregivers": _output("include", _assessments("met", "met", "not_met")),
-    "gardens": _output("exclude", _assessments("not_met", "met", "not_met")),
-    "loneliness": _output("include", _assessments("met", "met", "not_met")),
+    "caregivers": _output("include", _assessments("met", "met", "not_met", "older adults")),
+    "gardens": _output("exclude", _assessments("not_met", "met", "not_met", "older residents")),
+    "loneliness": _output("include", _assessments("met", "met", "not_met", "older adults")),
 }
 # The AI with version 2 (any adult): it now keeps the housing study, not the gardens one.
 AI_V2 = AI_V1 | {

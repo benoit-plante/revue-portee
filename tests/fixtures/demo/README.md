@@ -26,6 +26,8 @@ Petit projet de revue fictif, construit par `tests/demo.py` et réutilisé par l
 | Jardins communautaires, logement social | incertain | exclure | **oui** | exclure (réconciliation, P1) |
 | Solitude des aînés après un déménagement | inclure | inclure | non | inclure |
 
+**Citations de l'IA** (version 1, critère P1) : « older adults » pour les proches aidants et pour la solitude des aînés, présent dans leur titre; « older residents » pour les jardins communautaires, absent du titre et du résumé (citation inventée). Citations vérifiées : **3**, retrouvées : **2**.
+
 **Changement de critère** (version 1 → 2, élargissement de P1) : références exclues qui citent P1 = instabilité résidentielle et jardins communautaires, soit **2 réévaluées**. L'IA garderait désormais l'instabilité résidentielle (la personne confirme : inclure) et exclut toujours les jardins (pas de vérification). Décisions changées : **0** de « conserver » à « exclure », **1** d'« exclure » à « conserver ».
 
 **Résultat**

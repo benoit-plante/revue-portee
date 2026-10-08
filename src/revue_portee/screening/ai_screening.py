@@ -173,14 +173,14 @@ def _ai_decision(
     """The AI decision derived from an answer: the same answer always gives the same
     decision, which is how a decision is rebuilt without calling the model again."""
     kinds = {c.code: c.kind for c in version.criteria}
-    text = normalize_text(f"{reference.title} {reference.abstract}")
+    text = searchable_text(reference.title, reference.abstract)
     assessments = tuple(
         CriterionAssessment(
             code=a.code,
             kind=kinds[a.code],
             status=AssessmentStatus(a.status),
             evidence_quote=a.evidence_quote,
-            quote_found=(normalize_text(a.evidence_quote) in text) if a.evidence_quote else None,
+            quote_found=quote_found(a.evidence_quote, text),
         )
         for a in sorted(output.assessments, key=lambda a: list(kinds).index(a.code))
     )
@@ -238,6 +238,17 @@ def ai_reviewer(folder: ProjectFolder, stored: StoredCall, *, now: Clock, tool_v
             payload={"ai_config": stored.ai_config_id, "name": reviewer.display_name},
         )
         return reviewer.id
+
+
+def searchable_text(title: str, abstract: str) -> str:
+    """Title and abstract as quotes are looked for in them (``quote_found``)."""
+    return normalize_text(f"{title} {abstract}")
+
+
+def quote_found(quote: str, text: str) -> bool | None:
+    """Whether the AI's ``quote`` is in ``text`` (from :func:`searchable_text`), word for
+    word once case, accents and punctuation are set aside; ``None`` without a quote."""
+    return (normalize_text(quote) in text) if quote else None
 
 
 @dataclass(frozen=True, slots=True)

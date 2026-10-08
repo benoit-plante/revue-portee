@@ -30,9 +30,11 @@ def answer(item: TaskInput) -> dict[str, Any]:
     assert isinstance(item, ScreenReferenceInput)
     keep = "older" in item.reference.title.lower()
     status = "met" if keep else "not_met"
+    # « older adults » is in the titles kept; for the seniors it is made up
+    quote = "older adults" if keep or "seniors" in item.reference.title.lower() else ""
     return {
         "assessments": [
-            {"code": "P1", "status": status, "evidence_quote": ""},
+            {"code": "P1", "status": status, "evidence_quote": quote},
             {"code": "C1", "status": status, "evidence_quote": ""},
         ],
         "decision": "include" if keep else "exclude",
@@ -125,6 +127,9 @@ def test_metrics_and_cost_on_a_case_computed_by_hand() -> None:
     assert "| Sensibilité (références incluses conservées) | 66,7 % |" in report
     assert "| Spécificité (références exclues exclues) | 66,7 % |" in report
     assert "| Confusion (vp, fn, fp, vn) | 2, 1, 1, 2 |" in report
+    # quotes: records 1, 2 and 4 found, record 3 made up
+    assert (result.quotes_found, result.quotes_checked) == (3, 4)
+    assert "| Citations de l'IA retrouvées dans le titre ou le résumé | 3 / 4 (75,0 %) |" in report
     assert "| Coût pour 1 000 références | 1.00 USD |" in report
     assert "non atteintes" in report
 

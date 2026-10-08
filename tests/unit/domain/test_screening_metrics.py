@@ -255,3 +255,26 @@ def test_pilot_round_is_consistent() -> None:
         PilotRound.model_validate(values | {"sample_size": 3})
     with pytest.raises(ValueError, match="at most once"):
         PilotRound.model_validate(values | {"reference_ids": ("R1", "R1")})
+
+
+def test_quote_counts_by_hand() -> None:
+    from revue_portee.domain.criteria import CriterionKind
+    from revue_portee.domain.screening import (
+        AssessmentStatus,
+        CriterionAssessment,
+        quote_counts,
+    )
+
+    def assessment(found: bool | None) -> CriterionAssessment:
+        return CriterionAssessment(
+            code="P1",
+            kind=CriterionKind.INCLUSION,
+            status=AssessmentStatus.MET,
+            evidence_quote="" if found is None else "older adults",
+            quote_found=found,
+        )
+
+    # two found, one not found, two without a quote (not checked)
+    items = [assessment(v) for v in (True, None, False, True, None)]
+    assert quote_counts(items) == (2, 3)
+    assert quote_counts([]) == (0, 0)

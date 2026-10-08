@@ -41,6 +41,8 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
         1,
         1,
     )
+    # quotes of the AI in the main screening: 2 of 3 found (the gardens one is made up)
+    assert (screening.quotes_found, screening.quotes_checked) == (2, 3)
     (change,) = data.changes
     assert change.changes == (("P1", ChangeType.BROADENING),)
     assert change.justification == "Population élargie à tous les adultes."

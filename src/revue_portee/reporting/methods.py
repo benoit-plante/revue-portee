@@ -143,6 +143,8 @@ class ScreeningSummary(BaseModel):
     disagreements: int
     reconciled: int
     reconciled_with_ai: int  # the final decision keeps or excludes as the AI did
+    quotes_found: int = 0  # quotes of the AI found in the title or abstract
+    quotes_checked: int = 0
 
 
 class ChangeSummary(BaseModel):
@@ -599,6 +601,21 @@ def _results(_: Translate, data: MethodsData, language: str) -> list[Block]:
             )
         )
     )
+    if screening.quotes_checked:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Passages quoted by the AI to support its assessment of each criterion, found "
+                    "word for word in the title or abstract (case, accents and punctuation set "
+                    "aside): {found} of {checked} ({share}). A passage not found may be a "
+                    "paraphrase, or a quotation the model made up."
+                ).format(
+                    found=integer(screening.quotes_found, language),
+                    checked=integer(screening.quotes_checked, language),
+                    share=_ratio(screening.quotes_found, screening.quotes_checked, language),
+                )
+            )
+        )
     if data.changes:
         blocks.append(
             Paragraph(
