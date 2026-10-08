@@ -136,6 +136,7 @@ class CollectionPage(BaseModel):
     record_count: int = Field(ge=0)  # records in the page
     new_references: int = Field(ge=0)
     next_cursor: str | None  # None after the last page
+    raw_path: str  # brut/sources/<run_id>/page-NNNN.json.gz
     created_at: AwareDatetime
 
 

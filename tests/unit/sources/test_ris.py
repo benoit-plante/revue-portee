@@ -32,6 +32,7 @@ def read(name: str) -> str:
 @pytest.mark.parametrize(("name", "database"), EXPORTS.items())
 def test_every_record_of_real_exports_is_recognized(name: str, database: str) -> None:
     text = read(name)
+    assert ("\r\n" in text) == name.startswith(("cinahl", "eric", "socindex"))  # bytes kept
     expected = len(re.findall(r"^TY  -", text, flags=re.MULTILINE))  # independent count
     assert expected == len(re.findall(r"^ER  -", text, flags=re.MULTILINE))
     result = parse_ris(text)

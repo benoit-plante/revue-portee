@@ -5,6 +5,8 @@ recorded responses). Errors are raised as :class:`SourceError` with a French mes
 that names the service, never a key or an address (docs/03-architecture.md §8).
 """
 
+import json
+import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -24,6 +26,7 @@ __all__ = [
     "SourceUnreachableError",
     "chunks",
     "get_json",
+    "get_text",
     "make_client",
     "merge_answers",
 ]
@@ -73,6 +76,7 @@ class SourceUnreachableError(SourceError):
 
 class SourceAccessError(SourceError):
     def __init__(self, service: str, status: int) -> None:
+        self.status = status
         super().__init__(
             _("{service} refused the request (HTTP error {status}).").format(
                 service=service, status=status
@@ -91,19 +95,21 @@ class SourceInvalidAnswerError(SourceError):
 
 @dataclass
 class RateLimiter:
-    """At most one request every ``interval`` seconds (per service)."""
+    """At most one request every ``interval`` seconds (per service), across threads."""
 
     interval: float
     clock: Callable[[], float] = time.monotonic
     sleep: Callable[[float], None] = time.sleep
     _last: float | None = field(default=None, init=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def wait(self) -> None:
-        if self._last is not None:
-            delay = self._last + self.interval - self.clock()
-            if delay > 0:
-                self.sleep(delay)
-        self._last = self.clock()
+        with self._lock:
+            if self._last is not None:
+                delay = self._last + self.interval - self.clock()
+                if delay > 0:
+                    self.sleep(delay)
+            self._last = self.clock()
 
 
 def make_client(*, timeout: float = 30.0) -> httpx2.Client:
@@ -111,7 +117,7 @@ def make_client(*, timeout: float = 30.0) -> httpx2.Client:
     return httpx2.Client(timeout=timeout, headers={"User-Agent": USER_AGENT}, trust_env=True)
 
 
-def get_json(
+def get_text(
     client: httpx2.Client,
     url: str,
     params: Mapping[str, str],
@@ -120,8 +126,8 @@ def get_json(
     limiter: RateLimiter,
     retries: int = 3,
     sleep: Callable[[float], None] = time.sleep,
-) -> Any:  # noqa: ANN401 - JSON documents are untyped until read by the connector
-    """GET ``url`` and decode its JSON object.
+) -> str:
+    """GET ``url`` and return its text.
 
     429, 5xx, timeouts and connections cut during the answer are retried with exponential
     backoff; every failure ends as a :class:`SourceError` with a French message."""
@@ -143,11 +149,28 @@ def get_json(
             continue
         if response.status_code >= 400:
             raise SourceAccessError(service, response.status_code)
-        try:
-            document = response.json()
-        except ValueError as error:
-            raise SourceInvalidAnswerError(service) from error
-        if not isinstance(document, dict):
-            raise SourceInvalidAnswerError(service)
-        return document
+        return response.text
     raise AssertionError("unreachable")  # pragma: no cover - the loop returns or raises
+
+
+def get_json(
+    client: httpx2.Client,
+    url: str,
+    params: Mapping[str, str],
+    *,
+    service: str,
+    limiter: RateLimiter,
+    retries: int = 3,
+    sleep: Callable[[float], None] = time.sleep,
+) -> Any:  # noqa: ANN401 - JSON documents are untyped until read by the connector
+    """GET ``url`` and decode its JSON object (see :func:`get_text`)."""
+    text = get_text(
+        client, url, params, service=service, limiter=limiter, retries=retries, sleep=sleep
+    )
+    try:
+        document = json.loads(text)
+    except ValueError as error:
+        raise SourceInvalidAnswerError(service) from error
+    if not isinstance(document, dict):
+        raise SourceInvalidAnswerError(service)
+    return document

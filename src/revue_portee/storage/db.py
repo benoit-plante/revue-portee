@@ -41,21 +41,28 @@ __all__ = [
     "ai_call",
     "ai_config",
     "ai_suggestion",
+    "collection_end",
+    "collection_page",
+    "collection_run",
     "create_project_engine",
     "criteria_version",
     "criterion",
     "criterion_change",
     "criterion_code",
     "descriptor_check",
+    "enrichment",
     "framing_version",
+    "import_file",
     "journal_entry",
     "key_article_set_version",
     "metadata",
     "project",
     "protocol_registration",
     "protocol_text_version",
+    "provenance",
     "qualification_proposal",
     "query",
+    "reference",
     "reviewer",
     "search_run",
     "search_strategy_version",
@@ -471,6 +478,130 @@ term_suggestion_review = Table(
         "strategy_version_id", String(26), ForeignKey("search_strategy_version.id"), nullable=True
     ),
     Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+# --- References and collection (EF-COL-01 to 05) ---------------------------------
+
+reference = Table(
+    "reference",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("title", Text, nullable=False),
+    Column("abstract", Text, nullable=False),
+    Column("authors_json", Text, nullable=False),
+    Column("year", Integer, nullable=True),
+    Column("container_title", Text, nullable=False),
+    Column("volume", Text, nullable=False),
+    Column("issue", Text, nullable=False),
+    Column("pages", Text, nullable=False),
+    Column("doi", Text, nullable=False),
+    Column("pmid", Text, nullable=False),
+    Column("openalex_id", Text, nullable=False),
+    Column("language", Text, nullable=False),
+    Column("doc_type", Text, nullable=False),
+    Column("url", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Index("ix_reference_doi", "doi"),
+    Index("ix_reference_pmid", "pmid"),
+    Index("ix_reference_openalex", "openalex_id"),
+)
+
+
+collection_run = Table(
+    "collection_run",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("query_id", String(26), ForeignKey("query.id"), nullable=False),
+    Column("database", String(32), nullable=False),
+    Column("query_text", Text, nullable=False),
+    Column("started_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+collection_page = Table(
+    "collection_page",
+    metadata,
+    Column("run_id", String(26), ForeignKey("collection_run.id"), nullable=False),
+    Column("number", Integer, nullable=False),
+    Column("announced", Integer, nullable=False),
+    Column("record_count", Integer, nullable=False),
+    Column("new_references", Integer, nullable=False),
+    Column("next_cursor", Text, nullable=True),
+    Column("raw_path", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+    PrimaryKeyConstraint("run_id", "number"),
+)
+
+
+collection_end = Table(
+    "collection_end",
+    metadata,
+    Column("run_id", String(26), ForeignKey("collection_run.id"), unique=True, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("announced", Integer, nullable=True),
+    Column("collected", Integer, nullable=False),
+    Column("discrepancy", Text, nullable=False),
+    Column("error", Text, nullable=False),
+    Column("ended_at", UTCDateTime, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+import_file = Table(
+    "import_file",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("filename", Text, nullable=False),
+    Column("sha256", String(64), unique=True, nullable=False),
+    Column("format", String(16), nullable=False),
+    Column("database_declared", Text, nullable=False),
+    Column("imported_at", UTCDateTime, nullable=False),
+    Column("record_count", Integer, nullable=False),
+    Column("issues_json", Text, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+
+provenance = Table(
+    "provenance",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("source", String(16), nullable=False),
+    Column("original_id", Text, nullable=False),
+    Column("collection_run_id", String(26), ForeignKey("collection_run.id"), nullable=True),
+    Column("import_file_id", String(26), ForeignKey("import_file.id"), nullable=True),
+    Column("query_id", String(26), ForeignKey("query.id"), nullable=True),
+    Column("page", Integer, nullable=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    Index("ix_provenance_source_id", "source", "original_id"),
+    Index("ix_provenance_reference", "reference_id"),
+    Index(
+        "uq_provenance_run_record",
+        "collection_run_id",
+        "original_id",
+        unique=True,
+        sqlite_where=text("collection_run_id IS NOT NULL"),
+    ),
+)
+
+
+enrichment = Table(
+    "enrichment",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("source", String(16), nullable=False),
+    Column("fields_json", Text, nullable=False),
+    Column("raw_dir", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+    Index("ix_enrichment_reference", "reference_id"),
 )
 
 

@@ -18,6 +18,7 @@ __all__ = [
     "remove_source_pages",
     "source_raw_dir",
     "write_raw_response",
+    "write_source_page",
     "write_source_pages",
 ]
 
@@ -88,3 +89,17 @@ def remove_source_pages(folder: Path, relative: str) -> None:
         path.unlink()
     if target.exists():
         target.rmdir()
+
+
+def write_source_page(folder: Path, run_id: str, number: int, page: JsonValue) -> str:
+    """Store one raw page of a collection: ``brut/sources/<run_id>/page-NNNN.json.gz``.
+
+    A page left by an interrupted collection (written, but not recorded) is replaced:
+    the database says which pages count."""
+    relative = str(PurePosixPath(source_raw_dir(run_id), f"page-{number:04d}.json.gz"))
+    target = folder.joinpath(*PurePosixPath(relative).parts)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(page, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    with target.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as gz:
+        gz.write(data)
+    return relative

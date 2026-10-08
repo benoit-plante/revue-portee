@@ -10,6 +10,7 @@ from typing import Any, Protocol
 from revue_portee.config.secrets import SecretName, get_optional_secret, get_secret
 from revue_portee.domain.search import Database, KeyArticle
 from revue_portee.i18n import gettext as _
+from revue_portee.sources.crossref import Crossref
 from revue_portee.sources.http import SourceAnswer, SourceError, make_client
 from revue_portee.sources.openalex import OpenAlex
 from revue_portee.sources.pubmed import PubMed
@@ -21,6 +22,7 @@ __all__ = [
     "SourceFactory",
     "UnsupportedDatabaseError",
     "close_source",
+    "default_crossref",
     "default_source_factory",
 ]
 
@@ -59,6 +61,11 @@ def default_source_factory(database: Database) -> SearchSource:
             owns_client=True,
         )
     raise UnsupportedDatabaseError(database)
+
+
+def default_crossref() -> Crossref:
+    """Crossref connector for the real service (contact address from the environment)."""
+    return Crossref(make_client(), email=get_secret(SecretName.CONTACT_EMAIL), owns_client=True)
 
 
 def close_source(source: object) -> None:
