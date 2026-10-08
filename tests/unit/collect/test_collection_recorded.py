@@ -37,7 +37,10 @@ pytestmark = pytest.mark.cassette
 Clock = Callable[[], datetime]
 
 
-def strategy(*blocks: tuple[str, ...], limits: Limits = Limits()) -> SearchStrategy:
+NO_LIMITS = Limits()
+
+
+def strategy(*blocks: tuple[str, ...], limits: Limits = NO_LIMITS) -> SearchStrategy:
     return SearchStrategy(
         blocks=tuple(
             ConceptBlock(code=f"B{n}", label=f"B{n}", terms=tuple(parse_term(t) for t in terms))
@@ -119,10 +122,10 @@ def test_crossref_completes_a_pubmed_record_without_title(
 ) -> None:
     clock = make_clock()
     content = (
-        "TY  - JOUR\nPY  - 2018\nLA  - eng\nDO  - 10.3310/phr06130\nAN  - 30475559\n"
-        "ID  - 30475559\nDB  - PubMed\nER  -\n"
-        "TY  - JOUR\nTI  - DOI inconnu\nDO  - 10.9999/revue-portee.test.inexistant\nER  -\n"
-    ).encode()
+        b"TY  - JOUR\nPY  - 2018\nLA  - eng\nDO  - 10.3310/phr06130\nAN  - 30475559\n"
+        b"ID  - 30475559\nDB  - PubMed\nER  -\n"
+        b"TY  - JOUR\nTI  - DOI inconnu\nDO  - 10.9999/revue-portee.test.inexistant\nER  -\n"
+    )
     imports.import_ris(folder, "pubmed.ris", content, now=clock, tool_version=TOOL_VERSION)
 
     def crossref() -> Crossref:
