@@ -98,7 +98,7 @@ revue-portee/
 │   │   ├── db.py, repositories/  # accès SQLite; écritures par ProjectFolder.write() (D-036)
 │   │   ├── migrate.py, migrations/ # Alembic (migrations appliquées à l'ouverture)
 │   │   ├── raw.py                # réponses brutes des modèles (brut/ia/) et des API (brut/sources/), gzip
-│   │   └── archive.py            # export autonome (EF-PRJ-04)
+│   │   └── archive.py            # tables lisibles (CSV, JSON lines), copie de la base, zip (EF-PRJ-04)
 │   ├── sources/
 │   │   ├── __init__.py           # interface SearchSource, fabrique des connecteurs
 │   │   ├── http.py               # client httpx2, limiteur de débit, reprise, erreurs en français
@@ -126,7 +126,9 @@ revue-portee/
 │   │                             # (settings.py), banc SYNERGY (benchmark.py, D-074); tri principal
 │   │                             # et réconciliation (main.py, D-078, D-079, D-083), lots d'IA par
 │   │                             # l'API Batches (batch_ai.py, D-080), analyse d'impact et
-│   │                             # réévaluation (reassessment.py, D-081, D-082)
+│   │                             # réévaluation (reassessment.py, D-081, D-082); rapports : diagramme
+│   │                             # de flux (report.py), section méthode (methods.py), archive
+│   │                             # publique ou complète (archive.py, D-092)
 │   ├── ai/
 │   │   ├── base.py               # TaskSpec, TaskInput/TaskOutput, TaskResult, AICallRecord, ModelProvider
 │   │   ├── runner.py             # run_task : exécution indépendante du fournisseur
@@ -136,30 +138,36 @@ revue-portee/
 │   │   ├── prompts/              # un dossier par gabarit : meta.yaml, system.md.j2, user.md.j2
 │   │   └── costs.py              # estimation et coût réel par appel (plafonds : screening/, D-069)
 │   ├── extraction/, synthesis/, stakeholders/   # V3, V3, V4
-│   ├── reporting/                # document neutre (rendus Markdown, DOCX), protocole; plus tard
-│   │                             # diagramme, section méthode, PRISMA-ScR
+│   ├── reporting/                # fonctions pures : document neutre (rendus Markdown, DOCX), protocole,
+│   │                             # nombres du diagramme (flow.py) et son rendu SVG (flow_svg.py, gabarit
+│   │                             # Jinja2 dans templates/), section méthode (methods.py), notation des
+│   │                             # nombres (formats.py); plus tard PRISMA-ScR
 │   ├── config/                   # paramètres, secrets (seul point d'accès aux variables d'env.)
 │   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
 │   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
 │   ├── jobs/runner.py            # tâches de fond dans des fils du serveur (BackgroundJobs, D-059)
 │   ├── web/                      # FastAPI : routes (app.py), lecture du formulaire de stratégie
 │   │                             # (search_form.py), gabarits, statique (HTMX copié, D-033)
-│   ├── cli/                      # Typer : nouveau, serve, verifier-journal, protocole, banc-synergy
+│   ├── cli/                      # Typer : nouveau, serve, verifier-journal, protocole, banc-synergy,
+│   │                             # diagramme, methode, archive
 │   ├── i18n/                     # catalogues Babel (locale/fr/…/messages.po), D-031
 │   ├── clock.py, version.py      # heure UTC; version de l'outil et commit (D-034)
 │   └── resources/                # YAML datés : tarifs (model_prices), IA par défaut (ai_defaults),
-│                                 # protocol/ (Peters et al. 2022, formulaire OSF); plus tard PRISMA-ScR
+│                                 # protocol/ (Peters et al. 2022, formulaire OSF), reporting/ (gabarit
+│                                 # du diagramme PRISMA 2020, validation de l'outil); plus tard PRISMA-ScR
 └── tests/
     ├── conftest.py               # blocage du réseau, filtrage des cassettes, fixture http_cassette
     ├── recording.py              # cassettes httpx2 : rejeu et enregistrement filtré (D-047)
     ├── support.py                # utilitaires partagés (horloge déterministe, projet de test)
+    ├── demo.py                   # projet de démonstration construit étape par étape (fixtures/demo/)
     ├── _plugins/                 # greffons pytest du projet (seuil de couverture par paquet)
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
     ├── cassettes/                # réponses enregistrées, nettoyées
     └── fixtures/                 # stratégies de référence publiées (search/), jeu annoté du dédoublonnage
                                   # (dedup/, D-060), extraits d'exports RIS
-                                  # réels nettoyés (ris/, D-057), petit jeu fictif du banc (synergy/)
+                                  # réels nettoyés (ris/, D-057), petit jeu fictif du banc (synergy/),
+                                  # décompte à la main du jeu de démonstration (demo/)
 ```
 
 ## 4. Format du dossier de projet
@@ -178,13 +186,17 @@ ecoanxiete-enfants.revue/
 ├── imports/<sha256>.ris  # copie exacte de chaque fichier importé (D-056)
 ├── textes/               # PDF et texte extrait avec pages (V2)
 ├── etalonnage/           # modèles d'étalonnage sérialisés, par tour de pilote
-└── exports/              # fichiers générés (diagramme, protocole, méthode, CSV) — régénérables
+└── exports/              # fichiers générés (diagramme, protocole, méthode, archives) — régénérables
 ```
 
 - `projet.toml` contient `format_version` (ex. `"1.0"`). Toute ouverture d'un projet d'un format antérieur lance les migrations après **copie de sauvegarde** automatique.
 - **Aucun secret** dans le dossier de projet (ENF-SEC-01). Les réviseurs IA y sont décrits par fournisseur et modèle, jamais par clé.
 - `[ia]` de `projet.toml` : supervision (mode, taille du pilote, cible de sensibilité, étalonnage) et, pour chaque tâche, statut (`enabled` / `planned`), fournisseur, modèle, paramètres et sortie attendue. Valeurs initiales : `resources/ai_defaults.yaml`; un projet sans cette section reçoit ces valeurs.
-- Le dossier est **autosuffisant** : copié ailleurs, il s'ouvre sans perte. L'archive OSF (EF-PRJ-04) est ce dossier sans `textes/` (droits d'auteur), plus des exports CSV/JSON lisibles sans l'outil.
+- Le dossier est **autosuffisant** : copié ailleurs, il s'ouvre sans perte.
+- **Archives** (EF-PRJ-04, ENF-REP-06, D-092), écrites dans `exports/archive-<publique|complete>-<date>.zip` :
+  - l'archive **publique**, à déposer (OSF), contient les données lisibles sans l'outil (CSV et JSON lines dans `donnees/` : références sans résumé ni URL, dédoublonnage, tours, décisions, état du tri, réévaluations, appels à l'IA, critères, journal, nombres du diagramme), le diagramme et la section méthode, `etalonnage/`, `projet.toml` et un `LISEZMOI.md` qui explique comment recompter chaque nombre et vérifier la chaîne d'empreintes. Ni résumé, ni URL, ni réponse brute, ni base SQLite (droits d'auteur);
+  - l'archive **complète**, privée, y ajoute une copie du dossier sans `textes/` (base, `brut/`, `imports/`) : elle se rouvre avec l'outil;
+  - un secret trouvé dans les fichiers texte arrête l'export; chaque export est consigné au journal (`archive.exported`) avec l'empreinte SHA-256 du fichier.
 - Le dossier n'est **pas** prévu pour être versionné dans git (SQLite binaire); la traçabilité est assurée par le journal interne.
 
 ## 5. Modèle de données
@@ -202,7 +214,7 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 | `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `dedup.pair_decided`, `pilot.started`, `screening.started`, `screening.members_added`, `screening.ai_batch_submitted`, `screening.reconciled`, `reassessment.started`, `reassessment.decided`, `screening.human_decided`, `screening.ai_decided`, `screening.ai_failed`, `screening.ai_batch_ended`, `reviewer.ai_recorded`, `calibration.fitted`, `thresholds.set`, `budget.set`, `budget.reached`, `ai_mode.enabled`, `protocol.registered`, `note.added`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `dedup.pair_decided`, `pilot.started`, `screening.started`, `screening.members_added`, `screening.ai_batch_submitted`, `screening.reconciled`, `reassessment.started`, `reassessment.decided`, `screening.human_decided`, `screening.ai_decided`, `screening.ai_failed`, `screening.ai_batch_ended`, `reviewer.ai_recorded`, `calibration.fitted`, `thresholds.set`, `budget.set`, `budget.reached`, `ai_mode.enabled`, `protocol.registered`, `archive.exported`, `note.added`.
 
 ### 5.2 Critères versionnés
 
@@ -380,7 +392,7 @@ Mise en œuvre de la tranche 1.7 (D-077, D-081, D-082) :
 - la réévaluation crée un `screening_round` de type `reassessment` avec la nouvelle version : l'IA trie de nouveau les références (par lots), la personne ne vérifie que celles où l'IA ferait passer de « conserver » à « exclure » ou l'inverse; sa décision remplace la précédente (`supersedes_decision_id`), qui demeure;
 - le journal consigne pour chaque changement les versions, le type, la justification de la version, le nombre de références touchées et réévaluées (`impact.assessed`), puis le résultat de la réévaluation (`reassessment.completed`).
 
-Le diagramme de flux et la section méthode rendront compte des réévaluations (tranche 1.8).
+Le diagramme de flux en rend compte par une note sur la case « Références triées » (D-091), et la section méthode, changement par changement (tranche 1.8).
 
 ## 8. Connecteurs de sources
 
@@ -399,6 +411,7 @@ Le diagramme de flux et la section méthode rendront compte des réévaluations 
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
 - Ajouts de la tranche 1.3 : page « Recherche » : blocs de concepts éditables et limites; requêtes de chaque base avec leurs avertissements; nombre de résultats au total et par bloc (PubMed, OpenAlex); vérification des descripteurs MeSH; articles clés et test de sensibilité; suggestions de termes par l'IA; historique des versions. Le protocole décrit la stratégie et donne les requêtes à l'annexe II.
+- Ajouts de la tranche 1.8 : page « Rapports » : nombres et diagramme de flux calculés à partir des données (provisoire tant qu'il reste quelque chose à faire, D-090); téléchargement du diagramme (SVG) et de l'ébauche de section méthode (DOCX, Markdown), en français et en anglais; écriture de l'archive publique ou complète, et téléchargement des archives écrites (seuls fichiers servis depuis `exports/`).
 - Ajouts de la tranche 1.7 : pages « Tri » : avancement (références, décisions, désaccords); tri de la référence suivante sans voir l'IA, entièrement au clavier (`i`, `d`, `e`, `1` à `9`, `p`, D-084), dans l'ordre tiré ou par priorité selon la probabilité d'inclusion (EF-SEL-10); lots d'IA estimés, lancés et suivis en arrière-plan; réconciliation des désaccords, seule page où la justification de l'IA est visible; analyse d'impact d'une nouvelle version et page de réévaluation. Passage à la référence suivante mesuré sous 200 ms sur 50 000 références (ENF-PER-01).
 - Ajouts de la tranche 1.6 : page « Pilote » : budget d'IA du projet; tirage d'un échantillon avec graine; tri de la référence suivante sans voir l'IA (D-071), avec critères cités et note; estimation du coût puis lot d'IA en arrière-plan, sous un plafond de lot; table des décisions, où l'IA n'apparaît qu'après la décision humaine, avec son évaluation par critère et ses citations; table d'étalonnage (accord, kappa, AC1, sensibilité et spécificité avec intervalles, matrice de confusion, désaccords par critère, courbe seuil); ajustement de l'étalonnage et réglage des seuils avec justification.
 - Ajouts de la tranche 1.5 : page « Doublons » : nombres du diagramme par source (D-064); exécution en arrière-plan avec seuils réglables; paires à examiner côte à côte, différences signalées, raisons d'un examen humain; groupes de doublons avec leur référence principale et leurs liens, chacun annulable; paires gardées séparées, de nouveau regroupables.
@@ -427,12 +440,13 @@ Le diagramme de flux et la section méthode rendront compte des réévaluations 
 | Type | Où | Réseau | Lancement |
 |---|---|---|---|
 | Unitaires (domaine, métriques, impact, dédoublonnage, diagramme) | `tests/unit/` | Non | `uv run pytest` |
+| Bout en bout sur le jeu de démonstration (diagramme, section méthode, archive recomptée sans l'outil) | `tests/unit/screening/`, `tests/demo.py` | Non | `uv run pytest` |
 | Connecteurs avec réponses enregistrées | `tests/unit/sources/` + `tests/cassettes/` | Non (mode lecture seule des cassettes) | `uv run pytest` |
 | Services avec `FakeProvider` | `tests/unit/` | Non | `uv run pytest` |
 | Intégration réelle (API de sources, Claude) | `tests/integration/`, marqueur `integration` | **Oui** | `uv run pytest -m integration` — **volontairement seulement** |
 | Performance de tri sur SYNERGY (sous-ensemble) | `tests/benchmarks/` (V1, tranche 7) | Oui (modèle) | Manuel, résultats consignés |
 
-`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets. Les tests des connecteurs `httpx2` portent le marqueur `cassette` (D-047) : ils rejouent `tests/cassettes/<module>/<test>.json`; `uv run pytest <test> --record-mode=once` enregistre une cassette absente contre le vrai service, sur autorisation de Benoit. Avant d'être écrites, les réponses sont réduites à ce dont les tests ont besoin (`trim_body` : résumés tronqués, courriels masqués, références citées retirées, D-058). Les exports RIS réels sont versionnés comme extraits nettoyés, octets conservés (D-057).
+`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Seule l'adresse de bouclage 127.0.0.1 reste ouverte, car la boucle asyncio s'y connecte sous Windows, et les variables de mandataire (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`) sont retirées pendant ces tests (D-086). Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets. Les tests des connecteurs `httpx2` portent le marqueur `cassette` (D-047) : ils rejouent `tests/cassettes/<module>/<test>.json`; `uv run pytest <test> --record-mode=once` enregistre une cassette absente contre le vrai service, sur autorisation de Benoit. Avant d'être écrites, les réponses sont réduites à ce dont les tests ont besoin (`trim_body` : résumés tronqués, courriels masqués, références citées retirées, D-058). Les exports RIS réels sont versionnés comme extraits nettoyés, octets conservés (D-057).
 
 **Couverture** (ENF-QUA-04, D-023) : chaque exécution de `pytest` mesure la couverture de `revue_portee`, branches comprises (pytest-cov). Le greffon `tests/_plugins/coverage_gate.py` fait échouer la suite si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 %, chacun séparément. Le seuil n'est vérifié que sur la suite complète, et se règle dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 

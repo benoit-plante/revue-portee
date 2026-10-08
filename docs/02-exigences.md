@@ -145,7 +145,7 @@
 
 | ID | Exigence | Version |
 |---|---|---|
-| EF-DEC-01 | **Diagramme de flux** conforme au gabarit PRISMA 2020 adapté aux revues de portée, généré à partir des données (jamais saisi à la main), exportable en SVG, PNG et PDF, en français et en anglais. Les éventuelles réévaluations dues aux changements de critères sont visibles dans les nombres. | V1 (bases et registres), V2 (autres sources, texte complet) |
+| EF-DEC-01 | **Diagramme de flux** conforme au gabarit PRISMA 2020 adapté aux revues de portée, généré à partir des données (jamais saisi à la main), exportable en SVG, PNG et PDF, en français et en anglais. Les éventuelles réévaluations dues aux changements de critères sont visibles dans les nombres. | V1 (bases et registres, SVG seulement, D-087), V2 (autres sources, texte complet, PNG et PDF) |
 | EF-DEC-02 | **Liste de contrôle PRISMA-ScR** pré-remplie : pour chaque élément, l'outil propose le texte ou l'emplacement correspondant à partir des données du projet; l'équipe complète. La liste est un fichier de données versionné pour accueillir la mise à jour 2026 de PRISMA-ScR. | V4 |
 | EF-DEC-03 | **Section méthode** générée à partir du journal, qui décrit précisément l'usage de l'IA selon RAISE et le gabarit de la CEE (Macura et al., 2025) : outil et version, modèles et versions exactes, tâches, mode de supervision, résultats de l'étalonnage, seuils, proportion des décisions où l'IA est intervenue, désaccords et leur résolution, limites, coûts, conflits d'intérêts. | V1 (tri), V4 (toutes étapes) |
 | EF-DEC-04 | **Déclaration de la recherche** conforme à PRISMA-S (requêtes complètes, dates, bases, plateformes, limites appliquées). | V2 |
