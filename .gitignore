@@ -21,3 +21,6 @@ htmlcov/
 
 # Review projects created locally (user data, never versioned)
 *.revue/
+
+# Benchmark data and raw model answers (kept outside the repository, D-074)
+*.brut.jsonl

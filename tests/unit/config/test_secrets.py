@@ -80,6 +80,7 @@ def test_missing_secret_raises_clear_french_message(raw: str | None) -> None:
     message = str(excinfo.value)
     assert "Variable d'environnement manquante :" in message
     assert "OPENALEX_API_KEY" in message
+    assert "profil de votre shell" in message
     assert "réglages de l'environnement" in message
     assert excinfo.value.name is SecretName.OPENALEX_API_KEY
 

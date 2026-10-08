@@ -6,8 +6,10 @@ Logiciel libre qui accompagne une équipe de recherche dans une revue de portée
 
 ### Prérequis
 
+- macOS ou Linux (sous Windows, utiliser WSL);
 - Python 3.12 ou plus récent;
-- [uv](https://docs.astral.sh/uv/) pour gérer l'environnement et les dépendances.
+- [uv](https://docs.astral.sh/uv/) pour gérer l'environnement et les dépendances;
+- Git; [GitHub CLI](https://cli.github.com/) (`gh`) pour ouvrir des demandes de fusion depuis le poste.
 
 ### Installation
 
@@ -15,7 +17,7 @@ Logiciel libre qui accompagne une équipe de recherche dans une revue de portée
 uv sync
 ```
 
-Cette commande crée l'environnement virtuel `.venv/` et installe les dépendances verrouillées dans `uv.lock`. Dans les sessions infonuagiques de Claude Code, le hook SessionStart de `.claude/settings.json` l'exécute automatiquement (`uv sync --frozen`).
+Cette commande crée l'environnement virtuel `.venv/` et installe les dépendances verrouillées dans `uv.lock`; relancez-la après chaque changement de `uv.lock`. Avec Claude Code, sur le poste comme dans une session infonuagique, le hook SessionStart de `.claude/settings.json` l'exécute automatiquement à l'ouverture d'une session (`uv sync --frozen`).
 
 ### Vérifier l'installation
 
@@ -31,7 +33,14 @@ uv run revue-portee serve ma-revue.revue            # interface web sur http://1
 uv run revue-portee verifier-journal ma-revue.revue # vérifie la chaîne d'empreintes du journal
 ```
 
-Un projet est un dossier `.revue` (fichier `projet.toml` et base `revue.sqlite`). L'interface web n'écoute que sur `127.0.0.1`. Elle offre les pages « Cadrage » (question PCC), « Critères » (brouillon, versions et différentiel) et « Journal » (entrées, notes et vérification de la chaîne).
+Un projet est un dossier `.revue` (fichier `projet.toml` et base `revue.sqlite`). L'interface web n'écoute que sur `127.0.0.1`. Elle offre les pages :
+
+- « Cadrage » (question PCC) et « Critères » (brouillon, versions, différentiel, qualification des changements);
+- « Recherche » (blocs de concepts, requêtes, test de sensibilité), « Collecte » (OpenAlex, PubMed, fichiers RIS, Crossref) et « Doublons »;
+- « Pilote » (budget d'IA, échantillon trié à l'aveugle, table d'étalonnage, seuils) et « Tri » (tri au clavier, lots d'IA, réconciliation, analyse d'impact et réévaluation);
+- « Protocole » (Markdown et DOCX, enregistrement OSF) et « Journal » (entrées, notes et vérification de la chaîne).
+
+Gardez vos projets de revue hors du dossier du dépôt : le dépôt est public, et les dossiers `*.revue/` y sont ignorés par Git.
 
 ### Tests et style
 
@@ -56,9 +65,17 @@ uv run pytest -m integration
 |---|---|---|
 | `REVUE_PORTEE_ANTHROPIC_KEY` (ou, à défaut, `ANTHROPIC_API_KEY`) | Clé d'API Anthropic du réviseur IA | Oui |
 | `CONTACT_EMAIL` | Adresse de contact transmise aux API bibliographiques | Oui |
-| `OPENALEX_API_KEY` | Clé d'API OpenAlex | Non (facultative si un mandataire réseau l'ajoute aux requêtes) |
+| `OPENALEX_API_KEY` | Clé d'API OpenAlex | Oui sur un poste (OpenAlex l'exige); non dans l'environnement infonuagique, où un mandataire réseau l'ajoute aux requêtes |
 
-Ces valeurs ne doivent jamais être écrites dans un fichier du dépôt, affichées ni journalisées. Le module `src/revue_portee/config/secrets.py` est le seul à les lire.
+Définissez-les dans le profil de votre shell (par exemple `~/.zshrc` ou `~/.bashrc`), puis ouvrez un nouveau terminal :
+
+```bash
+export REVUE_PORTEE_ANTHROPIC_KEY="…"
+export CONTACT_EMAIL="…"
+export OPENALEX_API_KEY="…"
+```
+
+Pour vérifier qu'une variable existe sans l'afficher : `test -n "$OPENALEX_API_KEY" && echo "défini"`. Avec Claude Code, préférez `REVUE_PORTEE_ANTHROPIC_KEY` à `ANTHROPIC_API_KEY` : Claude Code pourrait se servir d'`ANTHROPIC_API_KEY` pour s'authentifier lui-même et facturer vos sessions sur la clé du projet. Ces valeurs ne doivent jamais être écrites dans un fichier du dépôt, affichées ni journalisées. Le module `src/revue_portee/config/secrets.py` est le seul à les lire.
 
 ### Documentation
 

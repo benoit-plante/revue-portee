@@ -40,7 +40,7 @@ Projet personnel de Benoit Plante (dépôt **public** `benoit-plante/revue-porte
 - Appels aux API bibliographiques : seulement par `sources/` (client `httpx2` de `sources/http.py` : limiteur de débit, nouvelles tentatives, `SourceError` en français); les services reçoivent une fabrique de connecteurs (`SourceFactory`) et conservent chaque réponse brute dans `brut/sources/` avant d'en consigner le résultat. Les requêtes sont produites par `search/translate.py` à partir des blocs de concepts : ne pas écrire de requête à la main dans le code.
 - Collecte et import (`collect/`) : une page collectée s'enregistre avec ses références, leurs provenances et son entrée de journal dans une seule transaction, après sa réponse brute (D-053); une référence n'est jamais modifiée, l'enrichissement Crossref s'ajoute dans `enrichment` (D-055). Les tâches longues de l'interface passent par `jobs/runner.py` (`BackgroundJobs`) et doivent pouvoir reprendre en étant relancées (D-059).
 - Dédoublonnage : règles pures dans `dedup/`, cas d'usage dans `collect/deduplication.py`. Rien n'est supprimé : les liens, les groupes et la référence principale se calculent à partir de la dernière exécution et des décisions (D-061). Toute modification des règles d'appariement incrémente `ALGORITHM_VERSION` (`domain/dedup.py`), et `tests/unit/dedup/test_benchmark.py` doit rester au-dessus des cibles (D-062).
-- Tri (`screening/`) : décisions en ajout seulement; une nouvelle décision sur la même référence remplace la précédente (`supersedes_decision_id`). La valeur de l'IA se déduit de la probabilité d'inclusion et des seuils en vigueur, puis de la règle EF-SEL-07 (`domain/screening.py`, D-065, D-068) : ne jamais la prendre telle quelle du modèle. L'aveugle passe par `PilotState.visible_ai` (D-071). Le plafond du projet et celui du lot se vérifient avant chaque appel, nouvelles tentatives comprises (D-069). Modifier le gabarit `screen_reference` = incrémenter sa version et relancer le banc SYNERGY.
+- Tri (`screening/`) : décisions en ajout seulement; une nouvelle décision sur la même référence remplace la précédente (`supersedes_decision_id`). La valeur de l'IA se déduit de la probabilité d'inclusion et des seuils en vigueur, puis de la règle EF-SEL-07 (`domain/screening.py`, D-065, D-068) : ne jamais la prendre telle quelle du modèle. L'aveugle passe par `PilotState.visible_ai` (D-071). Le plafond du projet et celui du lot se vérifient avant chaque appel, nouvelles tentatives comprises (D-069). Modifier le gabarit `screen_reference` = incrémenter sa version et relancer le banc SYNERGY. Tri principal et réévaluation (`screening/main.py`, `reassessment.py`) : l'état courant est la dernière décision humaine; un désaccord oppose « conserver » à « exclure » (D-079); l'IA n'est montrée qu'à la réconciliation et à la vérification d'une réévaluation. Lots d'IA seulement par `screening/batch_ai.py` (API Batches, D-080) : estimation réservée avant chaque lot, collecte qui reprend sans repayer. Le passage à la référence suivante doit rester sous 200 ms sur 50 000 références (`tests/unit/web/test_screening_performance.py`) : pas de calcul sur toutes les références dans ce chemin.
 - Toute nouvelle dépendance : `uv add <paquet>`, vérifier sa licence (pas de licence non commerciale ni « sans dérivé »), la mentionner dans la demande de fusion. Licence du projet : **AGPL-3.0-or-later** (D-004); dépendances compatibles seulement.
 - Toute fonction qui produit un nombre déclaré (diagramme, accord, sensibilité) a un test sur un cas calculé à la main.
 
@@ -51,16 +51,32 @@ Projet personnel de Benoit Plante (dépôt **public** `benoit-plante/revue-porte
 - **Ne pas modifier `docs/`** (rédigé dans Cowork), sauf : créer ou alimenter `docs/resultats/` quand une tranche le prévoit. Proposer tout autre changement de documentation dans la demande de fusion.
 - Écart à `docs/03-architecture.md` : le signaler et le justifier dans la demande de fusion.
 
-## Environnement infonuagique
+## Environnement de développement
+
+Claude Code tourne **sur le poste de Benoit** depuis le 2026-10-08 (D-085); l'environnement infonuagique reste possible (voir plus bas). Le dépôt est le même dans les deux cas : installation par `uv`, tests sans réseau, secrets lus par `config/secrets.py`.
+
+### Poste local (par défaut)
+
+- macOS ou Linux (sous Windows, dans WSL). Prérequis : Python 3.12 ou plus récent, **uv** et Git dans le `PATH`; `gh` (connecté au compte de Benoit) pour ouvrir les demandes de fusion. Les fichiers persistent d'une session à l'autre : après un changement de `uv.lock`, lancer `uv sync`.
+- Le **hook SessionStart** de `.claude/settings.json` (ci-dessous) s'exécute aussi en local et installe les dépendances (`uv sync --frozen`).
+- **Réseau libre** : aucune liste ne bloque plus les domaines. Les tests ordinaires restent coupés du réseau (D-016). Tout appel réel (tests d'intégration, cassettes, banc SYNERGY, API Anthropic) reste **sur demande explicite de Benoit**, et toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) lui est **signalée** avant d'être utilisée (méthode, licence).
+- Variables, définies par Benoit dans le profil de son shell ou dans `env` de `.claude/settings.local.json` (non versionné), **jamais** dans un fichier du dépôt; ne jamais créer ni modifier ces fichiers de réglages personnels :
+  - `REVUE_PORTEE_ANTHROPIC_KEY` : clé d'API Anthropic du projet. Ne **pas** définir `ANTHROPIC_API_KEY` dans le shell : Claude Code pourrait s'en servir pour s'authentifier et facturer les sessions de développement sur la clé du projet (D-020); le code ne la lit qu'à défaut;
+  - `CONTACT_EMAIL` : adresse de contact transmise aux API bibliographiques;
+  - `OPENALEX_API_KEY` : **nécessaire** sur le poste, car OpenAlex l'exige et aucun mandataire ne l'ajoute (D-013); le code ne l'envoie que si elle est définie (D-021).
+- Données de travail **hors du dépôt**, par exemple dans `~/revue-portee-donnees/` : jeux SYNERGY (CSV), réponses brutes du banc (`*.brut.jsonl`), projets `.revue` d'essai, captures d'écran. Le dépôt est public : ne jamais y déplacer ces fichiers.
+
+### Environnement infonuagique (encore possible)
 
 - VM **Ubuntu 24.04 neuve à chaque session**; Python, **uv**, pytest, ruff préinstallés. Rien ne persiste hors du dépôt.
-- **Réseau limité à une liste** : `api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org`, `api.anthropic.com` (ajouté le 2026-10-08), `dataverse.nl` et `objectstore.surf.nl` (données SYNERGY, D-075) + registres de paquets. Un appel à Claude coûte : seulement sur demande de Benoit (tests d'intégration, banc SYNERGY). Toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) exige que **Benoit ajoute son domaine** dans les réglages : ne pas contourner, le signaler.
-- Variables disponibles :
-  - `REVUE_PORTEE_ANTHROPIC_KEY` : clé d'API Anthropic du projet. `ANTHROPIC_API_KEY` est lue seulement à défaut, car elle peut servir à l'authentification de la session Claude Code elle-même (D-020);
-  - `CONTACT_EMAIL` : adresse de contact transmise aux API bibliographiques;
-  - `OPENALEX_API_KEY` : **facultative**. Dans l'environnement infonuagique, le mandataire réseau ajoute lui-même la clé aux requêtes vers `api.openalex.org`, et la variable est absente (D-013, D-021).
+- **Réseau limité à une liste** : `api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org`, `api.anthropic.com`, `dataverse.nl` et `objectstore.surf.nl` (données SYNERGY, D-075) + registres de paquets. Toute nouvelle source exige que **Benoit ajoute son domaine** dans les réglages : ne pas contourner, le signaler.
+- Mêmes variables, définies dans les réglages de l'environnement, sauf `OPENALEX_API_KEY` : le mandataire réseau ajoute lui-même la clé aux requêtes vers `api.openalex.org`, et la variable est absente (D-021).
+- `CLAUDE_CODE_REMOTE=true` indique une session infonuagique si une différence de comportement est nécessaire.
+
+### Dans les deux cas
+
 - Si une variable obligatoire manque, le code échoue proprement avec un message clair en français qui nomme la variable.
-- Dépendances installées par le **hook SessionStart** de `.claude/settings.json` (en place depuis le jalon 0) :
+- Dépendances installées par le **hook SessionStart** de `.claude/settings.json` (en place depuis le jalon 0), qui doit rester idempotent et rapide :
 
 ```json
 {
@@ -76,8 +92,6 @@ Projet personnel de Benoit Plante (dépôt **public** `benoit-plante/revue-porte
   }
 }
 ```
-
-  Le hook doit être idempotent et rapide. `CLAUDE_CODE_REMOTE=true` indique une session infonuagique si une différence de comportement est nécessaire.
 
 ## Secrets — règles absolues
 
