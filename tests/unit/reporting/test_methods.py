@@ -4,6 +4,8 @@ text, in French and English."""
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import pytest
+
 from revue_portee.domain.changes import ChangeType
 from revue_portee.reporting.document import Heading, Paragraph, Table, render_docx, render_markdown
 from revue_portee.reporting.flow import FlowNumbers, Pending, ReassessmentCounts
@@ -170,6 +172,17 @@ def test_english_draft_reports_every_part() -> None:
     assert "rests on 20 included references (95% CI 76.4% to 99.1%)" in text
     assert "No reference was excluded by the AI alone." in text
     assert render_docx(document)[:2] == b"PK"
+
+
+def test_docx_is_the_same_at_another_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    import time
+
+    document = build_methods(data(), language="en")
+    first = render_docx(document)
+    later = time.time() + 120
+    monkeypatch.setattr(time, "time", lambda: later)
+    monkeypatch.setattr(time, "localtime", lambda *_: time.gmtime(later))
+    assert render_docx(document) == first
 
 
 def test_french_typography() -> None:
