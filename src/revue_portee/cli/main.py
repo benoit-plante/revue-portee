@@ -312,6 +312,15 @@ def synergy_benchmark(
     paralleles: Annotated[
         int, typer.Option("--paralleles", min=1, max=16, help=_("Model calls made at a time."))
     ] = 1,
+    repetitions: Annotated[
+        int,
+        typer.Option(
+            "--repetitions",
+            min=1,
+            max=5,
+            help=_("Runs of the same records, to measure the response stability of the AI."),
+        ),
+    ] = 1,
 ) -> None:
     from decimal import Decimal, InvalidOperation
 
@@ -356,9 +365,13 @@ def synergy_benchmark(
             included=sum(r.included for r in chosen),
             provider=provider.name,
             model=config.model,
-            amount=cost.amount,
+            amount=cost.amount * repetitions,
         )
     )
+    if repetitions > 1:
+        typer.echo(
+            _("{runs} runs of the same records (response stability).").format(runs=repetitions)
+        )
     if not oui and not typer.confirm(_("Run the benchmark?")):
         raise typer.Exit(code=1)
     supervision = settings.supervision
@@ -367,26 +380,35 @@ def synergy_benchmark(
         include_above=float(supervision.include_above),
     )
     raw_path = brut or donnees.with_suffix(".brut.jsonl")
-    with raw_path.open("w", encoding="utf-8") as raw_output:
-        result = benchmark.run_benchmark(
-            name,
-            chosen,
-            chosen_criteria,
-            config=config,
-            provider=provider,
-            thresholds=thresholds,
-            ceiling=ceiling,
-            raw_output=raw_output,
-            now=utc_now,
-            seed=graine,
-            sampled=len(chosen) < len(records),
-            workers=paralleles,
-        )
+    results: list[benchmark.BenchmarkResult] = []
+    for run in range(1, repetitions + 1):
+        path = raw_path if repetitions == 1 else raw_path.with_suffix(f".{run}.jsonl")
+        with path.open("w", encoding="utf-8") as raw_output:
+            results.append(
+                benchmark.run_benchmark(
+                    name,
+                    chosen,
+                    chosen_criteria,
+                    config=config,
+                    provider=provider,
+                    thresholds=thresholds,
+                    ceiling=ceiling - sum((r.spent for r in results), Decimal(0)),
+                    raw_output=raw_output,
+                    now=utc_now,
+                    seed=graine,
+                    sampled=len(chosen) < len(records),
+                    workers=paralleles,
+                )
+            )
+        typer.echo(_("Raw answers: {path}").format(path=path))
     sortie.mkdir(parents=True, exist_ok=True)
-    report = sortie / f"banc-synergy-{name}.md"
-    report.write_text(benchmark.report_markdown(result, chosen), encoding="utf-8")
+    if repetitions == 1:
+        report = sortie / f"banc-synergy-{name}.md"
+        report.write_text(benchmark.report_markdown(results[0], chosen), encoding="utf-8")
+    else:
+        report = sortie / f"banc-stabilite-{name}.md"
+        report.write_text(benchmark.report_stability(name, results, chosen), encoding="utf-8")
     typer.echo(_("Report written: {path}").format(path=report))
-    typer.echo(_("Raw answers: {path}").format(path=raw_path))
 
 
 @app.command(

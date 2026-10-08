@@ -34,7 +34,7 @@ from revue_portee.ai.tasks.screening import (
     ScreenReferenceOutput,
 )
 from revue_portee.domain.criteria import CriterionKind
-from revue_portee.domain.metrics import Confusion, confusion, wilson_interval
+from revue_portee.domain.metrics import Confusion, confusion, stability, wilson_interval
 from revue_portee.domain.screening import (
     AssessmentStatus,
     CriterionAssessment,
@@ -61,6 +61,7 @@ __all__ = [
     "read_criteria",
     "read_dataset",
     "report_markdown",
+    "report_stability",
     "run_benchmark",
     "select_records",
     "to_inputs",
@@ -406,6 +407,78 @@ def _lines(result: BenchmarkResult, labels: dict[str, bool]) -> Iterator[str]:
 def report_markdown(result: BenchmarkResult, records: Sequence[BenchmarkRecord]) -> str:
     labels = {r.item_id: r.included for r in records}
     return "\n".join(_lines(result, labels)) + "\n"
+
+
+def _stability_lines(
+    name: str, results: Sequence[BenchmarkResult], labels: dict[str, bool]
+) -> Iterator[str]:
+    measured = stability([r.values for r in results])
+    first = results[0]
+    yield "# " + _("Response stability of the AI: {dataset}").format(dataset=name)
+    yield ""
+    yield _("Run on {date} (UTC), {runs} runs of the same records.").format(
+        date=first.started_at.strftime("%Y-%m-%d %H:%M"), runs=measured.runs
+    )
+    yield ""
+    yield "| " + _("Item") + " | " + _("Value") + " |"
+    yield "|---|---|"
+
+    def share(count: int) -> str:
+        return "—" if measured.records == 0 else _percent(count / measured.records)
+
+    ac1 = [a for a in measured.pairwise_ac1 if a is not None]
+    rows = [
+        (_("Provider and model requested"), f"{first.provider} — {first.model}"),
+        (
+            _("Models returned"),
+            ", ".join(sorted(set().union(*(r.models_returned for r in results)))) or "—",
+        ),
+        (_("Prompt template"), f"{SCREEN_REFERENCE.prompt.template_id} v{first.prompt_version}"),
+        (_("Records decided in every run"), f"{measured.records} / {first.records}"),
+        (
+            _("Same value in every run (include, uncertain, exclude)"),
+            f"{measured.same_value} ({share(measured.same_value)})",
+        ),
+        (
+            _("Same outcome in every run (keep or exclude)"),
+            f"{measured.same_keep} ({share(measured.same_keep)})",
+        ),
+        (_("Kept by some runs, excluded by others"), str(measured.switched)),
+        (
+            _("Gwet's AC1 between runs (keep or exclude)"),
+            "—"
+            if not ac1
+            else _("{low} to {high}").format(low=_decimal(min(ac1)), high=_decimal(max(ac1))),
+        ),
+        (_("Cost of all the runs"), f"{sum((r.spent for r in results), Decimal(0))} USD"),
+    ]
+    yield from (f"| {label} | {value} |" for label, value in rows)
+    yield ""
+    yield "| " + _("Run") + " | " + _("Sensitivity") + " | " + _("Specificity") + " |"
+    yield "|---|---|---|"
+    for number, result in enumerate(results, start=1):
+        c = result.confusion(labels)
+        sensitivity = None if c.tp + c.fn == 0 else c.tp / (c.tp + c.fn)
+        specificity = None if c.tn + c.fp == 0 else c.tn / (c.tn + c.fp)
+        yield f"| {number} | {_percent(sensitivity)} | {_percent(specificity)} |"
+    yield ""
+    yield _(
+        "Each run asks the model again: the provider's prompt cache reuses the instructions, "
+        "never an answer. A record kept by some runs and excluded by others shows how much "
+        "a single run can vary (RAISE 2, response stability)."
+    )
+
+
+def _decimal(value: float) -> str:
+    return f"{value:.3f}".replace(".", ",")
+
+
+def report_stability(
+    name: str, results: Sequence[BenchmarkResult], records: Sequence[BenchmarkRecord]
+) -> str:
+    """Report of repeated runs on the same records (``results`` in run order)."""
+    labels = {r.item_id: r.included for r in records}
+    return "\n".join(_stability_lines(name, results, labels)) + "\n"
 
 
 def estimate(provider: ModelProvider, inputs: Sequence[ScreenReferenceInput]) -> CostEstimate:

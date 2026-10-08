@@ -278,3 +278,26 @@ def test_quote_counts_by_hand() -> None:
     items = [assessment(v) for v in (True, None, False, True, None)]
     assert quote_counts(items) == (2, 3)
     assert quote_counts([]) == (0, 0)
+
+
+def test_stability_by_hand() -> None:
+    from revue_portee.domain.metrics import stability
+
+    i, u, e = DecisionValue.INCLUDE, DecisionValue.UNCERTAIN, DecisionValue.EXCLUDE
+    runs = [
+        {"a": i, "b": e, "c": u, "d": e, "x": i},
+        {"a": i, "b": e, "c": i, "d": i},
+        {"a": i, "b": e, "c": i, "d": e},
+    ]
+    measured = stability(runs)
+    # x is not decided by every run; a and b keep the same value; c changes value but is
+    # kept by all; d is excluded, kept, then excluded.
+    assert (measured.runs, measured.records) == (3, 4)
+    assert (measured.same_value, measured.same_keep, measured.switched) == (2, 3, 1)
+    # runs 1 and 2: keep a, c; disagree on d; exclude b -> po = 3/4, pi = (2/4 + 3/4)/2
+    pi = (2 / 4 + 3 / 4) / 2
+    expected = 2 * pi * (1 - pi)
+    assert measured.pairwise_ac1[0] == pytest.approx((0.75 - expected) / (1 - expected))
+    assert measured.pairwise_ac1[1] == pytest.approx(1.0)  # runs 1 and 3 agree
+    assert len(measured.pairwise_ac1) == 3
+    assert stability([]).records == 0

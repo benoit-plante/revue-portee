@@ -207,8 +207,40 @@ def test_command_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Banc SYNERGY\u00a0: Mini" in (out / "banc-synergy-Mini.md").read_text(encoding="utf-8")
     assert len(raw.read_text(encoding="utf-8").splitlines()) == 6
 
+    repeated = CliRunner().invoke(app, [*arguments, "--repetitions", "3", "--oui"])
+    assert repeated.exit_code == 0, repeated.output
+    assert "3 exécutions des mêmes notices" in repeated.output
+    report = (out / "banc-stabilite-Mini.md").read_text(encoding="utf-8")
+    # the fake reviewer answers the same way every time: every record is stable
+    assert "| Même valeur à chaque exécution (inclure, incertain, exclure) | 6 (100,0 %) |" in (
+        report
+    )
+    assert "| Conservées par certaines exécutions, exclues par d'autres | 0 |" in report
+    assert all((tmp_path / f"brut.{n}.jsonl").is_file() for n in (1, 2, 3))
+
     refused = CliRunner().invoke(app, arguments, input="n\n")
     assert refused.exit_code == 1
     wrong = CliRunner().invoke(app, [*arguments[:5], "-1"])
     assert wrong.exit_code == 1
     assert "montant positif" in wrong.output
+
+
+def test_stability_report_when_answers_change() -> None:
+    def hesitant(item: TaskInput) -> dict[str, Any]:
+        """Like ``answer``, but keeps the record on housing for seniors (record 3)."""
+        output = answer(item)
+        assert isinstance(item, ScreenReferenceInput)
+        if "seniors" in item.reference.title.lower():
+            output |= {"decision": "include", "inclusion_probability": 0.9}
+            output["assessments"] = [{**a, "status": "met"} for a in output["assessments"]]
+        return output
+
+    first, _raw = run(fake())
+    second, _raw = run(fake(hesitant))
+    records = benchmark.read_dataset(DATA / "mini.csv")
+    report = benchmark.report_stability("mini", [first, second], records)
+    assert "| Notices décidées à chaque exécution | 6 / 6 |" in report
+    assert "| Conservées par certaines exécutions, exclues par d'autres | 1 |" in report
+    # run 1 misses record 3, run 2 keeps it: sensitivity 2/3 then 3/3
+    assert "| 1 | 66,7 % | 66,7 % |" in report
+    assert "| 2 | 100,0 % | 66,7 % |" in report
