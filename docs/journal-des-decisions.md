@@ -1078,3 +1078,186 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : les décisions humaines changent les nombres; seul un calcul à la demande reste exact.
 - **Conséquences** : le jeu de démonstration (9 notices fictives) vérifie les nombres calculés à la main : 9 repérées, 3 doublons retirés, 6 après dédoublonnage et 1 paire à examiner, puis 4 et 5 après la décision.
 - **Renvois** : EF-COL-08; demande de fusion benoit-plante/revue-portee#11.
+
+### D-065 — Probabilité d'inclusion et valeur de l'IA tirée des seuils
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - La « confiance » consignée pour une décision de l'IA (`confidence_raw`) est la **probabilité que la référence soit incluse**, donnée par le modèle entre 0 et 1.
+  - La valeur retenue pour l'IA se **déduit des seuils** : sous `exclude_below`, exclure; à partir de `include_above`, inclure; entre les deux, incertain. La règle EF-SEL-07 s'applique ensuite (D-068).
+  - La probabilité utilisée est la probabilité étalonnée quand un étalonnage est en vigueur (`confidence_calibrated`), sinon la probabilité brute.
+  - La décision globale proposée par le modèle reste conservée (`model_decision`), sans déterminer la valeur.
+- **Contexte** : EF-SEL-06 demande une confiance entre 0 et 1; EF-SEL-09 place des seuils sur cette confiance. Une confiance « dans la décision » n'a pas le même sens selon que la décision est d'inclure ou d'exclure, et ne s'étalonne pas sur une seule échelle.
+- **Options envisagées** :
+  1. **Probabilité d'inclusion, valeur tirée des seuils** : une seule échelle, étalonnable par régression isotonique, avec des seuils lisibles.
+  2. Confiance dans la décision du modèle : deux échelles mêlées; les seuils d'EF-SEL-09 deviennent ambigus.
+- **Justification** : la courbe seuil → sensibilité (EF-SEL-03) et l'étalonnage (EF-SEL-05) supposent une seule échelle ordonnée.
+- **Conséquences** : une même réponse brute donne toujours la même décision, ce qui permet de reconstituer une décision sans rappeler le modèle (ENF-REP-02).
+- **Renvois** : EF-SEL-05, EF-SEL-06, EF-SEL-09, ENF-REP-02; demande de fusion benoit-plante/revue-portee#13.
+
+### D-066 — Seuils par défaut au tri des titres et résumés
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : avant tout pilote, l'IA exclut sous **0,10** et inclut à partir de **0,60** de probabilité d'inclusion (`supervision` dans `resources/ai_defaults.yaml` et `[ia]` de `projet.toml`). Après le pilote, une personne fixe les seuils avec leur justification (`threshold_setting`).
+- **Contexte** : EF-SEL-09 demande des seuils par défaut qui favorisent la sensibilité, documentés et modifiables.
+- **Options envisagées** :
+  1. **0,10 et 0,60** : n'exclut que les références que le modèle juge très peu probables; une large zone d'incertitude.
+  2. Seuil d'exclusion plus élevé (0,20 ou 0,30) : plus de références évitées, au risque de la sensibilité.
+- **Justification** : au banc SYNERGY, ces seuils donnent une sensibilité de 95,0 à 97,4 % sur trois jeux en psychologie, avec une spécificité de 78,7 à 84,2 % (`docs/resultats/`).
+- **Conséquences** : la feuille de route ne demande pas de revoir le seuil par défaut, puisque la cible de sensibilité est atteinte. En V1, l'IA n'exclut jamais seule (D-014) : ces seuils ne servent qu'à présenter les décisions de l'IA et à mesurer le pilote.
+- **Renvois** : EF-SEL-09, D-014; demandes de fusion benoit-plante/revue-portee#13 et benoit-plante/revue-portee#14.
+
+### D-067 — Modèle par défaut du tri des titres et résumés
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : la tâche `screen_reference` utilise par défaut `claude-haiku-5-5`, effort `low`, `max_tokens` 8 000, sortie attendue de 1 200 jetons pour l'estimation du coût (`resources/ai_defaults.yaml`). Ce modèle n'offre pas de repli côté serveur : le paramètre `fallbacks` de D-037 est absent pour cette tâche.
+- **Contexte** : D-038 renvoyait le choix du modèle du tri au banc d'essai, sous la cible de coût de D-015.
+- **Options envisagées** :
+  1. **Haiku 5.5, effort `low`** : environ 0,35 à 0,45 $ US pour 1 000 références au banc.
+  2. Sonnet 5.5 : plus capable, pour un coût plusieurs fois plus élevé.
+- **Justification** : choix de Benoit au lancement de la tranche 1.6. Le banc SYNERGY le confirme : sensibilité d'au moins 95 % sur les trois jeux, pour 0,34 à 0,46 $ US pour 1 000 références, bien sous la cible de 5 $ US (D-015).
+- **Conséquences** :
+  - un projet créé avant la tranche 1.6 garde `screen_reference` au statut « prévue » dans `[ia]` : la page « Pilote » l'indique, et la section doit être mise à jour à la main;
+  - un autre modèle reste possible par projet, en modifiant `[ia]`.
+- **Renvois** : D-015, D-037, D-038, ENF-COU-07; demandes de fusion benoit-plante/revue-portee#13 et benoit-plante/revue-portee#14.
+
+### D-068 — Règle EF-SEL-07 précisée
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Un critère **écarte** une référence quand c'est un critère d'inclusion « non satisfait » ou un critère d'exclusion « satisfait ».
+  - Si un critère d'inclusion est « impossible à déterminer » et qu'aucun critère n'écarte la référence, l'IA ne l'exclut jamais : une valeur « exclure » tirée des seuils devient « incertain ».
+  - Un critère d'exclusion « non satisfait » n'écarte rien; un critère d'exclusion « impossible à déterminer » ne protège pas la référence.
+- **Contexte** : EF-SEL-07 parle d'un critère « impossible à déterminer », sans dire ce qui se passe quand un autre critère écarte clairement la référence.
+- **Options envisagées** :
+  1. **Protection seulement sans critère qui écarte** : un résumé vague sur la population ne sauve pas un article clairement hors sujet.
+  2. Protection dès qu'un critère est indéterminable : presque toutes les références seraient « incertaines », puisque les résumés taisent souvent la durée, le plan ou l'âge.
+- **Justification** : l'option 1 garde l'intention d'EF-SEL-07 (ne pas exclure faute d'information) sans vider le tri de son utilité.
+- **Conséquences** : la règle est une fonction pure du domaine (`must_not_exclude`), vérifiée par des tests.
+- **Renvois** : EF-SEL-07; demande de fusion benoit-plante/revue-portee#13.
+
+### D-069 — Budget du projet et plafond de lot
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Aucun plafond par défaut : un budget de projet doit être **fixé avant le premier lot** de tri par l'IA. Le budget est en ajout seulement (`budget_setting`), et la dépense se calcule à partir des coûts consignés des appels (`ai_call.cost_estimate`).
+  - Chaque lot a en plus son propre plafond, proposé à l'estimation majorée de 25 %, arrondie au cent supérieur.
+  - Le plafond du projet et celui du lot sont vérifiés **avant chaque appel**, nouvelles tentatives comprises. Le lot s'arrête alors proprement, et ce qui est trié reste enregistré (`budget.reached`).
+- **Contexte** : ENF-COU-02 demande un plafond global et par lot, avec un arrêt sans perte de travail. 03-architecture.md §5.6 prévoyait une table `budget` avec un montant dépensé modifiable.
+- **Options envisagées** :
+  1. **Budget en ajout seulement, dépense calculée** : aucune ligne modifiée; la dépense ne peut pas diverger des appels consignés.
+  2. Table `budget` avec `spent_amount` mis à jour : contraire à l'ajout seulement (D-028).
+- **Justification** : choix de Benoit (aucun plafond par défaut); l'option 1 respecte D-028.
+- **Conséquences** : **écart à 03-architecture.md §5.6** (`budget` remplacée par `budget_setting`). La dépense du projet compte tous les appels, y compris ceux des tâches de cadrage.
+- **Renvois** : ENF-COU-01, ENF-COU-02, ENF-COU-03, D-028; demande de fusion benoit-plante/revue-portee#13.
+
+### D-070 — Une seule nouvelle tentative par référence
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : une réponse non conforme au schéma, ou qui n'évalue pas chaque critère exactement une fois, ou qui cite comme déterminant un critère inconnu, est consignée (`ai.result_unusable`) puis **redemandée une fois**. Après deux réponses inutilisables, l'échec est consigné (`screening.ai_failed`) et la référence reste à trier par l'humain.
+- **Contexte** : le critère d'acceptation demande 100 % de sorties valides, sinon une nouvelle tentative, puis un statut « échec » consigné.
+- **Options envisagées** :
+  1. **Une nouvelle tentative** : coût borné à deux appels par référence.
+  2. Plusieurs nouvelles tentatives : coût imprévisible, pour un gain faible.
+- **Justification** : au banc SYNERGY, 2 références sur 14 624 sont restées inutilisables après la nouvelle tentative.
+- **Conséquences** : la cause observée (le modèle omet un critère d'exclusion quand un critère d'inclusion suffit à exclure) appelle une version 2 du gabarit `screen_reference`.
+- **Renvois** : EF-SEL-06, ENF-TRA-01; demandes de fusion benoit-plante/revue-portee#13 et benoit-plante/revue-portee#14.
+
+### D-071 — Tri à l'aveugle garanti par l'interface
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : l'IA peut trier les références du pilote avant, pendant ou après le réviseur humain. L'interface ne montre la décision de l'IA sur une référence qu'**après** la décision humaine sur cette même référence (`PilotState.visible_ai`). Les décisions humaines du pilote sont marquées `blinded`; une nouvelle décision humaine sur la même référence remplace la précédente (`supersedes_decision_id`).
+- **Contexte** : EF-SEL-02 exige que le réviseur humain décide à l'aveugle.
+- **Options envisagées** :
+  1. **Masquage à l'affichage** : l'IA travaille en arrière-plan sans attendre l'humain.
+  2. Lancer l'IA seulement après le tri humain complet : plus lent, sans gain pour l'aveugle.
+- **Justification** : l'aveugle porte sur ce que voit la personne, pas sur l'ordre des calculs.
+- **Conséquences** : un test de l'interface vérifie que la justification de l'IA est absente avant la décision humaine, puis présente pour la seule référence décidée.
+- **Renvois** : EF-SEL-02; demande de fusion benoit-plante/revue-portee#13.
+
+### D-072 — Étalonnage et seuil d'exclusion suggéré
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - L'étalonnage s'ajuste sur les paires (humain, IA) d'un tour de pilote : une référence est positive quand l'humain l'inclut ou la juge incertaine.
+  - Méthode `isotonic` par défaut (pool-adjacent-violators, interpolation linéaire); `platt` sur demande; `none` quand le pilote n'a qu'une seule catégorie. L'étalonnage est enregistré dans `etalonnage/<id>.json` et dans `calibration_model`.
+  - Le **seuil d'exclusion suggéré** est le plus élevé qui garde la sensibilité du pilote au moins égale à la cible (0,95 par défaut). Si le pilote n'a aucun positif, la suggestion n'exclut rien.
+  - Une personne fixe les seuils, avec une justification obligatoire, et choisit de les appliquer ou non aux probabilités étalonnées.
+- **Contexte** : EF-SEL-05 demande des seuils fixés à partir des données observées, avec une préférence explicite pour la sensibilité.
+- **Options envisagées** :
+  1. **Suggestion, puis décision humaine justifiée** : l'outil calcule, la personne tranche.
+  2. Seuil appliqué automatiquement : contraire au principe de vérification humaine.
+- **Justification** : la suggestion rend le compromis visible; la décision reste humaine et consignée (`thresholds.set`).
+- **Conséquences** : avec peu de positifs, la suggestion est fragile; la page affiche l'intervalle de Wilson de la sensibilité (03-architecture.md §6.5).
+- **Renvois** : EF-SEL-03, EF-SEL-05, EF-SEL-09; demande de fusion benoit-plante/revue-portee#13.
+
+### D-073 — Détection de la langue des références
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : la langue consignée avec chaque décision de l'IA est la langue déclarée par la notice (nom ou code ISO) quand elle existe; sinon, elle est déduite du titre et du résumé en comptant des mots outils français et anglais. Sans indice, elle reste vide.
+- **Contexte** : ENF-LAN-05 demande que la langue de chaque référence soit détectée et consignée.
+- **Options envisagées** :
+  1. **Langue déclarée, puis mots outils** : sans dépendance, suffisant pour le français et l'anglais.
+  2. Bibliothèque de détection de langue : une dépendance de plus, utile surtout pour d'autres langues.
+- **Justification** : le corpus visé est surtout français et anglais; les autres langues sont traitées sans erreur, avec une langue vide au besoin.
+- **Conséquences** : la justification de l'IA est rédigée dans la langue du projet, quelle que soit la langue de la référence.
+- **Renvois** : ENF-LAN-05; demande de fusion benoit-plante/revue-portee#13.
+
+### D-074 — Banc SYNERGY : réponses brutes hors du dépôt, échantillon et appels simultanés
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Le banc (`revue-portee banc-synergy`) lit un CSV local et un fichier YAML de critères, affiche le coût maximal estimé et demande confirmation. Il n'utilise aucun dossier de projet.
+  - Les réponses brutes vont dans un fichier JSON Lines **hors du dépôt**; le rapport versionné dans `docs/resultats/` ne contient que des nombres.
+  - L'option `--echantillon` garde toutes les inclusions et tire des exclusions avec une graine consignée.
+  - L'option `--paralleles` fait jusqu'à 16 appels simultanés : le coût estimé de chaque appel est réservé avant l'appel, ce qui maintient le plafond.
+- **Contexte** : le critère d'acceptation demande un banc lancé à la main, avec ses résultats dans `docs/resultats/`. Le dépôt est public, et un appel à la fois prenait environ 3,6 secondes (15 heures pour 14 624 références).
+- **Options envisagées** :
+  1. **Rapport chiffré versionné, réponses brutes locales** : rien de tiers n'est republié.
+  2. Réponses brutes versionnées : elles reprennent des extraits de résumés.
+- **Justification** : les rapports suffisent à vérifier les critères d'acceptation; les réponses brutes se régénèrent avec les mêmes données et critères.
+- **Conséquences** : avec 8 appels simultanés, le banc complet a pris environ 2 heures.
+- **Renvois** : ENF-COU-01, ENF-COU-02; [05-plan-de-validation.md](05-plan-de-validation.md); demandes de fusion benoit-plante/revue-portee#13 et benoit-plante/revue-portee#14.
+
+### D-075 — Données et critères du banc SYNERGY
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Trois jeux en psychologie clinique : Oud_2018, van_de_Schoot_2018 et van_Dis_2020.
+  - Notices de **SYNERGY 1.0** (titres et résumés d'OpenAlex); SYNERGY+ 3.0 n'a de résumé que pour 25 à 30 % des notices de ces jeux.
+  - Critères **reformulés** à partir de ceux publiés avec SYNERGY+ 3.0 et versionnés dans `docs/resultats/synergy/`. Pour van_de_Schoot_2018, SYNERGY+ ne publie que les critères de la mise à jour de 2025 : les échantillons cliniques, nouveaux en 2025, sont exclus.
+  - Référence de comparaison : les **inclusions au texte intégral** de chaque revue.
+  - Justifications de l'IA rédigées en français, comme dans un projet réel.
+- **Contexte** : la feuille de route demande une sensibilité d'au moins 0,95 sur au moins 3 jeux SYNERGY en psychologie, par rapport aux inclusions finales.
+- **Options envisagées** :
+  1. **Jeux de psychologie clinique chez l'humain** : proches des revues visées; coût total d'environ 6 $ US.
+  2. Jeux classés en psychologie mais portant sur l'animal (Sep_2021, Leenaars_2019), ou très volumineux (Brouwer_2019, 46 376 notices).
+- **Justification** : choix de Benoit (trois jeux recommandés; critères publiés par SYNERGY); lecture validée par Benoit pour van_de_Schoot_2018.
+- **Conséquences** :
+  - les inclusions au texte intégral sous-estiment la sensibilité au tri des titres et résumés : les 4 inclusions manquées sur 130 relèvent de critères appliqués plus largement au texte intégral qu'ils ne sont écrits;
+  - le banc exige les domaines `api.anthropic.com`, `dataverse.nl` et `objectstore.surf.nl` dans l'environnement infonuagique.
+- **Renvois** : [05-plan-de-validation.md](05-plan-de-validation.md); [docs/resultats/README.md](resultats/README.md); demande de fusion benoit-plante/revue-portee#14.
+
+### D-076 — Résultat du banc SYNERGY
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : la configuration par défaut (D-066, D-067) est retenue. Au banc SYNERGY, la sensibilité est de **95,0 %** (Oud_2018, 19 sur 20), **97,4 %** (van_de_Schoot_2018, 37 sur 38) et **97,2 %** (van_Dis_2020, 70 sur 72), pour **0,34 à 0,46 $ US** pour 1 000 références.
+- **Contexte** : la feuille de route prévoit de revoir le seuil par défaut si la cible n'est pas atteinte.
+- **Options envisagées** :
+  1. **Garder la configuration par défaut** : les deux cibles sont atteintes.
+  2. Baisser le seuil d'exclusion : sans motif, puisque la cible est atteinte.
+- **Justification** : critère d'acceptation atteint sur les trois jeux; coût environ dix fois sous la cible de D-015.
+- **Conséquences** : la sensibilité d'Oud_2018 est tout juste à la cible et son intervalle est large (76,4 à 99,1 %), avec 20 inclusions; l'étude de validation (05) mesurera la sensibilité sur des revues de portée.
+- **Renvois** : D-015, D-066, D-067; [docs/resultats/README.md](resultats/README.md); demande de fusion benoit-plante/revue-portee#14.
