@@ -15,7 +15,7 @@ from pathlib import Path
 
 from revue_portee.ai.tasks.screening import SCREEN_REFERENCE
 from revue_portee.domain.project import ReviewerKind as PersonKind
-from revue_portee.domain.screening import RoundKind, keeps
+from revue_portee.domain.screening import RoundKind, keeps, quote_counts
 from revue_portee.protocol.document import ExportFormat
 from revue_portee.reporting.document import Document, render_docx, render_markdown
 from revue_portee.reporting.methods import (
@@ -149,12 +149,17 @@ def _screening(state: main.MainState) -> ScreeningSummary:
     members = set(state.members)
     both = members & state.human.keys() & state.ai.keys()
     reconciled = [ref for ref in state.disagreements if ref in state.reconciled]
+    found, checked = quote_counts(
+        a for ref in members if ref in state.ai for a in state.ai[ref].assessments
+    )
     return ScreeningSummary(
         references=len(members),
         by_person=len(members & state.human.keys()),
         by_ai=len(members & state.ai.keys()),
         by_both=len(both),
         disagreements=len(state.disagreements),
+        quotes_found=found,
+        quotes_checked=checked,
         reconciled=len(reconciled),
         reconciled_with_ai=sum(
             1

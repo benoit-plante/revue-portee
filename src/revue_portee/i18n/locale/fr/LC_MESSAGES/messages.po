@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 16:28-0400\n"
+"POT-Creation-Date: 2026-10-08 18:11-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1740,6 +1740,17 @@ msgstr "Paires à examiner : %(count)s. Les différences sont signalées."
 msgid "Participants"
 msgstr "Participants"
 
+#, python-brace-format
+msgid ""
+"Passages quoted by the AI to support its assessment of each criterion, found word for word in the"
+" title or abstract (case, accents and punctuation set aside): {found} of {checked} ({share}). A "
+"passage not found may be a paraphrase, or a quotation the model made up."
+msgstr ""
+"Passages cités par l'IA à l'appui de son évaluation de chaque critère, retrouvés mot pour mot "
+"dans le titre ou le résumé (sans tenir compte de la casse, des accents et de la ponctuation) : "
+"{found} sur {checked} ({share}). Un passage non retrouvé peut être une paraphrase, ou une "
+"citation inventée par le modèle."
+
 msgid "Phase"
 msgstr "Phase"
 
@@ -1929,6 +1940,9 @@ msgstr "Qualifier les changements"
 #, python-format
 msgid "Queries of version %(number)s"
 msgstr "Requêtes de la version %(number)s"
+
+msgid "Quotes of the AI found in the title or abstract"
+msgstr "Citations de l'IA retrouvées dans le titre ou le résumé"
 
 msgid "RIS file"
 msgstr "Fichier RIS"

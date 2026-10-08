@@ -105,6 +105,8 @@ def data(**changes: object) -> MethodsData:
             disagreements=50,
             reconciled=50,
             reconciled_with_ai=20,
+            quotes_found=2870,
+            quotes_checked=2900,
         ),
         flow=FLOW,
         changes=(
@@ -163,6 +165,8 @@ def test_english_draft_reports_every_part() -> None:
     assert "Disagreements between the person and the AI" in text
     assert "{count}" not in text
     assert "followed the AI for 20 and the person's first decision for 30" in text
+    assert "found word for word in the title or abstract" in text
+    assert "2,870 of 2,900 (99.0%)" in text
     assert "(C1: clarification; P1: narrowing)" in text
     assert "Clarifications were reassessed on a random sample." in text
     assert "The reassessment is not completed." in text

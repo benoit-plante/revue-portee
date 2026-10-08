@@ -44,7 +44,13 @@ from revue_portee.domain.screening import (
     draw_sample,
 )
 from revue_portee.i18n import gettext as _
-from revue_portee.screening.ai_screening import MAX_ATTEMPTS, UnusableAnswerError, check_answer
+from revue_portee.screening.ai_screening import (
+    MAX_ATTEMPTS,
+    UnusableAnswerError,
+    check_answer,
+    quote_found,
+    searchable_text,
+)
 
 __all__ = [
     "BenchmarkCriteria",
@@ -178,6 +184,8 @@ class BenchmarkResult:
     stopped: bool = False
     spent: Decimal = Decimal(0)
     models_returned: set[str] = field(default_factory=set)
+    quotes_found: int = 0  # quotes of the AI found in the title or abstract
+    quotes_checked: int = 0
 
     def confusion(self, labels: dict[str, bool]) -> Confusion:
         include, exclude = DecisionValue.INCLUDE, DecisionValue.EXCLUDE
@@ -274,6 +282,11 @@ def run_benchmark(
                 check_answer(answer.output, codes)
             except UnusableAnswerError:
                 continue
+            text = searchable_text(item.reference.title, item.reference.abstract)
+            checks = [quote_found(a.evidence_quote, text) for a in answer.output.assessments]
+            with lock:
+                result.quotes_checked += sum(1 for c in checks if c is not None)
+                result.quotes_found += sum(1 for c in checks if c)
             return "screened", _value(answer.output, criteria, thresholds)
         return "failed", None
 
@@ -343,6 +356,13 @@ def _lines(result: BenchmarkResult, labels: dict[str, bool]) -> Iterator[str]:
         (_("Specificity (excluded records excluded)"), _percent(specificity)),
         (_("95 % interval of the specificity"), _interval(c.tn, c.tn + c.fp)),
         (_("Confusion (tp, fn, fp, tn)"), f"{c.tp}, {c.fn}, {c.fp}, {c.tn}"),
+        (
+            _("Quotes of the AI found in the title or abstract"),
+            "—"
+            if result.quotes_checked == 0
+            else f"{result.quotes_found} / {result.quotes_checked} "
+            f"({_percent(result.quotes_found / result.quotes_checked)})",
+        ),
         (_("Cost"), f"{result.spent} USD"),
         (
             _("Cost per 1,000 references"),

@@ -103,6 +103,13 @@ class CriterionAssessment(BaseModel):
     quote_found: bool | None = None  # the quote is in the title or abstract
 
 
+def quote_counts(assessments: Iterable[CriterionAssessment]) -> tuple[int, int]:
+    """Quotes found in the title or abstract, and quotes checked (an assessment without a
+    quote is not checked): ``(found, checked)``."""
+    checked = [a.quote_found for a in assessments if a.quote_found is not None]
+    return sum(1 for found in checked if found), len(checked)
+
+
 def _fails(a: CriterionAssessment) -> bool:
     if a.kind is CriterionKind.INCLUSION:
         return a.status is AssessmentStatus.NOT_MET
