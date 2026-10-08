@@ -6,6 +6,7 @@ requests with a foreign ``Host`` or ``Origin`` are refused (CSRF, DNS rebinding)
 """
 
 import secrets
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -29,7 +30,7 @@ from revue_portee.ai.settings import TaskNotAvailableError
 from revue_portee.clock import utc_now
 from revue_portee.collect import collection, deduplication, enrichment, imports
 from revue_portee.collect.collection import CollectorFactory
-from revue_portee.collect.enrichment import WorkSource
+from revue_portee.collect.enrichment import WorkSource, enriched_reference
 from revue_portee.config.secrets import MissingSecretError
 from revue_portee.domain.changes import MODIFICATION_TYPES, ChangeType
 from revue_portee.domain.criteria import (
@@ -44,7 +45,7 @@ from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
-from revue_portee.domain.screening import DecisionValue, Thresholds
+from revue_portee.domain.screening import DecisionValue, ScreeningRound, Thresholds
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
@@ -58,7 +59,8 @@ from revue_portee.reporting.document import render_docx, render_markdown
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.resources import peters_checklist
-from revue_portee.screening import ai_screening, pilot
+from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
+from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
 from revue_portee.search import runs, strategies
 from revue_portee.search import suggestions as term_suggestions
@@ -70,7 +72,7 @@ from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.version import tool_version as current_tool_version
-from revue_portee.web import dedup_view, pilot_view
+from revue_portee.web import dedup_view, pilot_view, screening_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -268,6 +270,18 @@ _AI_ERRORS: tuple[type[Exception], ...] = (
 
 
 _TERM_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, term_suggestions.NoStrategyError)
+_BATCH_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, batch_ai.NotBatchCapableError)
+# Errors of a screening decision shown on the page.
+_DECISION_ERRORS: tuple[type[Exception], ...] = (
+    pilot.NotInRoundError,
+    pilot.UnknownCriterionError,
+    ValidationError,
+)
+_RECONCILE_ERRORS: tuple[type[Exception], ...] = (
+    *_DECISION_ERRORS,
+    main_screening.NotADisagreementError,
+)
+_VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
 
 
 # Key of the background job that compares the references (one at a time).
@@ -285,6 +299,8 @@ def create_app(
     collector_factory: CollectorFactory | None = None,
     crossref_source: Callable[[], WorkSource] | None = None,
     jobs: BackgroundJobs | None = None,
+    batch_wait: Callable[[float], None] = time.sleep,
+    batch_poll_seconds: float = batch_ai.POLL_SECONDS,
 ) -> FastAPI:
     """Application serving one open project folder."""
     context = AppContext(
@@ -327,6 +343,7 @@ def create_app(
         assessment_labels=pilot_view.assessment_labels,
         stopped_labels=pilot_view.stopped_labels,
         percent=pilot_view.percent,
+        change_type_labels=screening_view.change_type_labels,
         Database=Database,
         NEW_BLOCK=NEW_BLOCK,
         modification_types=MODIFICATION_TYPES,
@@ -1381,6 +1398,441 @@ def create_app(
             tool_version=context.tool_version,
         )
         return see_other(f"/pilote/{round_id}?decide=3#etalonnage")
+
+    # --- Main screening, reconciliation, reassessment ----------------------------------
+
+    def batch_job(round_id: str) -> str:
+        return f"lots-{round_id}"
+
+    def ai_context(round_id: str) -> dict[str, Any]:
+        job = batch_job(round_id)
+        return {
+            "round_id": round_id,
+            "waiting": len(batch_ai.waiting_for_ai(folder, round_id)),
+            "pending": batch_ai.pending_batches(folder, round_id),
+            "running": background.running(job),
+            "error": background.error(job),
+        }
+
+    def require_main() -> ScreeningRound:
+        found = main_screening.main_round(folder)
+        if found is None:
+            raise HTTPException(status_code=404, detail=_("The screening has not started."))
+        return found
+
+    def round_page_url(round_id: str) -> str:
+        """Page of a round: the screening, or the reassessment of an impact."""
+        screening = main_screening.main_round(folder)
+        if screening is not None and screening.id == round_id:
+            return "/tri"
+        for impact in [] if screening is None else reassessment.impacts(folder, screening.id):
+            if impact.reassessment_round_id == round_id:
+                return f"/tri/reevaluation/{impact.id}"
+        raise HTTPException(status_code=404, detail=_("Unknown round."))
+
+    def version_numbers() -> dict[str, int]:
+        with folder.engine.connect() as connection:
+            return {v.id: v.number for v in criteria_repo.list_versions(connection)}
+
+    def screening_home(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        screening = main_screening.main_round(folder)
+        with folder.engine.connect() as connection:
+            active = criteria_repo.get_active_version(connection)
+        values: dict[str, Any] = {"main": screening, "active": active}
+        if screening is not None:
+            state = main_screening.main_state(folder, screening.id)
+            values |= {
+                "counts": main_screening.progress(state),
+                "ai_main": ai_context(screening.id),
+                "to_assess": reassessment.next_version_to_assess(folder, screening.id),
+                "impacts": reassessment.impacts(folder, screening.id),
+                "versions": version_numbers(),
+            }
+        return render(
+            request,
+            "tri.html",
+            values | {"error": error, "message": message},
+            status_code=status_code,
+        )
+
+    @app.get("/tri", response_class=HTMLResponse)
+    def show_screening(request: Request, ok: str = "") -> HTMLResponse:
+        messages = {
+            "ajout": _("New references added."),
+            "lot": _("AI screening started."),
+            "suivi": _("Following the running batches."),
+        }
+        return screening_home(request, message=messages.get(ok))
+
+    @app.post("/tri/lancer")
+    def start_screening(
+        request: Request, _csrf: Csrf, graine: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            seed = int(graine) if graine.strip() else None
+        except ValueError:
+            seed = -1
+        if seed is not None and seed < 0:
+            return screening_home(
+                request, error=_("The seed must be a whole number."), status_code=422
+            )
+        try:
+            main_screening.start_main(folder, seed=seed, now=now, tool_version=context.tool_version)
+        except (
+            pilot.NoActiveCriteriaError,
+            pilot.NoReferencesError,
+            main_screening.MainRoundExistsError,
+        ) as error:
+            return screening_home(request, error=str(error), status_code=422)
+        return see_other("/tri")
+
+    @app.post("/tri/ajouter")
+    def add_references(_csrf: Csrf) -> Response:
+        screening = require_main()
+        main_screening.add_new_references(
+            folder, screening.id, now=now, tool_version=context.tool_version
+        )
+        return see_other("/tri?ok=ajout")
+
+    def reference_page(
+        request: Request,
+        *,
+        priority: bool,
+        skipped: list[str],
+        error: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        screening = require_main()
+        reference_id = main_screening.next_reference(
+            folder, screening.id, priority=priority, skip=skipped
+        )
+        with folder.engine.connect() as connection:
+            total = screening_repo.member_count(connection, screening.id)
+            done = screening_repo.count_decided(
+                connection,
+                screening.id,
+                decided_in=main_screening.decided_in(connection, screening),
+            )
+            criteria_version = criteria_repo.get_active_version(connection)
+        found = None if reference_id is None else enriched_reference(folder, reference_id)
+        return render(
+            request,
+            "tri_reference.html",
+            {
+                "ref": found,
+                "criteria": criteria_version,
+                "priority": priority,
+                "skipped": skipped,
+                "done": done,
+                "total": total,
+                "values": pilot_view.value_labels(),
+                "error": error,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/tri/trier", response_class=HTMLResponse)
+    def screen_next(request: Request, priorite: int = 0, passer: str = "") -> HTMLResponse:
+        return reference_page(
+            request, priority=bool(priorite), skipped=screening_view.skip_list(passer)
+        )
+
+    def decision_form(
+        form: Any,  # noqa: ANN401 - Starlette form data
+    ) -> tuple[str, DecisionValue | None, list[str], str]:
+        try:
+            value: DecisionValue | None = DecisionValue(str(form.get("valeur", "")))
+        except ValueError:
+            value = None
+        return (
+            str(form.get("reference", "")),
+            value,
+            [str(code) for code in form.getlist("criteres")],
+            str(form.get("justification", "")),
+        )
+
+    def decision_error(error: Exception) -> str:
+        if isinstance(error, ValidationError):
+            return _("Cite at least one criterion to exclude a reference.")
+        return str(error)
+
+    @app.post("/tri/decision")
+    async def decide(request: Request, _csrf: Csrf, priorite: int = 0) -> Response:
+        screening = require_main()
+        reference_id, value, cited, note = decision_form(await request.form())
+        priority = bool(priorite)
+        if value is None:
+            return reference_page(
+                request,
+                priority=priority,
+                skipped=[],
+                error=_("Choose a decision."),
+                status_code=422,
+            )
+        try:
+            await run_in_threadpool(
+                main_screening.record_decision,
+                folder,
+                screening.id,
+                reference_id,
+                value,
+                criteria_cited=cited,
+                rationale=note,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except _DECISION_ERRORS as error:
+            return reference_page(
+                request,
+                priority=priority,
+                skipped=[],
+                error=decision_error(error),
+                status_code=422,
+            )
+        return see_other("/tri/trier?priorite=1" if priority else "/tri/trier")
+
+    def reconciliation_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        screening = require_main()
+        state = main_screening.main_state(folder, screening.id)
+        reference_id = state.queue[0] if state.queue else None
+        with folder.engine.connect() as connection:
+            criteria_version = criteria_repo.get_active_version(connection)
+        values: dict[str, Any] = {
+            "ref": None,
+            "left": len(state.queue),
+            "criteria": criteria_version,
+            "values": pilot_view.value_labels(),
+            "error": error,
+            "message": message,
+        }
+        if reference_id is not None:
+            values |= {
+                "ref": enriched_reference(folder, reference_id),
+                "human": state.human[reference_id],
+                "a": state.visible_ai(reference_id),
+            }
+        return render(request, "tri_reconciliation.html", values, status_code=status_code)
+
+    @app.get("/tri/reconciliation", response_class=HTMLResponse)
+    def show_reconciliation(request: Request, ok: int = 0) -> HTMLResponse:
+        return reconciliation_page(request, message=_("Final decision recorded.") if ok else None)
+
+    @app.post("/tri/reconciliation")
+    async def reconcile_reference(request: Request, _csrf: Csrf) -> Response:
+        screening = require_main()
+        reference_id, value, cited, note = decision_form(await request.form())
+        if value is None:
+            return reconciliation_page(request, error=_("Choose a decision."), status_code=422)
+        try:
+            await run_in_threadpool(
+                main_screening.reconcile,
+                folder,
+                screening.id,
+                reference_id,
+                value,
+                criteria_cited=cited,
+                rationale=note,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except _RECONCILE_ERRORS as error:
+            return reconciliation_page(request, error=decision_error(error), status_code=422)
+        return see_other("/tri/reconciliation?ok=1")
+
+    # AI batches of a round (main screening or reassessment).
+
+    def run_batches(round_id: str, limit: Decimal | None) -> None:
+        if limit is not None:
+            batch_ai.submit(
+                folder,
+                round_id,
+                batch_limit=limit,
+                factory=provider_factory,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        batch_ai.follow(
+            folder,
+            round_id,
+            factory=provider_factory,
+            now=now,
+            tool_version=context.tool_version,
+            wait=batch_wait,
+            poll_seconds=batch_poll_seconds,
+        )
+
+    @app.post("/tri/ia/{round_id}/estimation")
+    def estimate_batches(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        back = round_page_url(round_id)
+        try:
+            preview = batch_ai.preview(folder, round_id, factory=provider_factory)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except _BATCH_ERRORS as error:
+            return screening_home(request, error=str(error), status_code=422)
+        return render(
+            request,
+            "tri_ia.html",
+            {
+                "preview": preview,
+                "ceiling": pilot_view.batch_ceiling(preview.estimate),
+                "round_id": round_id,
+                "back": back,
+            },
+        )
+
+    @app.post("/tri/ia/{round_id}/lancer")
+    def start_batches(
+        request: Request, round_id: str, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        back = round_page_url(round_id)
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return screening_home(
+                request, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return screening_home(request, error=error, status_code=422)
+        if not background.start(batch_job(round_id), lambda: run_batches(round_id, limit)):
+            return screening_home(
+                request, error=_("AI batches are already followed for this round."), status_code=422
+            )
+        return see_other(back + ("&" if "?" in back else "?") + "ok=lot")
+
+    @app.post("/tri/ia/{round_id}/suivre")
+    def follow_batches(round_id: str, _csrf: Csrf) -> Response:
+        back = round_page_url(round_id)
+        background.start(batch_job(round_id), lambda: run_batches(round_id, None))
+        return see_other(back + ("&" if "?" in back else "?") + "ok=suivi")
+
+    @app.get("/tri/ia/{round_id}/etat", response_class=HTMLResponse)
+    def batches_progress(request: Request, round_id: str) -> HTMLResponse:
+        round_page_url(round_id)  # 404 for an unknown round
+        ai = ai_context(round_id)
+        response = templates.TemplateResponse(
+            request, "_tri_ia_etat.html", {"ai": ai, "csrf_token": context.csrf_token}
+        )
+        if not ai["running"]:
+            response.headers["HX-Refresh"] = "true"  # show the decisions of the batches
+        return response
+
+    # Impact of a criteria change and reassessment.
+
+    @app.post("/tri/impact")
+    def assess_impact(
+        request: Request, _csrf: Csrf, toutes: Annotated[str, Form()] = ""
+    ) -> Response:
+        screening = require_main()
+        try:
+            impact = reassessment.assess(
+                folder,
+                screening.id,
+                sample_clarifications=not toutes,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except reassessment.NothingToAssessError as error:
+            return screening_home(request, error=str(error), status_code=422)
+        if impact.reassessment_round_id is None:
+            return see_other("/tri")
+        return see_other(f"/tri/reevaluation/{impact.id}")
+
+    def reassessment_page(
+        request: Request,
+        impact_id: str,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        try:
+            state = reassessment.reassessment_state(folder, impact_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        reference_id = state.queue[0] if state.queue else None
+        with folder.engine.connect() as connection:
+            criteria_version = criteria_repo.get_version(
+                connection, state.round.criteria_version_id
+            )
+        values: dict[str, Any] = {
+            "state": state,
+            "versions": version_numbers(),
+            "ai_round": ai_context(state.round.id),
+            "criteria": criteria_version,
+            "values": pilot_view.value_labels(),
+            "ref": None,
+            "error": error,
+            "message": message,
+        }
+        if reference_id is not None:
+            values |= {
+                "ref": enriched_reference(folder, reference_id),
+                "previous": state.previous[reference_id],
+                "a": state.ai[reference_id],
+            }
+        return render(request, "tri_reevaluation.html", values, status_code=status_code)
+
+    @app.get("/tri/reevaluation/{impact_id}", response_class=HTMLResponse)
+    def show_reassessment(request: Request, impact_id: str, ok: str = "") -> HTMLResponse:
+        messages = {
+            "decision": _("Decision recorded."),
+            "fin": _("Reassessment completed."),
+            "lot": _("AI screening started."),
+            "suivi": _("Following the running batches."),
+        }
+        return reassessment_page(request, impact_id, message=messages.get(ok))
+
+    @app.post("/tri/reevaluation/{impact_id}")
+    async def verify_reference(request: Request, impact_id: str, _csrf: Csrf) -> Response:
+        reference_id, value, cited, note = decision_form(await request.form())
+        if value is None:
+            return reassessment_page(
+                request, impact_id, error=_("Choose a decision."), status_code=422
+            )
+        try:
+            await run_in_threadpool(
+                reassessment.verify,
+                folder,
+                impact_id,
+                reference_id,
+                value,
+                criteria_cited=cited,
+                rationale=note,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except _VERIFY_ERRORS as error:
+            return reassessment_page(
+                request, impact_id, error=decision_error(error), status_code=422
+            )
+        return see_other(f"/tri/reevaluation/{impact_id}?ok=decision")
+
+    @app.post("/tri/reevaluation/{impact_id}/terminer")
+    def complete_reassessment(request: Request, impact_id: str, _csrf: Csrf) -> Response:
+        try:
+            reassessment.complete(folder, impact_id, now=now, tool_version=context.tool_version)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except reassessment.ReassessmentNotFinishedError as error:
+            return reassessment_page(request, impact_id, error=str(error), status_code=422)
+        return see_other(f"/tri/reevaluation/{impact_id}?ok=fin")
 
     # --- Protocol ---------------------------------------------------------------------
 

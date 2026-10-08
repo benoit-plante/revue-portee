@@ -25,6 +25,8 @@ from revue_portee.domain.criteria import CriterionKind
 from revue_portee.domain.project import ReviewerKind
 
 __all__ = [
+    "AIBatch",
+    "AIBatchEnd",
     "AssessmentStatus",
     "BudgetSetting",
     "CalibrationRecord",
@@ -34,12 +36,16 @@ __all__ = [
     "DecisionValue",
     "PilotRound",
     "ReviewerKind",
+    "RoundKind",
+    "ScreeningRound",
     "Stage",
     "ThresholdSetting",
     "Thresholds",
     "ai_value",
     "detect_language",
+    "disagree",
     "draw_sample",
+    "keeps",
     "must_not_exclude",
 ]
 
@@ -59,6 +65,23 @@ class AssessmentStatus(StrEnum):
     MET = "met"
     NOT_MET = "not_met"
     CANNOT_TELL = "cannot_tell"
+
+
+class RoundKind(StrEnum):
+    PILOT = "pilot"
+    MAIN = "main"  # every reference, human and AI independently (EF-SEL-08)
+    REASSESSMENT = "reassessment"  # references touched by a criteria change (EF-VER-05)
+
+
+def keeps(value: DecisionValue) -> bool:
+    """A reference goes on to the full text unless it is excluded."""
+    return value is not DecisionValue.EXCLUDE
+
+
+def disagree(human: DecisionValue, ai: DecisionValue) -> bool:
+    """The human and the AI disagree when one keeps the reference and the other
+    excludes it; « include » against « uncertain » is not a disagreement."""
+    return keeps(human) != keeps(ai)
 
 
 class DecisionContext(StrEnum):
@@ -189,6 +212,52 @@ class Decision(BaseModel):
         ):
             raise ValueError("a human exclusion names its criteria (EF-SEL-12)")
         return self
+
+
+class ScreeningRound(BaseModel):
+    """A round of screening without its members (table ``screening_round``): the main
+    screening of every reference, in an order drawn with ``seed``, or a reassessment."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    number: int = Field(ge=1)
+    stage: Stage
+    kind: RoundKind
+    criteria_version_id: str
+    seed: int
+    sample_size: int = Field(ge=0)  # members when the round was created
+    created_at: AwareDatetime
+    reviewer_id: str
+
+
+class AIBatch(BaseModel):
+    """References sent to the provider's asynchronous batch API (table ``ai_batch``)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    round_id: str
+    task: str
+    criteria_version_id: str  # the criteria the model was given
+    provider: str
+    provider_batch_id: str
+    item_ids: tuple[str, ...] = Field(min_length=1)
+    estimate: Decimal = Field(ge=0)
+    created_at: AwareDatetime
+    reviewer_id: str
+
+
+class AIBatchEnd(BaseModel):
+    """The results of a batch, once all recorded (table ``ai_batch_end``)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    batch_id: str
+    screened: int = Field(ge=0)
+    failed: tuple[str, ...] = ()
+    spent: Decimal = Field(ge=0)
+    created_at: AwareDatetime
 
 
 class PilotRound(BaseModel):

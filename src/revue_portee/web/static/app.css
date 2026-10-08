@@ -50,3 +50,5 @@ table.pair-table td { width: 42%; }
 tr.differs th, tr.differs td { background: #fff4e0; }
 tr.differs th { border-left: 4px solid #8a5a00; }
 details.group { border-bottom: 1px solid #ddd; padding: .4rem 0; }
+.two-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+kbd { border: 1px solid #767676; border-radius: 3px; padding: 0 .3em; font-size: .85em; background: #f4f4f4; color: #222; }

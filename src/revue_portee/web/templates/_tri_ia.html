@@ -1,0 +1,23 @@
+{#- AI screening of a round in batches. Variables: ai (dict from ai_context). -#}
+<div id="tri-ia-{{ ai.round_id }}"{% if ai.running %} hx-get="/tri/ia/{{ ai.round_id }}/etat" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
+  <p>{{ _("References waiting for the AI: %(waiting)s. Batches running: %(running)s.", waiting=ai.waiting, running=ai.pending | length) }}</p>
+  {% if ai.running %}<p class="message info" role="status">{{ _("The AI batches are followed in the background: the page refreshes when they end. A batch usually ends within an hour, at most 24 hours.") }}</p>{% endif %}
+  {% if ai.error %}<div class="message error" role="alert">{{ _("The last AI batch stopped: %(error)s", error=ai.error) }}</div>{% endif %}
+  {% if ai.pending %}
+  <ul class="small">
+    {% for b in ai.pending %}<li>{{ _("Batch sent on %(date)s: references: %(count)s, estimate: %(estimate)s", date=b.created_at.strftime("%Y-%m-%d %H:%M"), count=b.item_ids | length, estimate=money(b.estimate, "USD")) }}</li>{% endfor %}
+  </ul>
+  {% if not ai.running %}
+  <form method="post" action="/tri/ia/{{ ai.round_id }}/suivre" class="inline-form">
+    {{ csrf() }}
+    <button type="submit">{{ _("Follow the running batches") }}</button>
+  </form>
+  {% endif %}
+  {% endif %}
+  {% if ai.waiting and not ai.running %}
+  <form method="post" action="/tri/ia/{{ ai.round_id }}/estimation" class="inline-form">
+    {{ csrf() }}
+    <button type="submit">{{ _("Estimate the cost of the AI screening") }}</button>
+  </form>
+  {% endif %}
+</div>

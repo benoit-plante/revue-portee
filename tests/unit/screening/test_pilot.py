@@ -3,8 +3,7 @@ ENF-REP-02, ENF-COU-01 and 02), with FakeProvider."""
 
 import json
 import sqlite3
-from collections.abc import Callable, Iterator
-from datetime import datetime
+from collections.abc import Callable
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -14,8 +13,6 @@ import pytest
 from revue_portee.ai.base import ModelProvider, TaskInput
 from revue_portee.ai.providers.fake import FakeProvider
 from revue_portee.ai.settings import AITaskConfig
-from revue_portee.ai.tasks.screening import ScreenReferenceInput
-from revue_portee.collect import imports
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.screening import DecisionValue, ReviewerKind, Thresholds
@@ -26,78 +23,7 @@ from revue_portee.storage.repositories import ai as ai_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from support import TOOL_VERSION, make_clock, new_project, raw_sqlite
 
-Clock = Callable[[], datetime]
-TITLES = [
-    "Housing insecurity among older adults in rural Quebec",
-    "Home relocation of older adults and loneliness",
-    "Logement et santé mentale des aînés à Montréal",
-    "A protocol for a trial of housing support for older adults",
-    "Childhood obesity and school meals",
-    "Older adults and home adaptations: a qualitative study",
-    "Software engineering practices in startups",
-    "Housing first for homeless youth",
-    "Caregivers of older adults living at home",
-    "Air pollution and asthma in children",
-]
-
-
-def ris(titles: list[str]) -> bytes:
-    records = []
-    for i, title in enumerate(titles, start=1):
-        abstract = "" if i == 2 else f"This study examines {title.lower()}."
-        if i == 3:
-            abstract = "Cette étude porte sur le logement et la santé des aînés dans la ville."
-        records.append(
-            f"TY  - JOUR\nTI  - {title}\nAU  - Author{i}, A.\nPY  - 2020\n"
-            f"JO  - Journal {i}\nAB  - {abstract}\nER  - \n"
-        )
-    return "\n".join(records).encode("utf-8")
-
-
-@pytest.fixture
-def setup(tmp_path: Path) -> Iterator[tuple[ProjectFolder, Clock]]:
-    clock = make_clock()
-    folder = new_project(tmp_path, clock)
-    for element, kind, text in (
-        (PccElement.POPULATION, CriterionKind.INCLUSION, "Older adults (65 and over)."),
-        (PccElement.CONCEPT, CriterionKind.INCLUSION, "Housing or living conditions."),
-        (PccElement.OTHER, CriterionKind.EXCLUSION, "Study protocols without results."),
-    ):
-        criteria.add_criterion(
-            folder, pcc_element=element, kind=kind, text=text, now=clock, tool_version=TOOL_VERSION
-        )
-    criteria.activate_draft(folder, rationale="", now=clock, tool_version=TOOL_VERSION)
-    imports.import_ris(
-        folder, "demo.ris", ris(TITLES), database="APA PsycInfo", now=clock,
-        tool_version=TOOL_VERSION,
-    )  # fmt: skip
-    yield folder, clock
-    folder.close()
-
-
-def answer(item: TaskInput) -> dict[str, Any]:
-    """A deterministic reviewer: older adults and housing are looked for in the title."""
-    assert isinstance(item, ScreenReferenceInput)
-    title = item.reference.title.lower()
-    older = "older" in title or "aînés" in title
-    housing = "housing" in title or "logement" in title or "home" in title
-    protocol = "protocol" in title
-    # without an abstract, nothing tells the population: cannot tell
-    status_p = ("met" if older else "not_met") if item.reference.abstract else "cannot_tell"
-    status_c = "met" if housing else "not_met"
-    keep = status_p == "met" and housing and not protocol
-    unknown = status_p == "cannot_tell"
-    return {
-        "assessments": [
-            {"code": "P1", "status": status_p, "evidence_quote": "older adults" if older else ""},
-            {"code": "C1", "status": status_c, "evidence_quote": ""},
-            {"code": "X1", "status": "met" if protocol else "not_met", "evidence_quote": ""},
-        ],
-        "decision": "include" if keep else ("uncertain" if unknown else "exclude"),
-        "inclusion_probability": 0.9 if keep else (0.03 if not unknown else 0.04),
-        "rationale": "P1 et C1 évalués.",
-        "decisive_criteria": ["P1", "C1"],
-    }
+from .common import TITLES, Clock, answer
 
 
 def provider(

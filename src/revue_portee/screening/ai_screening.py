@@ -9,7 +9,7 @@ the project or of the batch, and what was screened stays recorded. A decision ca
 rebuilt from the raw response without calling the model again.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -70,10 +70,14 @@ __all__ = [
     "MAX_ATTEMPTS",
     "AIBatchResult",
     "UnusableAnswerError",
+    "ai_reviewer",
     "check_answer",
+    "inputs_for",
     "preview_ai",
+    "record_ai_failure",
     "replay_decision",
     "run_ai",
+    "store_ai_decision",
 ]
 
 Clock = Callable[[], datetime]
@@ -85,11 +89,15 @@ class UnusableAnswerError(ValueError):
     """An answer valid against the schema but not against the criteria of the round."""
 
 
-def _inputs(
-    folder: ProjectFolder, pilot: PilotRound, reference_ids: Sequence[str]
+def inputs_for(
+    folder: ProjectFolder,
+    version: CriteriaVersion,
+    reference_ids: Sequence[str],
+    references: Mapping[str, Reference] | None = None,
 ) -> list[ScreenReferenceInput]:
-    version = criteria_of(folder, pilot)
-    references = dedup_state(folder).references
+    """What the model sees of each reference, with the criteria of ``version``."""
+    if references is None:
+        references = dedup_state(folder).references
     with folder.engine.connect() as connection:
         language = projects.get_project(connection).language
     framing = current_framing(folder)
@@ -133,7 +141,7 @@ def preview_ai(
     return preview(
         folder,
         SCREEN_REFERENCE,
-        _inputs(folder, pilot, _waiting_for_ai(folder, pilot)),
+        inputs_for(folder, criteria_of(folder, pilot), _waiting_for_ai(folder, pilot)),
         factory=factory,
     )
 
@@ -203,9 +211,7 @@ def _ai_decision(
     )
 
 
-def _ai_reviewer(
-    folder: ProjectFolder, stored: StoredCall, *, now: Clock, tool_version: str
-) -> str:
+def ai_reviewer(folder: ProjectFolder, stored: StoredCall, *, now: Clock, tool_version: str) -> str:
     """The reviewer row of the AI configuration that made the call (created once)."""
     with folder.write() as connection:
         for reviewer in projects.list_reviewers(connection):
@@ -310,7 +316,8 @@ def run_ai(
     references = dedup_state(folder).references
     screened, failed, stopped = 0, [], ""
     batch_spent = Decimal(0)
-    for item in _inputs(folder, pilot, _waiting_for_ai(folder, pilot)):
+    waiting = _waiting_for_ai(folder, pilot)
+    for item in inputs_for(folder, version, waiting, references):
         estimate = provider.estimate_cost(SCREEN_REFERENCE, [item]).amount
         decided = False
         for _attempt in range(MAX_ATTEMPTS):
@@ -352,10 +359,11 @@ def run_ai(
             except UnusableAnswerError as error:
                 record_unusable(folder, stored, error, now=now, tool_version=tool_version)
                 continue
-            reviewer_id = _ai_reviewer(folder, stored, now=now, tool_version=tool_version)
-            _store_ai_decision(
+            reviewer_id = ai_reviewer(folder, stored, now=now, tool_version=tool_version)
+            store_ai_decision(
                 folder,
-                pilot,
+                pilot.id,
+                french("Pilot round {number}: AI decision recorded").format(number=pilot.number),
                 stored,
                 result.output,
                 references[item.item_id],
@@ -374,15 +382,26 @@ def run_ai(
             break  # not a failure: the reference waits for the next batch
         else:
             failed.append(item.item_id)
-            _record_failure(folder, pilot, item.item_id, now=now, tool_version=tool_version)
+            record_ai_failure(
+                folder,
+                pilot.id,
+                french(
+                    "Pilot round {number}: the AI could not screen a reference "
+                    "(attempts: {attempts})"
+                ).format(number=pilot.number, attempts=MAX_ATTEMPTS),
+                item.item_id,
+                now=now,
+                tool_version=tool_version,
+            )
     outcome = AIBatchResult(screened=screened, failed=failed, stopped=stopped, spent=batch_spent)
     _journal_batch_end(folder, pilot, outcome, now=now, tool_version=tool_version)
     return outcome
 
 
-def _store_ai_decision(
+def store_ai_decision(
     folder: ProjectFolder,
-    pilot: PilotRound,
+    round_id: str,
+    summary: str,
     stored: StoredCall,
     output: ScreenReferenceOutput,
     reference: Reference,
@@ -403,7 +422,7 @@ def _store_ai_decision(
             thresholds=thresholds,
             calibration=calibration,
             decision_id=new_ulid(moment),
-            round_id=pilot.id,
+            round_id=round_id,
             reviewer_id=reviewer_id,
             call_id=stored.id,
             tool_version=tool_version,
@@ -416,9 +435,7 @@ def _store_ai_decision(
             entry_type=EntryType.SCREENING_AI_DECIDED,
             subject_type="decision",
             subject_id=decision.id,
-            summary_fr=french("Pilot round {number}: AI decision recorded").format(
-                number=pilot.number
-            ),
+            summary_fr=summary,
             tool_version=tool_version,
             payload=call_summary(stored)
             | {
@@ -438,8 +455,15 @@ def _store_ai_decision(
     return decision
 
 
-def _record_failure(
-    folder: ProjectFolder, pilot: PilotRound, reference_id: str, *, now: Clock, tool_version: str
+def record_ai_failure(
+    folder: ProjectFolder,
+    round_id: str,
+    summary: str,
+    reference_id: str,
+    *,
+    now: Clock,
+    tool_version: str,
+    attempts: int = MAX_ATTEMPTS,
 ) -> None:
     with folder.write() as connection:
         journal.append_entry(
@@ -449,11 +473,9 @@ def _record_failure(
             entry_type=EntryType.SCREENING_AI_FAILED,
             subject_type="reference",
             subject_id=reference_id,
-            summary_fr=french(
-                "Pilot round {number}: the AI could not screen a reference (attempts: {attempts})"
-            ).format(number=pilot.number, attempts=MAX_ATTEMPTS),
+            summary_fr=summary,
             tool_version=tool_version,
-            payload={"round": pilot.number, "reference": reference_id, "attempts": MAX_ATTEMPTS},
+            payload={"round_id": round_id, "reference": reference_id, "attempts": attempts},
         )
 
 

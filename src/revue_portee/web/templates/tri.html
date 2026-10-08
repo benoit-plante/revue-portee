@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Screening") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Title and abstract screening") }}</h1>
+<p>{{ _("You screen every reference; the AI screens them independently. You do not see its decision while you screen: the references where one of you keeps the reference and the other excludes it are then reconciled, with the AI's rationale in view. The final decision is always yours.") }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+{% if not main %}
+<section aria-labelledby="debut-titre">
+  <h2 id="debut-titre">{{ _("Start the screening") }}</h2>
+  {% if not active %}
+  <p class="message info">{{ _("Activate a version of the criteria on the Criteria page before the screening.") }}</p>
+  {% else %}
+  <p>{{ _("The references after deduplication are screened in an order drawn at random, with a recorded seed. Your decisions of the pilot taken with the criteria in force are kept.") }}</p>
+  <form method="post" action="/tri/lancer" class="inline-form">
+    {{ csrf() }}
+    <label for="graine">{{ _("Seed (empty: drawn at random and recorded)") }}</label>
+    <input type="number" min="0" id="graine" name="graine" value="">
+    <button type="submit">{{ _("Start the screening") }}</button>
+  </form>
+  {% endif %}
+</section>
+{% else %}
+<section aria-labelledby="avancement-titre">
+  <h2 id="avancement-titre">{{ _("Progress") }}</h2>
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Progress of the screening") }}</caption>
+    <tbody>
+      <tr><th scope="row">{{ _("References to screen") }}</th><td>{{ counts.members }}</td></tr>
+      <tr><th scope="row">{{ _("Your decisions") }}</th><td>{{ counts.human }}</td></tr>
+      <tr><th scope="row">{{ _("AI decisions") }}</th><td>{{ counts.ai }}</td></tr>
+      <tr><th scope="row">{{ _("Disagreements") }}</th><td>{{ counts.disagreements }}</td></tr>
+      <tr><th scope="row">{{ _("Reconciled") }}</th><td>{{ counts.reconciled }}</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <a href="/tri/trier">{{ _("Screen the next reference") }}</a> ·
+    <a href="/tri/trier?priorite=1">{{ _("Screen by priority (most likely inclusions first, according to the AI)") }}</a>
+    {% if counts.to_reconcile %} · <a href="/tri/reconciliation">{{ _("Reconcile the disagreements (%(count)s)", count=counts.to_reconcile) }}</a>{% endif %}
+  </p>
+  <p class="small">{{ _("Order drawn with the seed %(seed)s on %(date)s.", seed=main.seed, date=main.created_at.strftime("%Y-%m-%d")) }}</p>
+  <form method="post" action="/tri/ajouter" class="inline-form">
+    {{ csrf() }}
+    <button type="submit">{{ _("Add the references collected since") }}</button>
+  </form>
+</section>
+
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Screening by the AI") }}</h2>
+  {% with ai = ai_main %}{% include "_tri_ia.html" %}{% endwith %}
+</section>
+
+<section aria-labelledby="impact-titre">
+  <h2 id="impact-titre">{{ _("Criteria changes") }}</h2>
+  {% if to_assess %}
+  <p>{{ _("Version %(number)s of the criteria came into force during the screening: its impact on the decisions already taken must be analysed.", number=to_assess.number) }}</p>
+  <form method="post" action="/tri/impact">
+    {{ csrf() }}
+    <label class="inline"><input type="checkbox" name="toutes" value="1"> {{ _("Reassess every reference touched by a clarification (by default, a random sample of 20 %%, at least 20)") }}</label>
+    <button type="submit">{{ _("Analyse the impact of version %(number)s", number=to_assess.number) }}</button>
+  </form>
+  {% endif %}
+  {% if impacts %}
+  <ul>
+    {% for i in impacts %}
+    <li>{{ _("Version %(source)s to %(to)s: references touched: %(touched)s", source=versions[i.from_version_id], to=versions[i.to_version_id], touched=i.impact.touched | length) }}{% if i.reassessment_round_id %} — <a href="/tri/reevaluation/{{ i.id }}">{{ _("Reassessment") }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% elif not to_assess %}
+  <p>{{ _("No criteria change since the screening started.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

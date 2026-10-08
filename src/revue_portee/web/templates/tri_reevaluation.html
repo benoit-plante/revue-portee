@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Reassessment") }}{% endblock %}
+{% block content %}
+{% set values = value_labels() %}{% set types = change_type_labels() %}
+<p><a href="/tri">{{ _("Screening") }}</a></p>
+<h1>{{ _("Reassessment %(number)s: criteria version %(source)s to %(to)s", number=state.round.number, source=versions[state.assessment.from_version_id], to=versions[state.assessment.to_version_id]) }}</h1>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+<table class="criteria">
+  <caption>{{ _("References touched by each change") }}</caption>
+  <thead><tr><th scope="col">{{ _("Criterion") }}</th><th scope="col">{{ _("Change") }}</th><th scope="col">{{ _("References touched") }}</th></tr></thead>
+  <tbody>
+  {% for c in state.assessment.impact.changes %}
+    <tr><th scope="row">{{ c.code }}</th><td>{{ types[c.change_type] }}</td><td>{{ c.reference_ids | length }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>{{ _("References reassessed: %(count)s (seed %(seed)s%(sampled)s). The AI screens them again with the new version; you verify those whose decision would change. The old decisions are kept.", count=state.members | length, seed=state.assessment.seed, sampled=_(", clarifications on a sample") if state.assessment.sampled else "") }}</p>
+
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Screening by the AI") }}</h2>
+  {% with ai = ai_round %}{% include "_tri_ia.html" %}{% endwith %}
+</section>
+
+<section aria-labelledby="verif-titre">
+  <h2 id="verif-titre">{{ _("Decisions the AI would change") }}</h2>
+  <p class="small">{{ _("To verify: %(left)s of %(count)s.", left=state.queue | length, count=state.changed | length) }}</p>
+  {% if ref %}
+  {% include "_tri_notice.html" %}
+  <div class="two-columns">
+    <section aria-labelledby="avant-titre">
+      <h3 id="avant-titre">{{ _("Decision before the change") }}</h3>
+      <p><strong>{{ values[previous.value] }}</strong>{% if previous.criteria_cited %} ({{ previous.criteria_cited | join(", ") }}){% endif %}</p>
+    </section>
+    <section aria-labelledby="ia-dec-titre">
+      <h3 id="ia-dec-titre">{{ _("Decision of the AI with the new version") }}</h3>
+      {% include "_tri_ai_decision.html" %}
+    </section>
+  </div>
+  {% with action = "/tri/reevaluation/" ~ state.assessment.id, reference_id = ref.id, checked = [] %}{% include "_tri_form.html" %}{% endwith %}
+  {% elif state.completed %}
+  <p class="message success">{{ _("Reassessment completed and recorded in the journal.") }}</p>
+  {% elif not state.ai_waiting and not state.ai_running %}
+  <form method="post" action="/tri/reevaluation/{{ state.assessment.id }}/terminer">
+    {{ csrf() }}
+    <button type="submit">{{ _("Complete the reassessment") }}</button>
+  </form>
+  {% else %}
+  <p>{{ _("Nothing to verify yet.") }}</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -59,6 +59,12 @@ class PriceTable(BaseModel):
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     per_tokens: int = Field(gt=0)
     providers: dict[str, dict[str, ModelPrice]]
+    # Factor applied to every price of a provider's asynchronous batch API (0.5: half).
+    batch_factor: dict[str, Decimal] = Field(default_factory=dict)
+
+    def factor(self, provider: str, *, batch: bool) -> Decimal:
+        """1 for a call; the provider's batch factor (1 if it has none) for a batch."""
+        return self.batch_factor.get(provider, Decimal(1)) if batch else Decimal(1)
 
     def price(self, provider: str, model: str) -> ModelPrice:
         found = self.providers.get(provider, {}).get(model)
@@ -88,13 +94,15 @@ def estimate(
     input_tokens: int,
     output_tokens: int,
     cacheable_tokens: int = 0,
+    batch: bool = False,
 ) -> CostEstimate:
     """Cost before a call, in the most expensive case for the model asked for.
 
     ``cacheable_tokens`` (part of ``input_tokens``) are the instructions sent with a
     cache marker: they are priced as written to the cache, the dearer of the two prices,
     and no cache read discount is assumed. A server-side fallback to another model is
-    priced at that model's rates once the call is made.
+    priced at that model's rates once the call is made. ``batch`` applies the
+    provider's batch factor.
     """
     if not 0 <= cacheable_tokens <= input_tokens:
         raise ValueError("cacheable tokens are part of the input tokens")
@@ -104,7 +112,7 @@ def estimate(
         _amount(input_tokens - cacheable_tokens, price.input, per)
         + _amount(cacheable_tokens, max(price.cache_write, price.input), per)
         + _amount(output_tokens, price.output, per)
-    )
+    ) * table.factor(provider, batch=batch)
     return CostEstimate(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
@@ -122,6 +130,7 @@ def call_cost(
     output_tokens: int,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
+    batch: bool = False,
 ) -> Decimal:
     """Cost of a completed call. ``input_tokens`` excludes the cached tokens, as in the
     usage reported by the Anthropic API."""
@@ -132,4 +141,4 @@ def call_cost(
         + _amount(output_tokens, price.output, per)
         + _amount(cache_read_tokens, price.cache_read, per)
         + _amount(cache_write_tokens, price.cache_write, per)
-    )
+    ) * table.factor(provider, batch=batch)

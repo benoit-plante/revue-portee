@@ -71,6 +71,14 @@ class EntryType:
     THRESHOLDS_SET = "thresholds.set"
     BUDGET_SET = "budget.set"
     BUDGET_REACHED = "budget.reached"
+    SCREENING_STARTED = "screening.started"
+    SCREENING_MEMBERS_ADDED = "screening.members_added"
+    SCREENING_AI_BATCH_SUBMITTED = "screening.ai_batch_submitted"
+    SCREENING_RECONCILED = "screening.reconciled"
+    IMPACT_ASSESSED = "impact.assessed"
+    REASSESSMENT_STARTED = "reassessment.started"
+    REASSESSMENT_DECIDED = "reassessment.decided"
+    REASSESSMENT_COMPLETED = "reassessment.completed"
 
 
 class JournalEntry(BaseModel):

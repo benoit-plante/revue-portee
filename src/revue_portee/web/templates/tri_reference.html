@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Screen") }}{% endblock %}
+{% block content %}
+{% set values = value_labels() %}
+<p><a href="/tri">{{ _("Screening") }}</a></p>
+<h1>{{ _("Screen the next reference") }}</h1>
+<p class="small">{{ _("Your decisions: %(done)s of %(count)s.", done=done, count=total) }} {% if priority %}<a href="/tri/trier">{{ _("Back to the drawn order") }}</a>{% else %}<a href="/tri/trier?priorite=1">{{ _("Screen by priority") }}</a>{% endif %}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if ref %}
+<p class="small">{{ _("The decision of the AI is not shown while you screen.") }}</p>
+{% include "_tri_notice.html" %}
+{% with action = "/tri/decision" ~ ("?priorite=1" if priority else ""), reference_id = ref.id, checked = [], skippable = true %}{% include "_tri_form.html" %}{% endwith %}
+<p><a id="tri-passer" href="/tri/trier?passer={{ (skipped + [ref.id]) | join(",") }}{% if priority %}&amp;priorite=1{% endif %}">{{ _("Skip for now") }} <kbd>p</kbd></a></p>
+{% else %}
+<p>{{ _("You have screened every reference.") }}{% if skipped %} <a href="/tri/trier{% if priority %}?priorite=1{% endif %}">{{ _("Back to the references skipped") }}</a>{% endif %}</p>
+{% endif %}
+{% endblock %}
