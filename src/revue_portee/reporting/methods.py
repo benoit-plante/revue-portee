@@ -164,6 +164,8 @@ class CostLine(BaseModel):
     phase: str  # pilot, main, reassessment, unlinked
     calls: int
     amount: Decimal
+    input_tokens: int = 0  # read by the model, from the prompt cache included
+    output_tokens: int = 0
 
 
 class MethodsData(BaseModel):
@@ -527,12 +529,21 @@ def _costs(_: Translate, data: MethodsData, language: str) -> list[Block]:
     lines = [c for c in data.costs if c.calls or c.phase != "unlinked"]
     total = sum((c.amount for c in lines), Decimal(0))
     rows = [
-        (labels[c.phase], integer(c.calls, language), _money(c.amount, language)) for c in lines
+        (
+            labels[c.phase],
+            integer(c.calls, language),
+            integer(c.input_tokens, language),
+            integer(c.output_tokens, language),
+            _money(c.amount, language),
+        )
+        for c in lines
     ]
     rows.append(
         (
             _("Total of the screening"),
             integer(sum(c.calls for c in lines), language),
+            integer(sum(c.input_tokens for c in lines), language),
+            integer(sum(c.output_tokens for c in lines), language),
             _money(total, language),
         )
     )
@@ -543,7 +554,10 @@ def _costs(_: Translate, data: MethodsData, language: str) -> list[Block]:
                 "({currency}):"
             ).format(date=data.prices_as_of, currency=data.currency)
         ),
-        Table(header=(_("Phase"), _("Calls"), _("Cost")), rows=tuple(rows)),
+        Table(
+            header=(_("Phase"), _("Calls"), _("Input tokens"), _("Output tokens"), _("Cost")),
+            rows=tuple(rows),
+        ),
     ]
     if data.other_costs.calls:
         blocks.append(
@@ -633,6 +647,26 @@ def _results(_: Translate, data: MethodsData, language: str) -> list[Block]:
     return blocks
 
 
+def _environment(_: Translate, data: MethodsData, language: str) -> str:
+    """The environmental impact is not measured; the tokens are an indirect indicator."""
+    lines = [c for c in data.costs if c.calls]
+    tokens = sum(c.input_tokens + c.output_tokens for c in lines)
+    references = data.screening.references if data.screening else 0
+    if not tokens:
+        return _(
+            "The environmental impact of the AI use (energy, water, emissions) was not measured."
+        )
+    text = _(
+        "The environmental impact of the AI use (energy, water, emissions) was not measured; "
+        "as an indirect indicator, the AI screening processed {tokens} tokens"
+    ).format(tokens=integer(tokens, language))
+    if references:
+        text += _(", about {per_reference} per reference screened").format(
+            per_reference=integer(round(tokens / references), language)
+        )
+    return text + "."
+
+
 def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
@@ -660,6 +694,7 @@ def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
             "exact versions used are reported above."
         ),
         _("Only published literature was sent to the model; no participant data."),
+        _environment(_, data, language),
     ]
     return [
         Heading(level=2, text=_("Limitations and ethics")),

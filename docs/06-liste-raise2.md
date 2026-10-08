@@ -76,7 +76,7 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 | 4.5 | Coût, charge de travail, effort de vérification humaine | ◐ | Coût réel par appel et par phase, coût pour 1 000 références au banc. Manque : le temps de vérification humaine (voir 3.3) |
 | 4.6 | Interopérabilité (RIS, CSV) | ✅ | Import RIS de 5 plateformes et plus (D-056); export RIS et CSV des références retenues (D-096); archive CSV et JSON (D-092) |
 | 4.7 | Transparence technique (version du modèle, paramètres) et explicabilité | ✅ | Version exacte renvoyée par l'API, paramètres, empreinte de l'invite, justification et passage cité pour chaque critère |
-| 4.8 | Impact environnemental | ❌ | Rien n'est rapporté. On pourrait au moins déclarer le nombre de jetons pour 1 000 références, qui sert d'indicateur indirect |
+| 4.8 | Impact environnemental | ◐ | Non mesuré (énergie, eau, émissions). Indicateur indirect déclaré : les jetons lus et écrits, par phase et par référence, dans la section méthode et le rapport du banc |
 | 4.9 | Publier les mesures **et les jeux de données** d'évaluation | ◐ | Rapports chiffrés et critères du banc publiés; jeux SYNERGY publics (CC0). Les décisions de l'IA au banc ne sont pas publiées (réponses brutes hors dépôt, D-074) : on pourrait publier les identifiants et les décisions, sans texte protégé, comme le prévoit 05 (§11) |
 
 ## 5. Déclaration (RAISE 2, §4, cadre adapté de Kolbinger et al.)
@@ -96,7 +96,7 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 | 5.11 | Conséquences pour l'usage : risque que l'IA rende les conclusions non fiables, et dans quelles circonstances | ✅ | [Fiche de l'outil](07-fiche-outil.md), « Conséquences pour l'usage » (risque d'ancrage à la réconciliation) |
 | 5.12 | Éthique, protocole public, sources de soutien, déclarations d'intérêts (outil commercial ou non) | ◐ | Outil libre et non commercial (AGPL-3.0); conflit d'intérêts du développeur et atténuations dans 05 (§10). La section méthode laisse ces éléments à compléter par l'équipe (D-093) |
 | 5.13 | Disponibilité des données, du code, des invites et des analyses; reproductibilité par des tiers | ✅ | Code et gabarits publics; archive vérifiable sans clé d'API (ENF-REP-06, D-092); la reproduction exacte des décisions de l'IA reste impossible si le modèle change, d'où la conservation des réponses brutes (ENF-TRA-03) |
-| 5.14 | Impact environnemental | ❌ | Voir 4.8 |
+| 5.14 | Impact environnemental | ◐ | Voir 4.8 |
 
 ## 6. Bilan pour la V1
 
@@ -113,7 +113,7 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 5. ~~**Jeu de test indépendant pour le dédoublonnage** (2.10)~~, fait : ASySD, 5 jeux (D-098).
 6. **Stabilité des réponses** (2.5, 4.2) : petite expérience de réexécution. Elle appelle le vrai modèle, donc **seulement avec l'accord de Benoit** et sous un plafond.
 7. **Étude de validation** (2.4, 3.1, 3.4, 3.6, 4.1, 4.3) : préenregistrement OSF puis exécution (05). C'est elle qui fournira les preuves d'évaluation au sens de RAISE 2.
-8. **Impact environnemental** (4.8, 5.14) : déclarer au moins les jetons consommés pour 1 000 références.
+8. ~~**Impact environnemental** (4.8, 5.14)~~, fait en partie : les jetons sont déclarés; une estimation de l'énergie reste à faire (par exemple avec Green Algorithms, cité par RAISE 2).
 9. **Consultation des parties prenantes** (1.5) : bibliothécaires et méthodologistes, avant l'étude de validation.
 
 Le temps de travail (3.3) et l'utilisabilité seront mieux mesurés pendant l'essai de bout en bout, à concevoir si possible comme une étude au sein d'une revue (SWAR).

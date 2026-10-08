@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 19:06-0400\n"
+"POT-Creation-Date: 2026-10-08 19:16-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -60,6 +60,10 @@ msgstr "(obligatoire)"
 
 msgid "(stage to come)"
 msgstr "(étape à venir)"
+
+#, python-brace-format
+msgid ", about {per_reference} per reference screened"
+msgstr ", soit environ {per_reference} par référence triée"
 
 msgid ", calibrated"
 msgstr ", étalonnée"
@@ -1275,6 +1279,9 @@ msgstr "Inclusion (combiné par AND)"
 msgid "Information sources"
 msgstr "Sources d'information"
 
+msgid "Input tokens"
+msgstr "Jetons lus"
+
 msgid "Interrupted"
 msgstr "Interrompue"
 
@@ -1728,6 +1735,9 @@ msgid ""
 msgstr ""
 "Autres usages de l'IA dans le projet (cadrage, critères, recherche) : {calls} appels, {amount} "
 "{currency}."
+
+msgid "Output tokens"
+msgstr "Jetons écrits"
 
 msgid "PCC element"
 msgstr "Élément PCC"
@@ -2719,6 +2729,17 @@ msgstr "La décision de l'IA sur cette référence ne s'affiche qu'après la vô
 msgid "The draft has no modified criterion to qualify."
 msgstr "Le brouillon n'a aucun critère modifié à qualifier."
 
+msgid "The environmental impact of the AI use (energy, water, emissions) was not measured."
+msgstr "L'impact environnemental de l'usage de l'IA (énergie, eau, émissions) n'a pas été mesuré."
+
+#, python-brace-format
+msgid ""
+"The environmental impact of the AI use (energy, water, emissions) was not measured; as an "
+"indirect indicator, the AI screening processed {tokens} tokens"
+msgstr ""
+"L'impact environnemental de l'usage de l'IA (énergie, eau, émissions) n'a pas été mesuré ; comme "
+"indicateur indirect, le tri par l'IA a traité {tokens} jetons"
+
 msgid "The file holds no RIS record (no line starting with « TY  - »)."
 msgstr "Le fichier ne contient aucune notice RIS (aucune ligne ne commence par « TY  - »)."
 
@@ -3088,6 +3109,12 @@ msgstr "À vérifier : %(left)s sur %(count)s."
 
 msgid "Tokens (estimate)"
 msgstr "Jetons (estimation)"
+
+msgid "Tokens per record screened"
+msgstr "Jetons par notice triée"
+
+msgid "Tokens read and written"
+msgstr "Jetons lus et écrits"
 
 msgid "Total"
 msgstr "Total"
