@@ -1,0 +1,108 @@
+# PRISMA 2020 flow diagram, "new systematic reviews which included searches of
+# databases and registers only", adapted to scoping reviews (EF-DEC-01, ENF-NOR-03).
+# The boxes, their order and their wording are data; the numbers are always computed
+# from the project (reporting/flow.py), never typed in.
+id: prisma-2020-flow-databases-registers
+version: "1"
+date: 2026-10-08
+source: >-
+  Page MJ, McKenzie JE, Bossuyt PM, Boutron I, Hoffmann TC, Mulrow CD, et al. The
+  PRISMA 2020 statement: an updated guideline for reporting systematic reviews.
+  BMJ. 2021;372:n71. doi:10.1136/bmj.n71
+adaptation: >-
+  Tricco AC, Lillie E, Zarin W, O'Brien KK, Colquhoun H, Levac D, et al. PRISMA
+  Extension for Scoping Reviews (PRISMA-ScR): Checklist and Explanation. Ann Intern
+  Med. 2018;169(7):467-473. doi:10.7326/M18-0850
+license: CC BY 4.0
+# The English wording follows the PRISMA 2020 template, with "sources of evidence"
+# (PRISMA-ScR) in place of "studies". The French wording is the project's own
+# translation (Québec usage: « données probantes »); it was not compared with a
+# published French translation of the template.
+verified: false
+phases:
+  - id: identification
+    en: Identification
+    fr: Repérage
+  - id: screening
+    en: Screening
+    fr: Sélection
+  - id: included
+    en: Included
+    fr: Inclusion
+boxes:
+  # Identification
+  - id: identified
+    phase: identification
+    en: "Records identified from:"
+    fr: "Références repérées dans :"
+  - id: databases
+    phase: identification
+    en: Databases
+    fr: Bases de données
+  - id: registers
+    phase: identification
+    en: Registers
+    fr: Registres
+  - id: removed_before_screening
+    phase: identification
+    en: "Records removed before screening:"
+    fr: "Références retirées avant la sélection :"
+  - id: duplicates
+    phase: identification
+    en: Duplicate records removed
+    fr: Doublons retirés
+  - id: automation
+    phase: identification
+    en: Records marked as ineligible by automation tools
+    fr: Références jugées inadmissibles par des outils d'automatisation
+  - id: other_reasons
+    phase: identification
+    en: Records removed for other reasons
+    fr: Références retirées pour d'autres raisons
+  # Screening of titles and abstracts (V1)
+  - id: screened
+    phase: screening
+    en: Records screened
+    fr: Références triées
+  - id: excluded
+    phase: screening
+    en: Records excluded
+    fr: Références exclues
+  - id: excluded_by_person
+    phase: screening
+    en: by a person
+    fr: par une personne
+  - id: excluded_by_automation
+    phase: screening
+    en: by automation tools
+    fr: par des outils d'automatisation
+  # Full text (V2): drawn as stages to come
+  - id: sought
+    phase: screening
+    en: Reports sought for retrieval
+    fr: Rapports recherchés pour le texte intégral
+  - id: not_retrieved
+    phase: screening
+    en: Reports not retrieved
+    fr: Rapports non obtenus
+    stage: later
+  - id: assessed
+    phase: screening
+    en: Reports assessed for eligibility
+    fr: Rapports évalués pour l'admissibilité
+    stage: later
+  - id: reports_excluded
+    phase: screening
+    en: "Reports excluded (with reasons):"
+    fr: "Rapports exclus (avec motifs) :"
+    stage: later
+  - id: included
+    phase: included
+    en: Sources of evidence included in review
+    fr: Sources de données probantes incluses dans la revue
+    stage: later
+  - id: included_reports
+    phase: included
+    en: Reports of included sources of evidence
+    fr: Rapports des sources de données probantes incluses
+    stage: later

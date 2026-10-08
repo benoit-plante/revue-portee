@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="{{ language }}" width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}" font-family="Arial, Helvetica, sans-serif" font-size="12">
+  <title>{{ title }}</title>
+  <desc>{{ project_title }}</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/>
+    </marker>
+    <marker id="arrow-later" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8a8a"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="{{ width }}" height="{{ height }}" fill="#ffffff"/>
+  <text x="{{ band_x }}" y="28" font-size="16" font-weight="bold">{{ title }}</text>
+  <text x="{{ band_x }}" y="50" font-size="13">{{ project_title }}</text>
+{% for band in bands %}
+  <rect x="{{ band_x }}" y="{{ band.y }}" width="{{ band_width }}" height="{{ band.height }}" rx="4" fill="#dbe7f3" stroke="#5b7fa6"/>
+  <text x="{{ band.center[0] }}" y="{{ band.center[1] }}" transform="rotate(-90 {{ band.center[0] }} {{ band.center[1] }})" text-anchor="middle" dominant-baseline="central" font-weight="bold">{{ band.label }}</text>
+{% endfor %}
+{% for box in boxes %}
+  <rect x="{{ box.x }}" y="{{ box.y }}" width="{{ box.width }}" height="{{ box.height }}" fill="#ffffff" stroke="{{ '#8a8a8a' if box.later else '#000000' }}"{% if box.later %} stroke-dasharray="5 4"{% endif %}/>
+{% for line in box.text %}
+  <text x="{{ line.x }}" y="{{ line.y }}"{% if line.bold %} font-weight="bold"{% endif %}{% if box.later %} fill="#6b6b6b"{% endif %}>{{ line.text }}</text>
+{% endfor %}
+{% endfor %}
+{% for arrow in arrows %}
+  <line x1="{{ arrow.x1 }}" y1="{{ arrow.y1 }}" x2="{{ arrow.x2 }}" y2="{{ arrow.y2 }}" stroke="{{ '#8a8a8a' if arrow.later else '#000000' }}"{% if arrow.later %} stroke-dasharray="5 4"{% endif %} marker-end="url(#{{ 'arrow-later' if arrow.later else 'arrow' }})"/>
+{% endfor %}
+{% for line in notes %}
+  <text x="{{ line.x }}" y="{{ line.y }}" font-size="11">{{ line.text }}</text>
+{% endfor %}
+{% if provisional %}
+  <text x="{{ width / 2 }}" y="{{ height / 2 }}" transform="rotate(-30 {{ width / 2 }} {{ height / 2 }})" text-anchor="middle" dominant-baseline="central" font-size="96" font-weight="bold" fill="#c0392b" fill-opacity="0.15">{{ provisional }}</text>
+{% endif %}
+</svg>

@@ -103,3 +103,16 @@ def test_protocol_export(tmp_path: Path) -> None:
     assert "Langue non prise en charge" in refused.output
     missing = runner.invoke(app, ["protocole", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_flow_diagram_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["diagramme", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert result.output.count("Diagramme de flux écrit") == 2
+    french = (folder / "exports" / "diagramme-fr.svg").read_text(encoding="utf-8")
+    assert "PROVISOIRE" in french  # nothing collected nor screened yet
+    assert (folder / "exports" / "diagramme-en.svg").is_file()
+    missing = runner.invoke(app, ["diagramme", str(tmp_path / "absent")])
+    assert missing.exit_code == 1
