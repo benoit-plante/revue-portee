@@ -123,3 +123,19 @@ def test_references_kept_downloads(demo: Demo) -> None:
     assert table.headers["content-type"] == "text/csv; charset=utf-8"
     assert len(table.text.strip().splitlines()) == 4  # header and three references
     assert client.get("/rapports/retenues?format=xlsx").status_code == 404
+
+
+@pytest.mark.parametrize("path", ["/pilote", "/tri"])
+def test_ai_reviewer_shown_under_evaluation(
+    demo: Demo, path: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = text_of(client_for(demo).get(path))
+    assert "Réviseur IA en cours d'évaluation." in page
+    assert "pas encore validé" in page
+    # once results on held-out data are published, the notice goes away
+    from revue_portee.resources import tool_validation
+    from revue_portee.web import app as web_app
+
+    held_out = tool_validation().model_copy(update={"dataset_role": "test"})
+    monkeypatch.setattr(web_app, "tool_validation", lambda: held_out)
+    assert "Réviseur IA en cours d'évaluation." not in text_of(client_for(demo).get(path))
