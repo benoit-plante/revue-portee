@@ -18,6 +18,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
@@ -43,6 +44,7 @@ from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
+from revue_portee.domain.screening import DecisionValue, Thresholds
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
@@ -56,15 +58,19 @@ from revue_portee.reporting.document import render_docx, render_markdown
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.resources import peters_checklist
+from revue_portee.screening import ai_screening, pilot
+from revue_portee.screening import settings as screening_settings
 from revue_portee.search import runs, strategies
 from revue_portee.search import suggestions as term_suggestions
 from revue_portee.search.runs import DescriptorSource, default_descriptor_source
 from revue_portee.sources import SourceError, SourceFactory, default_source_factory
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
+from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
+from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.version import tool_version as current_tool_version
-from revue_portee.web import dedup_view
+from revue_portee.web import dedup_view, pilot_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -317,6 +323,10 @@ def create_app(
         language_labels=language_labels,
         warning_labels=warning_labels,
         block_name=block_name,
+        value_labels=pilot_view.value_labels,
+        assessment_labels=pilot_view.assessment_labels,
+        stopped_labels=pilot_view.stopped_labels,
+        percent=pilot_view.percent,
         Database=Database,
         NEW_BLOCK=NEW_BLOCK,
         modification_types=MODIFICATION_TYPES,
@@ -1085,6 +1095,292 @@ def create_app(
             return dedup_page(request, error=str(error), status_code=422)
         anchor = retour if retour in ("paires", "groupes", "separees") else "paires"
         return see_other(f"/doublons#{anchor}")
+
+    # --- Pilot ------------------------------------------------------------------------
+
+    # Result of the last AI batch of each round, shown on the round page.
+    last_batches: dict[str, ai_screening.AIBatchResult] = {}
+
+    def pilot_job(round_id: str) -> str:
+        return f"pilote-{round_id}"
+
+    def pilot_home(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        with folder.engine.connect() as connection:
+            budget = screening_repo.latest_budget(connection)
+            spent = screening_repo.total_spent(connection)
+            active = criteria_repo.get_active_version(connection)
+        return render(
+            request,
+            "pilote.html",
+            {
+                "budget": budget,
+                "spent": spent,
+                "active": active,
+                "default_size": folder.ai_settings().supervision.pilot_sample_size,
+                "rounds": pilot.list_rounds(folder),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    def pilot_job_context(round_id: str) -> dict[str, Any]:
+        job = pilot_job(round_id)
+        return {
+            "round_id": round_id,
+            "running": background.running(job),
+            "job_error": background.error(job),
+            "last_batch": last_batches.get(round_id),
+        }
+
+    def round_page(
+        request: Request,
+        round_id: str,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        preview: CostPreview | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        try:
+            state = pilot.pilot_state(folder, round_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        return render(
+            request,
+            "pilote_tour.html",
+            {
+                "state": state,
+                "preview": preview,
+                "ceiling": pilot_view.batch_ceiling(preview.estimate) if preview else None,
+                "target": folder.ai_settings().supervision.target_sensitivity,
+                "error": error,
+                "message": message,
+            }
+            | pilot_job_context(round_id),
+            status_code=status_code,
+        )
+
+    @app.get("/pilote", response_class=HTMLResponse)
+    def show_pilot(request: Request, budget: int = 0) -> HTMLResponse:
+        return pilot_home(request, message=_("Budget saved.") if budget else None)
+
+    @app.post("/pilote/budget")
+    def save_budget(
+        request: Request, _csrf: Csrf, montant: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            amount = pilot_view.parse_amount(montant)
+        except ValueError:
+            return pilot_home(
+                request, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        screening_settings.set_budget(folder, amount, now=now, tool_version=context.tool_version)
+        return see_other("/pilote?budget=1#budget")
+
+    @app.post("/pilote/lancer")
+    def draw_pilot(
+        request: Request,
+        _csrf: Csrf,
+        taille: Annotated[str, Form()] = "",
+        graine: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            size = int(taille) if taille.strip() else None
+            seed = int(graine) if graine.strip() else None
+        except ValueError:
+            size = seed = -1
+        if (size is not None and size < 1) or (seed is not None and seed < 0):
+            return pilot_home(
+                request,
+                error=_("The size must be a positive whole number, the seed a whole number."),
+                status_code=422,
+            )
+        try:
+            drawn = pilot.start_pilot(
+                folder, size=size, seed=seed, now=now, tool_version=context.tool_version
+            )
+        except (pilot.NoActiveCriteriaError, pilot.NoReferencesError) as error:
+            return pilot_home(request, error=str(error), status_code=422)
+        return see_other(f"/pilote/{drawn.id}")
+
+    @app.get("/pilote/{round_id}", response_class=HTMLResponse)
+    def show_round(request: Request, round_id: str, decide: int = 0) -> HTMLResponse:
+        message = None
+        if decide == 1:
+            message = _("Decision recorded.")
+        elif decide == 2:
+            message = _("Calibration fitted.")
+        elif decide == 3:
+            message = _("Thresholds fixed.")
+        return round_page(request, round_id, message=message)
+
+    @app.get("/pilote/{round_id}/etat", response_class=HTMLResponse)
+    def round_progress(request: Request, round_id: str) -> HTMLResponse:
+        values = pilot_job_context(round_id)
+        response = templates.TemplateResponse(
+            request, "_pilote_etat.html", {"csrf_token": context.csrf_token} | values
+        )
+        if not values["running"]:
+            response.headers["HX-Refresh"] = "true"  # show the decisions of the batch
+        return response
+
+    @app.post("/pilote/{round_id}/decision")
+    async def decide_reference(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        form = await request.form()
+        reference = str(form.get("reference", ""))
+        cited = [str(code) for code in form.getlist("criteres")]
+        try:
+            value = DecisionValue(str(form.get("valeur", "")))
+        except ValueError:
+            return round_page(request, round_id, error=_("Choose a decision."), status_code=422)
+        try:
+            await run_in_threadpool(
+                pilot.record_human_decision,
+                folder,
+                round_id,
+                reference,
+                value,
+                criteria_cited=cited,
+                rationale=str(form.get("justification", "")).strip(),
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except (pilot.NotInRoundError, pilot.UnknownCriterionError, ValidationError) as error:
+            message = (
+                _("Cite at least one criterion to exclude a reference.")
+                if isinstance(error, ValidationError)
+                else str(error)
+            )
+            return round_page(request, round_id, error=message, status_code=422)
+        return see_other(f"/pilote/{round_id}?decide=1#tri")
+
+    @app.post("/pilote/{round_id}/ia/estimation")
+    def estimate_ai(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        try:
+            preview = ai_screening.preview_ai(folder, round_id, factory=provider_factory)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except _AI_ERRORS as error:
+            return round_page(request, round_id, error=str(error), status_code=422)
+        return round_page(request, round_id, preview=preview)
+
+    @app.post("/pilote/{round_id}/ia")
+    def screen_with_ai(
+        request: Request, round_id: str, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            pilot.get_round(folder, round_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return round_page(
+                request,
+                round_id,
+                error=_("The ceiling must be a positive amount."),
+                status_code=422,
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return round_page(request, round_id, error=error, status_code=422)
+
+        def work() -> None:
+            last_batches[round_id] = ai_screening.run_ai(
+                folder,
+                round_id,
+                batch_limit=limit,
+                factory=provider_factory,
+                now=now,
+                tool_version=context.tool_version,
+            )
+
+        if not background.start(pilot_job(round_id), work):
+            return round_page(
+                request,
+                round_id,
+                error=_("An AI batch is already running on this round."),
+                status_code=422,
+            )
+        return see_other(f"/pilote/{round_id}#ia")
+
+    @app.post("/pilote/{round_id}/etalonnage")
+    def calibrate(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        try:
+            pilot.fit_round_calibration(
+                folder, round_id, now=now, tool_version=context.tool_version
+            )
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except pilot.NothingToCalibrateError as error:
+            return round_page(request, round_id, error=str(error), status_code=422)
+        return see_other(f"/pilote/{round_id}?decide=2#etalonnage")
+
+    @app.post("/pilote/{round_id}/seuils")
+    def fix_thresholds(
+        request: Request,
+        round_id: str,
+        _csrf: Csrf,
+        exclure: Annotated[str, Form()] = "",
+        inclure: Annotated[str, Form()] = "",
+        cible: Annotated[str, Form()] = "",
+        motif: Annotated[str, Form()] = "",
+        etalonne: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            state = pilot.pilot_state(folder, round_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        try:
+            low = pilot_view.parse_probability(exclure)
+            high = pilot_view.parse_probability(inclure)
+            target = pilot_view.parse_probability(cible)
+            thresholds = Thresholds(exclude_below=low, include_above=high)
+        except (ValueError, ValidationError):
+            return round_page(
+                request,
+                round_id,
+                error=_(
+                    "Thresholds must be numbers from 0 to 1, the first one not above the second."
+                ),
+                status_code=422,
+            )
+        if not motif.strip():
+            return round_page(
+                request,
+                round_id,
+                error=_("Give the justification of the thresholds."),
+                status_code=422,
+            )
+        if target <= 0:
+            return round_page(
+                request,
+                round_id,
+                error=_("The target sensitivity must be above 0."),
+                status_code=422,
+            )
+        calibration = state.calibration if etalonne and state.calibration else None
+        screening_settings.set_thresholds(
+            folder,
+            thresholds,
+            justification=motif.strip(),
+            target_sensitivity=Decimal(str(target)),
+            round_id=round_id,
+            calibration_id=calibration.id if calibration else None,
+            now=now,
+            tool_version=context.tool_version,
+        )
+        return see_other(f"/pilote/{round_id}?decide=3#etalonnage")
 
     # --- Protocol ---------------------------------------------------------------------
 

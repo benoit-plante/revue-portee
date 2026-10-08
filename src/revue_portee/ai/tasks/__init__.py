@@ -13,6 +13,14 @@ from revue_portee.ai.tasks.qualification import (
     QualifyChangeInput,
     QualifyChangeOutput,
 )
+from revue_portee.ai.tasks.screening import (
+    SCREEN_REFERENCE,
+    AssessmentOutput,
+    CriterionText,
+    ReferenceText,
+    ScreenReferenceInput,
+    ScreenReferenceOutput,
+)
 from revue_portee.ai.tasks.search import (
     SUGGEST_TERMS,
     BlockSnapshot,
@@ -23,13 +31,19 @@ from revue_portee.ai.tasks.search import (
 
 __all__ = [
     "QUALIFY_CRITERION_CHANGE",
+    "SCREEN_REFERENCE",
     "SUGGEST_PCC",
     "SUGGEST_TERMS",
+    "AssessmentOutput",
     "BlockSnapshot",
     "CriterionSnapshot",
+    "CriterionText",
     "PccSuggestion",
     "QualifyChangeInput",
     "QualifyChangeOutput",
+    "ReferenceText",
+    "ScreenReferenceInput",
+    "ScreenReferenceOutput",
     "SuggestPccInput",
     "SuggestPccOutput",
     "SuggestTermsInput",

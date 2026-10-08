@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Pilot round %(number)s", number=state.round.number) }}{% endblock %}
+{% block content %}
+{% set values = value_labels() %}
+{% set statuses = assessment_labels() %}
+{% set r = state.round %}
+<p><a href="/pilote">{{ _("Pilot") }}</a></p>
+<h1>{{ _("Pilot round %(number)s", number=r.number) }}</h1>
+<p>{{ _("References: %(count)s, drawn on %(date)s with the seed %(seed)s; criteria version %(version)s.", count=r.sample_size, date=r.created_at.strftime("%Y-%m-%d"), seed=r.seed, version=state.criteria.number) }}</p>
+<p>{{ _("Your decisions: %(human)s of %(count)s. AI decisions: %(ai)s of %(count)s.", human=state.human | length, ai=state.ai | length, count=r.sample_size) }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+<section aria-labelledby="tri-titre" id="tri">
+  <h2 id="tri-titre">{{ _("Screen the next reference") }}</h2>
+  {% if state.next_reference %}
+  {% set ref = state.references[state.next_reference] %}
+  <p class="small">{{ _("The decision of the AI on this reference is shown only after yours.") }}</p>
+  <article class="pair">
+    <h3>{{ ref.title or _("(no title)") }}</h3>
+    <p class="small">{{ ref.year or "" }} — {{ ref.container_title }}{% if ref.authors %} — {{ ref.authors[:3] | join("; ") }}{% endif %}</p>
+    <p>{{ ref.abstract or _("(no abstract)") }}</p>
+  </article>
+  <form method="post" action="/pilote/{{ r.id }}/decision">
+    {{ csrf() }}
+    <input type="hidden" name="reference" value="{{ state.next_reference }}">
+    <fieldset>
+      <legend>{{ _("Criteria concerned (required to exclude)") }}</legend>
+      {% for c in state.criteria.criteria %}
+      <label class="inline"><input type="checkbox" name="criteres" value="{{ c.code }}"> {{ c.code }} — {{ c.text }}</label>
+      {% endfor %}
+    </fieldset>
+    <label for="justification">{{ _("Note (optional)") }}</label>
+    <textarea id="justification" name="justification" rows="2"></textarea>
+    <button type="submit" name="valeur" value="include">{{ values["include"] }}</button>
+    <button type="submit" name="valeur" value="uncertain">{{ values["uncertain"] }}</button>
+    <button type="submit" name="valeur" value="exclude">{{ values["exclude"] }}</button>
+  </form>
+  {% else %}
+  <p>{{ _("You have screened every reference of the round.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="ia-titre" id="ia">
+  <h2 id="ia-titre">{{ _("Screening by the AI") }}</h2>
+  <p>{{ _("Thresholds in force: the AI excludes below %(low)s and includes from %(high)s (probability of inclusion%(calibrated)s); in between, uncertain. A reference whose inclusion criterion cannot be told, and that no criterion fails, is never excluded.", low=decimal_fr(state.thresholds.exclude_below, 2), high=decimal_fr(state.thresholds.include_above, 2), calibrated=_(", calibrated") if state.thresholds_calibrated else "") }}</p>
+  {% include "_pilote_etat.html" %}
+  {% if preview %}
+  <section class="message info" aria-labelledby="estimation-titre" id="estimation">
+    <h3 id="estimation-titre">{{ _("Estimated cost before the batch") }}</h3>
+    <dl class="meta">
+      <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+      <dt>{{ _("Calls") }}</dt><dd>{{ preview.items }}</dd>
+      <dt>{{ _("Tokens (estimate)") }}</dt><dd>{{ _("%(input)s in, %(output)s out", input=preview.estimate.input_tokens, output=preview.estimate.output_tokens) }}</dd>
+      <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+    </dl>
+    <p class="small">{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model. The batch stops before a call that would pass its ceiling or the budget of the project; what is screened stays recorded.", date=preview.prices_as_of.isoformat()) }}</p>
+    <form method="post" action="/pilote/{{ r.id }}/ia" class="inline-form">
+      {{ csrf() }}
+      <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+      <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+      <button type="submit">{{ _("Start the AI screening (confirm the cost)") }}</button>
+      <a href="/pilote/{{ r.id }}#ia">{{ _("Cancel") }}</a>
+    </form>
+  </section>
+  {% elif not running and state.ai | length < r.sample_size %}
+  <form method="post" action="/pilote/{{ r.id }}/ia/estimation">
+    {{ csrf() }}
+    <button type="submit">{{ _("Estimate the cost of the AI screening") }}</button>
+  </form>
+  {% endif %}
+</section>
+
+<section aria-labelledby="decisions-titre" id="decisions">
+  <h2 id="decisions-titre">{{ _("Decisions") }}</h2>
+  {% if not state.human %}
+  <p>{{ _("No decision of yours yet.") }}</p>
+  {% else %}
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Your decisions and those of the AI") }}</caption>
+    <thead><tr><th scope="col">{{ _("Reference") }}</th><th scope="col">{{ _("You") }}</th><th scope="col">{{ _("AI") }}</th><th scope="col">{{ _("AI rationale") }}</th></tr></thead>
+    <tbody>
+    {% for ref_id in r.reference_ids if ref_id in state.human %}
+      {% set h = state.human[ref_id] %}{% set a = state.visible_ai(ref_id) %}
+      <tr{% if a and (h.value == "exclude") != (a.value == "exclude") %} class="differs"{% endif %}>
+        <th scope="row">{{ state.references[ref_id].title | truncate(90) }}</th>
+        <td>{{ values[h.value] }}{% if h.criteria_cited %} ({{ h.criteria_cited | join(", ") }}){% endif %}</td>
+        <td>{% if a %}{{ values[a.value] }} — {{ percent(a.confidence_calibrated if a.confidence_calibrated is not none else a.confidence_raw) }}{% else %}—{% endif %}</td>
+        <td>{% if a %}{{ a.rationale }}
+          <details><summary>{{ _("By criterion") }}</summary><ul class="small">
+          {% for item in a.assessments %}<li>{{ item.code }} : {{ statuses[item.status] }}{% if item.evidence_quote %} — «&nbsp;{{ item.evidence_quote }}&nbsp;»{% if item.quote_found == false %} ({{ _("not found in the reference") }}){% endif %}{% endif %}</li>{% endfor %}
+          </ul></details>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+<section aria-labelledby="etalonnage-titre" id="etalonnage">
+  <h2 id="etalonnage-titre">{{ _("Calibration table") }}</h2>
+  {% if not state.metrics %}
+  <p>{{ _("The table appears once references have both your decision and that of the AI.") }}</p>
+  {% else %}
+  {% set m = state.metrics %}{% set c = m.confusion %}
+  <p class="small">{{ _("Your decisions are the reference. A reference is kept when it is included or uncertain (it goes on to the full text), excluded otherwise. References compared: %(n)s.", n=c.n) }}</p>
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Agreement and accuracy of the AI") }}</caption>
+    <tbody>
+      <tr><th scope="row">{{ _("Agreement") }}</th><td>{{ percent(m.agreement) }}</td></tr>
+      <tr><th scope="row">{{ _("Cohen's kappa") }}</th><td>{{ decimal_fr(m.kappa, 3) if m.kappa is not none else "—" }}</td></tr>
+      <tr><th scope="row">{{ _("Gwet's AC1") }}</th><td>{{ decimal_fr(m.ac1, 3) if m.ac1 is not none else "—" }}</td></tr>
+      <tr><th scope="row">{{ _("Sensitivity of the AI") }}</th><td>{{ percent(m.sensitivity) }}{% if m.sensitivity_interval %} ({{ _("95 %% interval: %(low)s to %(high)s", low=percent(m.sensitivity_interval[0]), high=percent(m.sensitivity_interval[1])) }}){% endif %}</td></tr>
+      <tr><th scope="row">{{ _("Specificity of the AI") }}</th><td>{{ percent(m.specificity) }}{% if m.specificity_interval %} ({{ _("95 %% interval: %(low)s to %(high)s", low=percent(m.specificity_interval[0]), high=percent(m.specificity_interval[1])) }}){% endif %}</td></tr>
+    </tbody>
+  </table>
+  <table class="criteria">
+    <caption>{{ _("Confusion matrix") }}</caption>
+    <thead><tr><th scope="col"></th><th scope="col">{{ _("AI keeps") }}</th><th scope="col">{{ _("AI excludes") }}</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">{{ _("You keep") }}</th><td>{{ c.tp }}</td><td>{{ c.fn }}</td></tr>
+      <tr><th scope="row">{{ _("You exclude") }}</th><td>{{ c.fp }}</td><td>{{ c.tn }}</td></tr>
+    </tbody>
+  </table>
+  {% if state.disagreements %}
+  <p class="label">{{ _("Disagreements by criterion cited") }}</p>
+  <ul>{% for code, count in state.disagreements.items() %}<li>{{ code or _("(no criterion cited)") }} : {{ count }}</li>{% endfor %}</ul>
+  {% endif %}
+  <table class="criteria">
+    <caption>{{ _("Threshold, sensitivity and references avoided") }}</caption>
+    <thead><tr><th scope="col">{{ _("The AI excludes below") }}</th><th scope="col">{{ _("Sensitivity") }}</th><th scope="col">{{ _("References it would exclude") }}</th></tr></thead>
+    <tbody>
+    {% for p in state.curve %}
+      <tr><td>{{ decimal_fr(p.threshold, 2) }}</td><td>{{ percent(p.sensitivity) }}</td><td>{{ p.avoided }} ({{ percent(p.avoided_share) }})</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">{{ _("Probabilities %(kind)s.", kind=_("calibrated with the latest calibration of the round") if state.calibration else _("as given by the AI (no calibration yet)")) }}</p>
+
+  <h3>{{ _("Calibration") }}</h3>
+  {% if state.calibration %}
+  <p>{{ _("Calibration fitted on %(date)s (%(method)s, decisions: %(count)s), saved in %(path)s.", date=state.calibration.created_at.strftime("%Y-%m-%d %H:%M"), method=state.calibration.calibration.method, count=state.calibration.calibration.fitted_on, path=state.calibration.artifact_path) }}</p>
+  {% endif %}
+  <form method="post" action="/pilote/{{ r.id }}/etalonnage">
+    {{ csrf() }}
+    <button type="submit">{{ _("Fit the calibration on this round") }}</button>
+  </form>
+
+  <h3>{{ _("Thresholds") }}</h3>
+  {% if state.suggestion %}
+  <p>{{ _("Suggested exclusion threshold: %(threshold)s, the highest that keeps the sensitivity on this round at or above the target of %(target)s (sensitivity %(sensitivity)s, references excluded: %(avoided)s).", threshold=decimal_fr(state.suggestion.exclude_below, 2), target=percent(state.suggestion.target), sensitivity=percent(state.suggestion.sensitivity), avoided=state.suggestion.avoided) }}</p>
+  {% endif %}
+  <form method="post" action="/pilote/{{ r.id }}/seuils">
+    {{ csrf() }}
+    <label for="exclure">{{ _("The AI excludes below (0 to 1)") }}</label>
+    <input type="text" inputmode="decimal" id="exclure" name="exclure" value="{{ decimal_fr(state.suggestion.exclude_below if state.suggestion else state.thresholds.exclude_below, 2) }}" required>
+    <label for="inclure">{{ _("The AI includes from (0 to 1)") }}</label>
+    <input type="text" inputmode="decimal" id="inclure" name="inclure" value="{{ decimal_fr(state.thresholds.include_above, 2) }}" required>
+    <label for="cible">{{ _("Target sensitivity (0 to 1)") }}</label>
+    <input type="text" inputmode="decimal" id="cible" name="cible" value="{{ decimal_fr(target, 2) }}" required>
+    {% if state.calibration %}<label class="inline"><input type="checkbox" name="etalonne" value="1" checked> {{ _("Apply the thresholds to the calibrated probabilities") }}</label>{% endif %}
+    <label for="motif">{{ _("Justification (required)") }}</label>
+    <textarea id="motif" name="motif" rows="3" required></textarea>
+    <button type="submit">{{ _("Fix the thresholds") }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

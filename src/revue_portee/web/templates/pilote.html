@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Pilot") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Pilot of the AI reviewer") }}</h1>
+<p>{{ _("Before screening, the AI reviewer is tried on a random sample of the references. You screen the sample without seeing the AI's decisions; they are shown once you have decided. The agreement, the sensitivity of the AI and the thresholds are then computed from both.") }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+<section aria-labelledby="budget-titre" id="budget">
+  <h2 id="budget-titre">{{ _("AI budget of the project") }}</h2>
+  {% if budget %}
+  <p>{{ _("Ceiling: %(limit)s; spent so far on model calls: %(spent)s.", limit=money(budget.limit_amount, budget.currency), spent=money(spent, budget.currency)) }}</p>
+  {% else %}
+  <p class="message info">{{ _("No budget yet: set one before the first batch of AI screening. Calls stop cleanly when it is reached.") }}</p>
+  {% endif %}
+  <form method="post" action="/pilote/budget" class="inline-form">
+    {{ csrf() }}
+    <label for="montant">{{ _("Ceiling in US dollars") }}</label>
+    <input type="text" inputmode="decimal" id="montant" name="montant" value="{{ decimal_fr(budget.limit_amount, 2) if budget else '' }}" required>
+    <button type="submit">{{ _("Set the budget") }}</button>
+  </form>
+</section>
+
+<section aria-labelledby="tours-titre" id="tours">
+  <h2 id="tours-titre">{{ _("Pilot rounds") }}</h2>
+  {% if not active %}
+  <p class="message info">{{ _("Activate a version of the criteria on the Criteria page before the pilot.") }}</p>
+  {% else %}
+  <form method="post" action="/pilote/lancer" class="inline-form">
+    {{ csrf() }}
+    <label for="taille">{{ _("References in the sample") }}</label>
+    <input type="number" min="1" id="taille" name="taille" value="{{ default_size }}" required>
+    <label for="graine">{{ _("Seed (empty: drawn at random and recorded)") }}</label>
+    <input type="number" min="0" id="graine" name="graine" value="">
+    <button type="submit">{{ _("Draw a pilot sample") }}</button>
+  </form>
+  {% endif %}
+  {% if rounds %}
+  <ul>
+    {% for r in rounds %}
+    <li><a href="/pilote/{{ r.id }}">{{ _("Round %(number)s", number=r.number) }}</a> — {{ r.created_at.strftime("%Y-%m-%d") }} — {{ _("references: %(count)s, seed %(seed)s", count=r.sample_size, seed=r.seed) }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

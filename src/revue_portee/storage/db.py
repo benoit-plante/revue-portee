@@ -14,6 +14,7 @@ from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     Connection,
     Date,
@@ -42,6 +43,8 @@ __all__ = [
     "ai_call",
     "ai_config",
     "ai_suggestion",
+    "budget_setting",
+    "calibration_model",
     "collection_end",
     "collection_page",
     "collection_run",
@@ -50,6 +53,7 @@ __all__ = [
     "criterion",
     "criterion_change",
     "criterion_code",
+    "decision",
     "dedup_run",
     "descriptor_check",
     "duplicate_pair",
@@ -68,12 +72,15 @@ __all__ = [
     "query",
     "reference",
     "reviewer",
+    "round_member",
+    "screening_round",
     "search_run",
     "search_strategy_version",
     "sensitivity_check",
     "suggestion_review",
     "term_suggestion",
     "term_suggestion_review",
+    "threshold_setting",
     "write_transaction",
 ]
 
@@ -650,6 +657,115 @@ pair_decision = Table(
     Column("created_at", UTCDateTime, nullable=False),
     Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
     Index("ix_pair_decision_pair", "reference_a_id", "reference_b_id"),
+)
+
+
+def _journal_column() -> Column[str]:
+    return Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False)
+
+
+screening_round = Table(
+    "screening_round",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, nullable=False),
+    Column("stage", String(16), nullable=False),
+    Column("kind", String(16), nullable=False),
+    Column("criteria_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("seed", Integer, nullable=False),
+    Column("sample_size", Integer, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+    UniqueConstraint("stage", "kind", "number", name="uq_round_number"),
+)
+
+round_member = Table(
+    "round_member",
+    metadata,
+    Column("round_id", String(26), ForeignKey("screening_round.id"), nullable=False),
+    Column("position", Integer, nullable=False),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    PrimaryKeyConstraint("round_id", "position"),
+    UniqueConstraint("round_id", "reference_id", name="uq_round_member"),
+)
+
+decision = Table(
+    "decision",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("stage", String(16), nullable=False),
+    Column("round_id", String(26), ForeignKey("screening_round.id"), nullable=True),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("reviewer_kind", String(8), nullable=False),
+    Column("value", String(16), nullable=False),
+    Column("confidence_raw", Float, nullable=True),
+    Column("confidence_calibrated", Float, nullable=True),
+    Column("rationale", Text, nullable=False),
+    Column("criteria_cited_json", Text, nullable=False),
+    Column("per_criterion_json", Text, nullable=False),
+    Column("model_decision", String(16), nullable=True),
+    Column("thresholds_json", Text, nullable=True),
+    Column("calibration_id", String(26), nullable=True),
+    Column("criteria_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("language", String(8), nullable=False),
+    Column("context", String(16), nullable=False),
+    Column("blinded", Boolean, nullable=False),
+    Column("supersedes_decision_id", String(26), ForeignKey("decision.id"), nullable=True),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=True),
+    Column("tool_version", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+    CheckConstraint(
+        "reviewer_kind <> 'ai' OR (ai_call_id IS NOT NULL AND confidence_raw IS NOT NULL "
+        "AND thresholds_json IS NOT NULL AND model_decision IS NOT NULL)",
+        name="ck_decision_ai_traceable",
+    ),
+    CheckConstraint("reviewer_kind <> 'human' OR ai_call_id IS NULL", name="ck_decision_human"),
+    Index("ix_decision_reference", "reference_id", "stage"),
+    Index("ix_decision_round", "round_id"),
+)
+
+calibration_model = Table(
+    "calibration_model",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("round_id", String(26), ForeignKey("screening_round.id"), nullable=False),
+    Column("ai_config_id", String(26), ForeignKey("ai_config.id"), nullable=False),
+    Column("method", String(16), nullable=False),
+    Column("calibration_json", Text, nullable=False),
+    Column("artifact_path", Text, nullable=False),
+    Column("fitted_on_n", Integer, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+)
+
+threshold_setting = Table(
+    "threshold_setting",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("stage", String(16), nullable=False),
+    Column("exclude_below", Float, nullable=False),
+    Column("include_above", Float, nullable=False),
+    Column("target_sensitivity", DecimalText, nullable=False),
+    Column("justification", Text, nullable=False),
+    Column("based_on_round_id", String(26), ForeignKey("screening_round.id"), nullable=True),
+    Column("calibration_id", String(26), ForeignKey("calibration_model.id"), nullable=True),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+)
+
+budget_setting = Table(
+    "budget_setting",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("limit_amount", DecimalText, nullable=False),
+    Column("currency", String(3), nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
 )
 
 

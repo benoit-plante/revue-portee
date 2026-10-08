@@ -16,6 +16,11 @@ supervision:
   target_sensitivity: "0.95"
   # docs/03-architecture.md §6.5: isotonic regression (Platt with little data).
   calibration_method: isotonic
+  # EF-SEL-09: thresholds on the probability of inclusion before any pilot. The AI
+  # excludes only below 0.10 (90 % sure of the exclusion) and includes from 0.60;
+  # in between, uncertain. A pilot replaces them with calibrated thresholds.
+  exclude_below: "0.10"
+  include_above: "0.60"
 
 # One entry per AI task. "planned" tasks are described in the protocol but cannot run yet.
 tasks:
@@ -47,5 +52,15 @@ tasks:
       effort: medium
       fallbacks: default
     expected_output_tokens: 3000
+  # Title and abstract screening (tranche 1.6): one call per reference, the criteria
+  # cached across references. A fast model at low effort keeps the cost under
+  # 5 USD per 1,000 references (D-015); the SYNERGY benchmark checks the choice.
+  # Haiku has no server-side fallback: no "fallbacks" parameter.
   screen_reference:
-    status: planned  # tranche 1.6: model and prompt strategy chosen at the benchmark
+    status: enabled
+    provider: anthropic
+    model: claude-haiku-5-5
+    params:
+      max_tokens: 8000
+      effort: low
+    expected_output_tokens: 1200
