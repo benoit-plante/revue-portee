@@ -1538,3 +1538,16 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : principe 4 de l'architecture.
 - **Conséquences** : le fichier nomme le modèle évalué comme donnée historique, pas comme réglage; la configuration en usage reste dans `ai_defaults.yaml` et `projet.toml`.
 - **Renvois** : EF-DEC-03, ENF-NOR-02, D-076; demande de fusion benoit-plante/revue-portee#19.
+
+### D-096 — Export des références retenues pour le texte intégral
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (demandée et approuvée par Benoit)
+- **Décision** : les références qui restent après dédoublonnage et dont la décision en vigueur est « inclure » ou « incertain » s'exportent en RIS et en CSV (`exports/references-retenues.ris` et `.csv`, commande `retenues`, page « Rapports »). Chaque notice RIS porte le mot-clé `revue-portee: include|uncertain` et une note avec l'identifiant dans le projet, la décision, la version des critères, le PMID et l'identifiant OpenAlex. Ces exports sont destinés à l'équipe et contiennent les résumés, contrairement à l'archive publique (D-092).
+- **Contexte** : la V1 s'arrête au tri des titres et résumés; pour l'essai de bout en bout, l'équipe doit poursuivre le texte intégral dans un autre outil (Zotero, EndNote, Covidence, Rayyan) en attendant la V2.
+- **Options envisagées** :
+  1. **RIS et CSV** : RIS pour les logiciels de gestion bibliographique et les outils de tri; CSV pour un tableur.
+  2. Retrouver les références dans l'archive : possible, mais peu pratique (deux fichiers à croiser).
+- **Justification** : demande de Benoit.
+- **Conséquences** : le RIS est relu par le lecteur RIS du projet dans les tests; l'import dans les outils tiers est à vérifier pendant l'essai de bout en bout.
+- **Renvois** : D-079, D-088, D-092; demande de fusion benoit-plante/revue-portee#21.
