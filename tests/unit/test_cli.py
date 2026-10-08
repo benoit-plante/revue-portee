@@ -103,3 +103,44 @@ def test_protocol_export(tmp_path: Path) -> None:
     assert "Langue non prise en charge" in refused.output
     missing = runner.invoke(app, ["protocole", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_flow_diagram_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["diagramme", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert result.output.count("Diagramme de flux écrit") == 2
+    french = (folder / "exports" / "diagramme-fr.svg").read_text(encoding="utf-8")
+    assert "PROVISOIRE" in french  # nothing collected nor screened yet
+    assert (folder / "exports" / "diagramme-en.svg").is_file()
+    missing = runner.invoke(app, ["diagramme", str(tmp_path / "absent")])
+    assert missing.exit_code == 1
+
+
+def test_methods_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["methode", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert result.output.count("Section méthode écrite") == 4
+    french = (folder / "exports" / "methode-fr.md").read_text(encoding="utf-8")
+    assert "Aucune IA n'a servi au tri des titres et résumés." in french
+    assert (folder / "exports" / "methode-en.docx").is_file()
+    missing = runner.invoke(app, ["methode", str(tmp_path / "absent")])
+    assert missing.exit_code == 1
+
+
+def test_archive_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    public = runner.invoke(app, ["archive", str(folder)])
+    assert public.exit_code == 0, public.output
+    assert "Archive écrite" in public.output
+    assert "ne pas la déposer" not in public.output
+    complete = runner.invoke(app, ["archive", str(folder), "--complete"])
+    assert complete.exit_code == 0, complete.output
+    assert "ne pas la déposer publiquement" in complete.output
+    assert len(list((folder / "exports").glob("archive-*.zip"))) == 2
+    missing = runner.invoke(app, ["archive", str(tmp_path / "absent")])
+    assert missing.exit_code == 1

@@ -1,5 +1,6 @@
 """Norms and settings stored as dated YAML files (docs/03-architecture.md §1, principle 4):
-reporting checklists, OSF form, model prices, default AI configuration."""
+reporting checklists, OSF form, flow diagram template, model prices, default AI
+configuration."""
 
 from functools import cache
 from importlib.resources import files
@@ -10,8 +11,18 @@ import yaml
 from revue_portee.ai.costs import PriceTable
 from revue_portee.ai.settings import AISettings
 from revue_portee.domain.protocol import Checklist, OsfForm
+from revue_portee.reporting.flow import FlowTemplate
+from revue_portee.reporting.methods import ToolValidation
 
-__all__ = ["default_ai_settings", "load_yaml", "osf_form", "peters_checklist", "price_table"]
+__all__ = [
+    "default_ai_settings",
+    "flow_template",
+    "load_yaml",
+    "osf_form",
+    "peters_checklist",
+    "price_table",
+    "tool_validation",
+]
 
 
 def load_yaml(name: str) -> Any:  # noqa: ANN401 - YAML documents are untyped until validated
@@ -39,3 +50,13 @@ def peters_checklist() -> Checklist:
 @cache
 def osf_form() -> OsfForm:
     return OsfForm.model_validate(load_yaml("protocol/osf_gsrr.yaml"))
+
+
+@cache
+def flow_template() -> FlowTemplate:
+    return FlowTemplate.model_validate(load_yaml("reporting/prisma_2020_flow.yaml"))
+
+
+@cache
+def tool_validation() -> ToolValidation:
+    return ToolValidation.model_validate(load_yaml("reporting/tool_validation.yaml"))

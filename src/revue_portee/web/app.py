@@ -5,6 +5,7 @@ browser could still send requests to it, every form carries a per-process token 
 requests with a foreign ``Host`` or ``Origin`` are refused (CSRF, DNS rebinding).
 """
 
+import re
 import secrets
 import time
 from collections.abc import Callable, Iterable, Mapping
@@ -16,7 +17,7 @@ from typing import Annotated, Any
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -49,19 +50,25 @@ from revue_portee.domain.screening import DecisionValue, ScreeningRound, Thresho
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
-from revue_portee.i18n import EXPORT_LANGUAGES, translations
+from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
 from revue_portee.jobs.runner import BackgroundJobs
 from revue_portee.protocol import criteria, framing, notes, qualification, registration, suggestions
 from revue_portee.protocol.ai_assist import AITaskError, CostPreview, default_provider_factory
 from revue_portee.protocol.document import protocol_document
 from revue_portee.reporting.document import render_docx, render_markdown
+from revue_portee.reporting.flow import pending_items
+from revue_portee.reporting.flow_svg import render_flow_svg
+from revue_portee.reporting.formats import separator
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
-from revue_portee.resources import peters_checklist
+from revue_portee.resources import flow_template, peters_checklist
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
 from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
+from revue_portee.screening.archive import ArchiveKind, SecretInArchiveError, export_archive
+from revue_portee.screening.methods import methods_document
+from revue_portee.screening.report import flow_report
 from revue_portee.search import runs, strategies
 from revue_portee.search import suggestions as term_suggestions
 from revue_portee.search.runs import DescriptorSource, default_descriptor_source
@@ -283,6 +290,9 @@ _RECONCILE_ERRORS: tuple[type[Exception], ...] = (
 )
 _VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
 
+
+# Archives written in exports/ (screening/archive.py), the only files served from there.
+ARCHIVE_NAME = re.compile(r"archive-(publique|complete)-\d{8}T\d{6}Z\.zip")
 
 # Key of the background job that compares the references (one at a time).
 DEDUP_JOB = "dedoublonnage"
@@ -1937,6 +1947,96 @@ def create_app(
             render_docx(document),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers=disposition,
+        )
+
+    # --- Reports ----------------------------------------------------------------------
+
+    def archives() -> list[str]:
+        exports = folder.path / "exports"
+        names = (p.name for p in exports.glob("archive-*.zip")) if exports.is_dir() else ()
+        return sorted((n for n in names if ARCHIVE_NAME.fullmatch(n)), reverse=True)
+
+    def reports_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        archive: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        numbers = flow_report(folder, now=now, tool_version=context.tool_version).numbers
+        return render(
+            request,
+            "rapports.html",
+            {
+                "numbers": numbers,
+                "pending": separator(DEFAULT_LOCALE).join(
+                    pending_items(_, numbers.pending, DEFAULT_LOCALE)
+                ),
+                "archives": archives(),
+                "archive": archive,
+                "error": error,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/rapports", response_class=HTMLResponse)
+    def show_reports(request: Request, archive: str = "") -> HTMLResponse:
+        return reports_page(request, archive=archive if archive in archives() else None)
+
+    @app.get("/rapports/diagramme")
+    def flow_diagram(langue: str = "fr", telecharger: int = 0) -> Response:
+        if langue not in EXPORT_LANGUAGES:
+            raise HTTPException(status_code=404, detail=_("Unknown export."))
+        report = flow_report(folder, now=now, tool_version=context.tool_version)
+        svg = render_flow_svg(report.numbers, flow_template(), report.context, language=langue)
+        headers = (
+            {"Content-Disposition": f'attachment; filename="diagramme-{langue}.svg"'}
+            if telecharger
+            else {}
+        )
+        return Response(svg, media_type="image/svg+xml; charset=utf-8", headers=headers)
+
+    @app.get("/rapports/methode")
+    def download_methods(langue: str = "fr", format: str = "docx") -> Response:
+        if langue not in EXPORT_LANGUAGES or format not in {"md", "docx"}:
+            raise HTTPException(status_code=404, detail=_("Unknown export."))
+        document = methods_document(
+            folder, language=langue, now=now, tool_version=context.tool_version
+        )
+        filename = f"methode-{langue}.{format}"
+        disposition = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        if format == "md":
+            return Response(
+                render_markdown(document),
+                media_type="text/markdown; charset=utf-8",
+                headers=disposition,
+            )
+        return Response(
+            render_docx(document),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers=disposition,
+        )
+
+    @app.post("/rapports/archive")
+    def create_archive(
+        request: Request, _csrf: Csrf, sorte: Annotated[str, Form()] = ""
+    ) -> Response:
+        if sorte not in {k.value for k in ArchiveKind}:
+            return reports_page(request, error=_("Choose the kind of archive."), status_code=422)
+        try:
+            result = export_archive(
+                folder, kind=ArchiveKind(sorte), now=now, tool_version=context.tool_version
+            )
+        except SecretInArchiveError as error:
+            return reports_page(request, error=str(error), status_code=422)
+        return see_other(f"/rapports?archive={result.path.name}#archive")
+
+    @app.get("/rapports/archives/{name}")
+    def download_archive(name: str) -> Response:
+        if name not in archives():
+            raise HTTPException(status_code=404, detail=_("Unknown export."))
+        return FileResponse(
+            folder.path / "exports" / name, media_type="application/zip", filename=name
         )
 
     # --- Journal ----------------------------------------------------------------------

@@ -1,0 +1,41 @@
+# Validation of the AI screening by the tool's developer (ENF-NOR-02), quoted by the
+# methods section (EF-DEC-03). Results of the SYNERGY benchmark, copied from
+# docs/resultats/README.md (D-076); update this file with every new published run.
+# The model below is a record of the configuration that was measured, not a setting:
+# the configuration in use comes from resources/ai_defaults.yaml and projet.toml.
+date: 2026-10-08
+source: https://github.com/benoit-plante/revue-portee/blob/main/docs/resultats/README.md
+configuration:
+  task: screen_reference
+  prompt_template_version: "1"
+  model: claude-haiku-5-5
+  exclude_below: "0.10"
+  include_above: "0.60"
+reference_standard: >-
+  full-text inclusions of each systematic review (SYNERGY 1.0 records, titles and
+  abstracts from OpenAlex)
+datasets:
+  - name: Oud_2018
+    references: 952
+    included: 20
+    sensitivity: "0.950"
+    sensitivity_low: "0.764"
+    sensitivity_high: "0.991"
+    specificity: "0.787"
+    cost_per_1000: "0.36"
+  - name: van_de_Schoot_2018
+    references: 4544
+    included: 38
+    sensitivity: "0.974"
+    sensitivity_low: "0.865"
+    sensitivity_high: "0.995"
+    specificity: "0.842"
+    cost_per_1000: "0.34"
+  - name: van_Dis_2020
+    references: 9128
+    included: 72
+    sensitivity: "0.972"
+    sensitivity_low: "0.904"
+    sensitivity_high: "0.992"
+    specificity: "0.800"
+    cost_per_1000: "0.46"

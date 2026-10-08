@@ -13,8 +13,6 @@ The team's own text is reproduced as written.
 """
 
 from collections.abc import Callable, Iterable
-from datetime import datetime
-from decimal import Decimal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
@@ -50,6 +48,7 @@ from revue_portee.reporting.document import (
     Table,
     section_blocks,
 )
+from revue_portee.reporting.formats import date, integer, number, separator
 
 __all__ = [
     "ChecklistStatus",
@@ -126,10 +125,6 @@ def checklist_status(blocks: Iterable[Block], checklist: Checklist) -> list[Chec
 # --- Helpers --------------------------------------------------------------------------
 
 
-def _date(moment: datetime) -> str:
-    return moment.strftime("%Y-%m-%d")
-
-
 def _free_text(_: Translate, text: ProtocolText, section: ProtocolSection) -> list[Block]:
     content = text.text(section)
     if not content:
@@ -182,12 +177,6 @@ def change_labels(_: Translate) -> dict[ChangeType, str]:
     }
 
 
-def _number(value: Decimal, language: str) -> str:
-    """Decimal in the notation of the export language (0,95 in French)."""
-    text = str(value)
-    return text.replace(".", ",") if language == "fr" else text
-
-
 def _criteria_of(data: ProtocolData, element: PccElement) -> list[Criterion]:
     if data.criteria is None:
         return []
@@ -231,7 +220,7 @@ def _element(
 def _front(_: Translate, data: ProtocolData) -> list[Block]:
     title = _("{title}: a scoping review protocol").format(title=data.project.title)
     status = _("Protocol generated on {date} with revue-portee {version}.").format(
-        date=_date(data.generated_at), version=data.tool_version
+        date=date(data.generated_at), version=data.tool_version
     )
     if data.registration is None:
         registration = _("Registration: not yet registered.")
@@ -317,7 +306,7 @@ def _eligibility(_: Translate, data: ProtocolData) -> list[Block]:
                 text=_(
                     "Criteria version {number}, in force since {date}. Each criterion has a "
                     "stable code; Appendix I gives guidance, examples and counterexamples."
-                ).format(number=data.criteria.number, date=_date(data.criteria.activated_at))
+                ).format(number=data.criteria.number, date=date(data.criteria.activated_at))
             )
         )
     sources_generated: list[Block] = _criteria_bullets(_, _criteria_of(data, PccElement.OTHER))
@@ -411,7 +400,7 @@ def _ai_use(_: Translate, data: ProtocolData, language: str) -> list[Block]:
                 ).format(size=supervision.pilot_sample_size, method=supervision.calibration_method),
                 _(
                     "Decision thresholds favour sensitivity, with a target of at least {target}."
-                ).format(target=_number(supervision.target_sensitivity, language)),
+                ).format(target=number(supervision.target_sensitivity, language)),
                 _(
                     "Every AI suggestion is accepted, modified or rejected explicitly by a human "
                     "reviewer, and every change of the criteria is qualified by a human."
@@ -500,7 +489,7 @@ def _search_generated(_: Translate, data: ProtocolData, language: str) -> list[B
             ).format(
                 databases=", ".join(databases),
                 number=version.number,
-                date=_date(version.created_at),
+                date=date(version.created_at),
             )
         )
     )
@@ -514,8 +503,8 @@ def _sources_generated(_: Translate, data: ProtocolData, language: str) -> list[
     items = tuple(
         _("{database} ({date}): {count}").format(
             database=by_query[run.query_id].display_name,
-            count=_integer(run.result_count or 0, language),
-            date=_date(run.executed_at),
+            count=integer(run.result_count or 0, language),
+            date=date(run.executed_at),
         )
         for run in data.counts
         if run.query_id in by_query
@@ -545,16 +534,6 @@ def _language_name(_: Translate, code: str) -> str:
     return names.get(code, LANGUAGES.get(code, code))
 
 
-def _integer(value: int, language: str) -> str:
-    text = f"{value:,}"
-    return text.replace(",", " ") if language == "fr" else text
-
-
-def _separator(language: str) -> str:
-    """Separator of list items, with the French non-breaking space before « ; »."""
-    return " ; " if language == "fr" else "; "
-
-
 def _search_appendix(_: Translate, data: ProtocolData, language: str) -> list[Block]:
     version = data.search
     if version is None or not data.queries:
@@ -564,14 +543,14 @@ def _search_appendix(_: Translate, data: ProtocolData, language: str) -> list[Bl
             b.code,
             b.label,
             _("exclusion (NOT)") if b.role is BlockRole.EXCLUDE else _("inclusion (AND)"),
-            _separator(language).join(format_term(t) for t in b.terms),
+            separator(language).join(format_term(t) for t in b.terms),
         )
         for b in version.strategy.blocks
     )
     blocks: list[Block] = [
         Paragraph(
             text=_("Concept blocks of version {number} of the search strategy ({date}).").format(
-                number=version.number, date=_date(version.created_at)
+                number=version.number, date=date(version.created_at)
             )
         ),
         Table(header=(_("Block"), _("Label"), _("Role"), _("Terms")), rows=rows),
@@ -695,7 +674,7 @@ def _deviations(_: Translate, data: ProtocolData) -> list[Block]:
             Paragraph(
                 text=_("Criteria version {number} ({date}): {rationale}").format(
                     number=deviation.number,
-                    date=_date(deviation.activated_at),
+                    date=date(deviation.activated_at),
                     rationale=deviation.rationale,
                 )
                 + (f" — {changes}" if changes else "")

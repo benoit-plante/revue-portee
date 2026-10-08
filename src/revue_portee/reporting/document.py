@@ -7,6 +7,7 @@ paragraphs mark what the team still has to write.
 """
 
 import io
+import zipfile
 from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from typing import Literal
@@ -169,7 +170,24 @@ def _naive_utc(moment: datetime) -> datetime:
     return moment.astimezone(UTC).replace(tzinfo=None)
 
 
+def _fixed_dates(content: bytes, moment: datetime) -> bytes:
+    """The same package with every entry dated ``moment``: python-docx dates the entries
+    of the ZIP with the current time, so two renderings of a document would differ."""
+    stamp = moment.astimezone(UTC).timetuple()[:6]
+    output = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(content)) as source,
+        zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as target,
+    ):
+        for entry in source.infolist():
+            fixed = zipfile.ZipInfo(entry.filename, date_time=stamp)
+            fixed.compress_type = zipfile.ZIP_DEFLATED
+            target.writestr(fixed, source.read(entry.filename))
+    return output.getvalue()
+
+
 def render_docx(document: Document) -> bytes:
+    """The document as DOCX; the same document always gives the same bytes."""
     buffer = io.BytesIO()
     _docx(document).save(buffer)
-    return buffer.getvalue()
+    return _fixed_dates(buffer.getvalue(), document.generated_at)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 17:02+0000\n"
+"POT-Creation-Date: 2026-10-08 14:39-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -43,6 +43,9 @@ msgstr "(aucun)"
 
 msgid "(required)"
 msgstr "(obligatoire)"
+
+msgid "(stage to come)"
+msgstr "(étape à venir)"
 
 msgid ", calibrated"
 msgstr ", étalonnée"
@@ -99,6 +102,10 @@ msgid ""
 msgstr ""
 "Une référence est conservée quand l'IA l'inclut ou est incertaine ; les étiquettes du jeu "
 "(inclusions au texte intégral) font référence."
+
+#, python-brace-format
+msgid "A secret was found in the archive, which was not written: {findings}"
+msgstr "Un secret a été trouvé dans l'archive, qui n'a pas été écrite : {findings}"
 
 #, python-format
 msgid "A word: %(example)s; truncation with an asterisk: %(truncated)s."
@@ -317,6 +324,24 @@ msgstr "Annexe V : correspondance avec le formulaire OSF « Generalized System
 msgid "Apply the thresholds to the calibrated probabilities"
 msgstr "Appliquer les seuils aux probabilités étalonnées"
 
+#, python-brace-format
+msgid "Archive exported ({kind}): {file}"
+msgstr "Archive exportée ({kind}) : {file}"
+
+msgid "Archive of the project"
+msgstr "Archive du projet"
+
+#, python-format
+msgid "Archive written: %(name)s."
+msgstr "Archive écrite : %(name)s."
+
+#, python-brace-format
+msgid "Archive written: {path} ({files} files, SHA-256 {digest})"
+msgstr "Archive écrite : {path} ({files} fichiers, SHA-256 {digest})"
+
+msgid "Archives written"
+msgstr "Archives écrites"
+
 msgid ""
 "Artificial intelligence (AI) is used under human supervision, following the RAISE "
 "recommendations. The review team remains responsible for every decision."
@@ -484,8 +509,14 @@ msgstr "Choisissez un fichier RIS."
 msgid "Choose a decision."
 msgstr "Choisissez une décision."
 
+msgid "Choose the kind of archive."
+msgstr "Choisissez le type d'archive."
+
 msgid "Cite at least one criterion to exclude a reference."
 msgstr "Citez au moins un critère pour exclure une référence."
+
+msgid "Clarifications were reassessed on a random sample."
+msgstr "Les clarifications ont été réévaluées sur un échantillon aléatoire."
 
 msgid "Code"
 msgstr "Code"
@@ -521,6 +552,16 @@ msgstr "Comparer toutes les références"
 
 msgid "Compare version"
 msgstr "Comparer la version"
+
+msgid "Complete (private: abstracts and raw responses included)"
+msgstr "Complète (privée : résumés et réponses brutes compris)"
+
+msgid ""
+"Complete archive: also the database, the raw responses and the imported files (abstracts "
+"included: not for a public deposit)."
+msgstr ""
+"Archive complète : aussi la base de données, les réponses brutes et les fichiers importés "
+"(résumés compris : pas pour un dépôt public)."
 
 msgid "Complete the reassessment"
 msgstr "Terminer la réévaluation"
@@ -564,8 +605,15 @@ msgstr "Contexte"
 msgid "Cost"
 msgstr "Coût"
 
+#, python-brace-format
+msgid "Cost of the AI screening, estimated from the provider's prices of {date} ({currency}):"
+msgstr "Coût du tri par l'IA, estimé d'après les tarifs du fournisseur au {date} ({currency}) :"
+
 msgid "Cost per 1,000 references"
 msgstr "Coût pour 1 000 références"
+
+msgid "Cost per 1,000 references (USD)"
+msgstr "Coût pour 1 000 références ($ US)"
 
 #, python-format
 msgid "Count the results in %(database)s"
@@ -589,8 +637,19 @@ msgstr "Créer un dossier de projet de revue (.revue)."
 msgid "Criteria"
 msgstr "Critères"
 
+msgid ""
+"Criteria changed during the screening; the references each change touched were screened again by "
+"the AI, and the person verified the decisions the AI would change (keep or exclude):"
+msgstr ""
+"Les critères ont changé pendant le tri ; l'IA a trié de nouveau les références touchées par "
+"chaque changement, et la personne a vérifié les décisions que l'IA changerait (« conserver » ou «"
+" exclure ») :"
+
 msgid "Criteria changes"
 msgstr "Changements de critères"
+
+msgid "Criteria changes reassessed"
+msgstr "Changements de critères réévalués"
 
 msgid "Criteria concerned (required to exclude)"
 msgstr "Critères en cause (obligatoires pour exclure)"
@@ -598,6 +657,15 @@ msgstr "Critères en cause (obligatoires pour exclure)"
 #, python-format
 msgid "Criteria of version %(number)s"
 msgstr "Critères de la version %(number)s"
+
+#, python-brace-format
+msgid ""
+"Criteria version {before} to {after} ({changes}). References reassessed: {reassessed}; decisions "
+"changed from keep to exclude: {kept_to_excluded}; from exclude to keep: {excluded_to_kept}."
+msgstr ""
+"Critères, version {before} à {after} ({changes}). Références réévaluées : {reassessed} ; "
+"décisions passées de « conserver » à « exclure » : {kept_to_excluded} ; d'« exclure » à « "
+"conserver » : {excluded_to_kept}."
 
 #, python-brace-format
 msgid "Criteria version {number} ({date}): {rationale}"
@@ -666,6 +734,9 @@ msgstr "Extraction des données"
 msgid "Database"
 msgstr "Base"
 
+msgid "Dataset"
+msgstr "Jeu de données"
+
 msgid "Decision before the change"
 msgstr "Décision avant le changement"
 
@@ -729,6 +800,9 @@ msgstr "Décrivez la question selon le cadre PCC : Population, Concept et Conte
 msgid "Description"
 msgstr "Description"
 
+msgid "Description and rationale"
+msgstr "Description et justification"
+
 msgid "Deviation from the registered protocol"
 msgstr "Écart au protocole enregistré"
 
@@ -752,6 +826,16 @@ msgstr "Différences avec la version %(number)s"
 msgid "Disagreements"
 msgstr "Désaccords"
 
+#, python-brace-format
+msgid ""
+"Disagreements between the person and the AI (one keeps, the other excludes): {count} ({share} of "
+"the references screened by both). Reconciled: {reconciled}; the final decision followed the AI "
+"for {with_ai} and the person's first decision for {with_person}."
+msgstr ""
+"Désaccords entre la personne et l'IA (l'une conserve, l'autre exclut) : {count} ({share} des "
+"références triées par les deux). Réconciliés : {reconciled} ; la décision finale a suivi l'IA "
+"pour {with_ai} et la première décision de la personne pour {with_person}."
+
 msgid "Disagreements by criterion cited"
 msgstr "Désaccords par critère cité"
 
@@ -770,6 +854,14 @@ msgstr "Télécharger"
 
 msgid "Draft"
 msgstr "Brouillon"
+
+#, python-brace-format
+msgid ""
+"Draft generated by revue-portee {version} on {date} from the project data. Check and complete it "
+"before publication."
+msgstr ""
+"Ébauche produite par revue-portee {version} le {date} à partir des données du projet. À vérifier "
+"et à compléter avant publication."
 
 #, python-brace-format
 msgid "Draft of criteria version {number} discarded"
@@ -793,6 +885,9 @@ msgstr "Doublons retirés"
 
 msgid "Duplicates"
 msgstr "Doublons"
+
+msgid "Duplicates removed"
+msgstr "Doublons retirés"
 
 msgid "Duplicates?"
 msgstr "Doublons ?"
@@ -833,6 +928,9 @@ msgstr "anglais"
 
 msgid "English, Markdown"
 msgstr "Anglais, Markdown"
+
+msgid "English, SVG"
+msgstr "Anglais, SVG"
 
 msgid "English, Word (DOCX)"
 msgstr "Anglais, Word (DOCX)"
@@ -927,6 +1025,9 @@ msgstr ""
 msgid "Every criteria version activated from now on is a deviation from the protocol, to be reported."
 msgstr "Toute version des critères activée à partir de maintenant est un écart au protocole, à déclarer."
 
+msgid "Exact version returned"
+msgstr "Version exacte renvoyée"
+
 msgid "Examples"
 msgstr "Exemples"
 
@@ -952,6 +1053,9 @@ msgstr ""
 "Exportez les résultats de la base au format RIS, puis choisissez le fichier. Le fichier est "
 "conservé tel quel dans le projet."
 
+msgid "Failed calls not linked to a round"
+msgstr "Appels échoués non rattachés à un tour"
+
 msgid "Failures (unusable answers)"
 msgstr "Échecs (réponses inutilisables)"
 
@@ -973,11 +1077,24 @@ msgstr "Repérer les doublons"
 msgid "Finished"
 msgstr "Terminée"
 
+msgid "First call"
+msgstr "Premier appel"
+
 msgid "Fit the calibration on this round"
 msgstr "Ajuster l'étalonnage sur ce tour"
 
 msgid "Fix the thresholds"
 msgstr "Fixer les seuils"
+
+msgid "Flow diagram (PRISMA 2020, adapted for scoping reviews)"
+msgstr "Diagramme de flux (PRISMA 2020, adapté aux revues de portée)"
+
+msgid "Flow diagram of the screening, in French; its numbers are in the table above."
+msgstr "Diagramme de flux du tri, en français ; ses nombres sont dans le tableau ci-dessus."
+
+#, python-brace-format
+msgid "Flow diagram written: {path}"
+msgstr "Diagramme de flux écrit : {path}"
 
 msgid "Folder of the Markdown report."
 msgstr "Dossier du rapport Markdown."
@@ -1019,6 +1136,9 @@ msgstr "Un bloc peut mêler des termes français et anglais."
 msgid "French, Markdown"
 msgstr "Français, Markdown"
 
+msgid "French, SVG"
+msgstr "Français, SVG"
+
 msgid "French, Word (DOCX)"
 msgstr "Français, Word (DOCX)"
 
@@ -1027,6 +1147,13 @@ msgstr "À partir de l'année"
 
 msgid "Funding"
 msgstr "Financement"
+
+msgid "Funding and conflicts of interest"
+msgstr "Financement et conflits d'intérêts"
+
+#, python-brace-format
+msgid "Generated by revue-portee {version} on {date}"
+msgstr "Produit par revue-portee {version} le {date}"
 
 msgid "German"
 msgstr "allemand"
@@ -1091,6 +1218,9 @@ msgstr "En cours…"
 
 msgid "Include"
 msgstr "Inclure"
+
+msgid "Included"
+msgstr "Incluses"
 
 msgid "Inclusion"
 msgstr "Inclusion"
@@ -1159,8 +1289,19 @@ msgstr "Revue ou livre"
 msgid "Justification (required)"
 msgstr "Justification (obligatoire)"
 
+#, python-brace-format
+msgid "Justification recorded: {text}"
+msgstr "Justification consignée : {text}"
+
+#, python-brace-format
+msgid "Justification: {text}"
+msgstr "Justification : {text}"
+
 msgid "Keep them apart"
 msgstr "Les garder séparées"
+
+msgid "Kept for the full text"
+msgstr "Retenues pour le texte intégral"
 
 msgid "Key articles"
 msgstr "Articles clés"
@@ -1197,6 +1338,9 @@ msgstr ""
 msgid "Kind"
 msgstr "Nature"
 
+msgid "Kind of archive"
+msgstr "Type d'archive"
+
 msgid "Label"
 msgstr "Libellé"
 
@@ -1210,6 +1354,9 @@ msgstr "Langues (aucune : toutes les langues)"
 msgid "Last batch: references screened: %(screened)s, failed: %(failed)s, cost: %(spent)s."
 msgstr "Dernier lot : références triées : %(screened)s, échecs : %(failed)s, coût : %(spent)s."
 
+msgid "Last call"
+msgstr "Dernier appel"
+
 #, python-format
 msgid ""
 "Last run: %(date)s UTC, references compared: %(references)s, pairs grouped automatically: "
@@ -1219,6 +1366,9 @@ msgstr ""
 "Dernière exécution : %(date)s UTC, références comparées : %(references)s, paires regroupées "
 "automatiquement : %(automatic)s, paires à examiner : %(review)s (seuils %(low)s et %(high)s, "
 "version des règles : %(version)s)."
+
+msgid "Limitations and ethics"
+msgstr "Limites et éthique"
 
 msgid "Limits"
 msgstr "Limites"
@@ -1279,6 +1429,9 @@ msgstr "Descripteurs MeSH"
 msgid "MeSH descriptors checked: {count}; not found: {absent}"
 msgstr "Descripteurs MeSH vérifiés : {count} ; introuvables : {absent}"
 
+msgid "Measure"
+msgstr "Mesure"
+
 msgid "Measure the AI screener on a labelled SYNERGY dataset (calls the model)."
 msgstr "Mesurer le tri par l'IA sur un jeu SYNERGY étiqueté (appelle le modèle)."
 
@@ -1287,6 +1440,13 @@ msgstr "Cadre méthodologique"
 
 msgid "Methods"
 msgstr "Méthode"
+
+msgid "Methods section (draft)"
+msgstr "Section méthode (ébauche)"
+
+#, python-brace-format
+msgid "Methods section written: {path}"
+msgstr "Section méthode écrite : {path}"
 
 msgid "Missed:"
 msgstr "Manqués :"
@@ -1305,6 +1465,17 @@ msgstr "Modèle"
 
 msgid "Model calls made at a time."
 msgstr "Appels au modèle faits en même temps."
+
+#, python-brace-format
+msgid ""
+"Model configured: {provider} {model}, with the parameters {params}. Prompt template: {templates}."
+" Exact versions returned by the provider's API:"
+msgstr ""
+"Modèle configuré : {provider} {model}, avec les paramètres {params}. Gabarit d'invite : "
+"{templates}. Versions exactes renvoyées par l'API du fournisseur :"
+
+msgid "Model requested"
+msgstr "Modèle demandé"
 
 msgid "Models returned"
 msgstr "Modèles renvoyés"
@@ -1340,6 +1511,9 @@ msgstr "Nouveau bloc"
 
 msgid "New references added."
 msgstr "Nouvelles références ajoutées."
+
+msgid "No AI was used to screen titles and abstracts."
+msgstr "Aucune IA n'a servi au tri des titres et résumés."
 
 msgid "No MeSH descriptor yet."
 msgstr "Aucun descripteur MeSH pour l'instant."
@@ -1381,6 +1555,9 @@ msgstr "Aucune paire gardée séparée par une personne."
 msgid "No pair to review."
 msgstr "Aucune paire à examiner."
 
+msgid "No pilot round was recorded before the screening."
+msgstr "Aucun tour pilote n'a été consigné avant le tri."
+
 #, python-brace-format
 msgid ""
 "No price is known for the model “{model}” of “{provider}”: add it to resources/model_prices.yaml "
@@ -1394,6 +1571,9 @@ msgstr "Pas encore de requête : enregistrez la stratégie de recherche dans la
 
 msgid "No reference of the round has both a human and an AI decision yet."
 msgstr "Aucune référence du tour n'a encore à la fois une décision humaine et une décision de l'IA."
+
+msgid "No reference was excluded by the AI alone."
+msgstr "Aucune référence n'a été exclue par l'IA seule."
 
 msgid "No reference yet: collect or import references on the Collection page."
 msgstr "Aucune référence pour l'instant : collectez ou importez des références à la page « Collecte »."
@@ -1430,6 +1610,9 @@ msgstr "Nombre de résultats dans {database} : {count}"
 msgid "Numbers for the flow diagram"
 msgstr "Nombres du diagramme de flux"
 
+msgid "Numbers of the flow diagram"
+msgstr "Nombres du diagramme de flux"
+
 msgid "OSF field"
 msgstr "Champ OSF"
 
@@ -1438,6 +1621,9 @@ msgstr "Élément OSF"
 
 msgid "Objective"
 msgstr "Objectif"
+
+msgid "Only published literature was sent to the model; no participant data."
+msgstr "Seule de la littérature publiée a été transmise au modèle ; aucune donnée de participants."
 
 #, python-brace-format
 msgid "Open http://{host}:{port}/ in your browser (Ctrl+C to stop)."
@@ -1471,6 +1657,14 @@ msgstr ""
 msgid "Order drawn with the seed %(seed)s on %(date)s."
 msgstr "Ordre tiré avec la graine %(seed)s le %(date)s."
 
+#, python-brace-format
+msgid ""
+"Other uses of the AI in the project (framing, criteria, search): {calls} calls, {amount} "
+"{currency}."
+msgstr ""
+"Autres usages de l'IA dans le projet (cadrage, critères, recherche) : {calls} appels, {amount} "
+"{currency}."
+
 msgid "PCC element"
 msgstr "Élément PCC"
 
@@ -1480,6 +1674,12 @@ msgstr "Élément PCC : %(element)s. Le code et l'élément PCC d'un critère n
 
 msgid "PMID"
 msgstr "PMID"
+
+msgid "PRISMA 2020 flow diagram adapted for scoping reviews"
+msgstr "Diagramme de flux PRISMA 2020 adapté aux revues de portée"
+
+msgid "PROVISIONAL"
+msgstr "PROVISOIRE"
 
 msgid "Pages"
 msgstr "Pages"
@@ -1513,6 +1713,9 @@ msgstr "Paires à examiner : %(count)s. Les différences sont signalées."
 
 msgid "Participants"
 msgstr "Participants"
+
+msgid "Phase"
+msgstr "Phase"
 
 msgid "Pilot"
 msgstr "Pilote"
@@ -1550,6 +1753,18 @@ msgstr "Tour pilote {number} : l'IA n'a pas pu trier une référence (tentative
 
 msgid "Pilot rounds"
 msgstr "Tours pilotes"
+
+#, python-brace-format
+msgid ""
+"Pilot: {size} references drawn at random (seed {seed}) were screened by the person, blind to the "
+"AI, and by the AI, with criteria version {version} (round {number} of {rounds}). Both decided "
+"{compared} of them; the AI's decision is compared with the person's, keep (include or uncertain) "
+"against exclude:"
+msgstr ""
+"Essai pilote : {size} références tirées au hasard (graine {seed}) ont été triées par la personne,"
+" à l'aveugle, et par l'IA, avec la version {version} des critères (tour {number} sur {rounds}). "
+"Les deux en ont décidé {compared} ; la décision de l'IA est comparée à celle de la personne, « "
+"conserver » (inclure ou incertain) contre « exclure » :"
 
 msgid "Population"
 msgstr "Population"
@@ -1637,11 +1852,26 @@ msgstr "Texte du protocole mis à jour (version {number})"
 msgid "Protocol written: {path}"
 msgstr "Protocole écrit : {path}"
 
+msgid "Provider"
+msgstr "Fournisseur"
+
 msgid "Provider and model"
 msgstr "Fournisseur et modèle"
 
 msgid "Provider and model requested"
 msgstr "Fournisseur et modèle demandé"
+
+#, python-format
+msgid "Provisional diagram: %(items)s."
+msgstr "Diagramme provisoire : %(items)s."
+
+#, python-brace-format
+msgid "Provisional diagram: {items}."
+msgstr "Diagramme provisoire : {items}."
+
+#, python-brace-format
+msgid "Provisional: the screening is not finished ({items})."
+msgstr "Provisoire : le tri n'est pas terminé ({items})."
 
 msgid ""
 "PsycINFO has no public API: run this query in EBSCOhost and enter the number of results in the "
@@ -1657,6 +1887,9 @@ msgid ""
 msgstr ""
 "PubMed annonce {count} notices, mais en donne au plus 10 000 par requête : divisez la recherche "
 "(par exemple par années de publication) avant de collecter."
+
+msgid "Public (to deposit)"
+msgstr "Publique (à déposer)"
 
 msgid "Qualification of criteria changes (broadening, narrowing, clarification)"
 msgstr "Qualification des changements de critères (élargissement, restriction, clarification)"
@@ -1736,6 +1969,13 @@ msgstr "Réévaluation {number} commencée : {count} références avec la versi
 msgid "Reassessment {number}: decision verified (before: {before}, AI: {ai}, final: {final})"
 msgstr "Réévaluation {number} : décision vérifiée (avant : {before}, IA : {ai}, décision finale : {final})"
 
+msgid "Reassessments"
+msgstr "Réévaluations"
+
+#, python-brace-format
+msgid "Reassessments not completed: {count}."
+msgstr "Réévaluations non terminées : {count}."
+
 msgid "Reconcile the disagreements"
 msgstr "Réconcilier les désaccords"
 
@@ -1804,6 +2044,12 @@ msgstr ""
 "et OpenAlex), ou importées de fichiers RIS exportés d'autres bases. Chaque référence conserve sa "
 "source, sa requête, son fichier et sa date d'origine."
 
+msgid "References excluded"
+msgstr "Références exclues"
+
+msgid "References identified"
+msgstr "Références repérées"
+
 msgid "References in the sample"
 msgstr "Références dans l'échantillon"
 
@@ -1818,6 +2064,19 @@ msgstr ""
 "Références réévaluées : %(count)s (graine %(seed)s%(sampled)s). L'IA les trie de nouveau avec la "
 "nouvelle version ; vous vérifiez celles dont la décision changerait. Les anciennes décisions sont"
 " conservées."
+
+msgid "References screened"
+msgstr "Références triées"
+
+#, python-brace-format
+msgid ""
+"References screened: {screened}; excluded: {excluded}; kept for the full text (include or "
+"uncertain): {sought}. The AI screened {ai} of the {total} references ({share}); the person "
+"screened {human}."
+msgstr ""
+"Références triées : {screened} ; exclues : {excluded} ; retenues pour le texte intégral (inclure "
+"ou incertain) : {sought}. L'IA a trié {ai} des {total} références ({share}) ; la personne en a "
+"trié {human}."
 
 #, python-format
 msgid "References stored: %(count)s"
@@ -1908,8 +2167,14 @@ msgstr "Retiré : %(code)s"
 msgid "Report written: {path}"
 msgstr "Rapport écrit : {path}"
 
+msgid "Reports"
+msgstr "Rapports"
+
 msgid "Results"
 msgstr "Résultats"
+
+msgid "Results of the screening with the AI"
+msgstr "Résultats du tri avec l'IA"
 
 msgid "Resume"
 msgstr "Reprendre"
@@ -2043,6 +2308,9 @@ msgstr "Graine du tirage."
 msgid "Sensitivity"
 msgstr "Sensibilité"
 
+msgid "Sensitivity (95% CI)"
+msgstr "Sensibilité (IC à 95 %)"
+
 msgid "Sensitivity (included records kept)"
 msgstr "Sensibilité (références incluses conservées)"
 
@@ -2088,6 +2356,12 @@ msgstr "Sélection des sources (en plus du texte produit)"
 
 msgid "Spanish"
 msgstr "espagnol"
+
+msgid "Specificity"
+msgstr "Spécificité"
+
+msgid "Specificity (95% CI)"
+msgstr "Spécificité (IC à 95 %)"
 
 msgid "Specificity (excluded records excluded)"
 msgstr "Spécificité (références exclues exclues)"
@@ -2146,8 +2420,24 @@ msgstr ""
 "Supervision : un réviseur humain trie chaque référence ; l'IA agit comme second réviseur "
 "indépendant et n'exclut jamais une référence à elle seule."
 
+#, python-brace-format
+msgid ""
+"Supervision: the person (human reviewers: {reviewers}) screened every reference without seeing "
+"the AI's decision; the AI screened every reference independently. When one kept a reference "
+"(include or uncertain) and the other excluded it, the person took the final decision with the "
+"AI's rationale in view."
+msgstr ""
+"Supervision : la personne (réviseurs humains : {reviewers}) a trié chaque référence sans voir la "
+"décision de l'IA ; l'IA a trié chaque référence de façon indépendante. Quand l'une conservait une"
+" référence (inclure ou incertain) et l'autre l'excluait, la personne a pris la décision finale en"
+" voyant la justification de l'IA."
+
 msgid "Target sensitivity (0 to 1)"
 msgstr "Sensibilité visée (de 0 à 1)"
+
+#, python-brace-format
+msgid "Target sensitivity: {target}."
+msgstr "Sensibilité visée : {target}."
 
 #, python-brace-format
 msgid ""
@@ -2159,6 +2449,14 @@ msgstr ""
 
 msgid "Task"
 msgstr "Tâche"
+
+#, python-brace-format
+msgid ""
+"Template: PRISMA 2020 flow diagram for databases and registers (Page et al., 2021), adapted for "
+"scoping reviews (PRISMA-ScR, Tricco et al., 2018); {license}."
+msgstr ""
+"Gabarit : diagramme de flux PRISMA 2020 pour les bases de données et les registres (Page et al., "
+"2021), adapté aux revues de portée (PRISMA-ScR, Tricco et al., 2018) ; {license}."
 
 msgid "Terms"
 msgstr "Termes"
@@ -2209,13 +2507,36 @@ msgstr "L'IA exclut sous (de 0 à 1)"
 msgid "The AI includes from (0 to 1)"
 msgstr "L'IA inclut à partir de (de 0 à 1)"
 
+msgid ""
+"The AI never excluded a reference when an inclusion criterion could not be assessed and no "
+"criterion was failed (rule EF-SEL-07)."
+msgstr ""
+"L'IA n'a jamais exclu une référence dont un critère d'inclusion ne pouvait pas être évalué et "
+"qu'aucun critère n'écartait (règle EF-SEL-07)."
+
 #, python-brace-format
 msgid "The AI provider “{provider}” cannot screen in batches."
 msgstr "Le fournisseur d'IA « {provider} » ne peut pas trier par lots."
 
+msgid "The AI screened titles and abstracts only; it did not assess full texts."
+msgstr "L'IA n'a trié que les titres et résumés ; elle n'a pas évalué les textes intégraux."
+
 #, python-brace-format
 msgid "The AI task “{task}” is not enabled in the project configuration."
 msgstr "La tâche d'IA « {task} » n'est pas activée dans la configuration du projet."
+
+msgid ""
+"The AI was the second reviewer of every reference; every exclusion was decided by a person, none "
+"by the AI alone."
+msgstr ""
+"L'IA a servi de second réviseur pour chaque référence ; toute exclusion a été décidée par une "
+"personne, aucune par l'IA seule."
+
+#, python-brace-format
+msgid "The AI's probability of inclusion was calibrated on the pilot ({method}, {count} decisions)."
+msgstr ""
+"La probabilité d'inclusion de l'IA a été étalonnée sur l'essai pilote ({method}, {count} "
+"décisions)."
 
 msgid ""
 "The Anthropic API cannot be reached: check the network connection (the domain api.anthropic.com "
@@ -2243,12 +2564,30 @@ msgstr "La réponse du modèle ne respecte pas le format attendu."
 msgid "The answer of the model was cut off (maximum number of tokens)."
 msgstr "La réponse du modèle a été tronquée (nombre maximal de jetons)."
 
+msgid ""
+"The behaviour of a language model may change from one version to the next; the exact versions "
+"used are reported above."
+msgstr ""
+"Le comportement d'un modèle de langage peut changer d'une version à l'autre ; les versions "
+"exactes utilisées sont indiquées plus haut."
+
 #, python-brace-format
 msgid "The call to the Anthropic API failed ({error})."
 msgstr "L'appel à l'API d'Anthropic a échoué ({error})."
 
 msgid "The ceiling must be a positive amount."
 msgstr "Le plafond doit être un montant positif."
+
+#, python-brace-format
+msgid ""
+"The configuration of this review differs from the one evaluated ({items}): these results do not "
+"apply directly."
+msgstr ""
+"La configuration de cette revue diffère de celle qui a été évaluée ({items}) : ces résultats ne "
+"s'appliquent pas directement."
+
+msgid "The criteria did not change during the screening."
+msgstr "Les critères n'ont pas changé pendant le tri."
 
 #, python-brace-format
 msgid "The criteria file {path} cannot be used: {error}"
@@ -2280,6 +2619,13 @@ msgstr "Le fichier {path} doit contenir les colonnes title, abstract et label_in
 msgid "The first year comes after the last year."
 msgstr "La première année vient après la dernière."
 
+msgid ""
+"The flow diagram, the methods section and the archive are generated from the project data every "
+"time: no number is typed in by hand."
+msgstr ""
+"Le diagramme de flux, la section méthode et l'archive sont produits chaque fois à partir des "
+"données du projet : aucun nombre n'est saisi à la main."
+
 #, python-brace-format
 msgid "The folder {folder} already exists and is not empty."
 msgstr "Le dossier {folder} existe déjà et n'est pas vide."
@@ -2306,6 +2652,9 @@ msgstr "Le réviseur principal du projet est introuvable."
 
 msgid "The main screening has already started."
 msgstr "Le tri principal est déjà commencé."
+
+msgid "The main screening has not started."
+msgstr "Le tri principal n'a pas commencé."
 
 msgid "The model declined to answer this request."
 msgstr "Le modèle a refusé de répondre à cette demande."
@@ -2354,6 +2703,15 @@ msgstr ""
 "Le fournisseur « {provider} » a renvoyé des résultats incohérents pour la tâche « {task} » : "
 "{mismatch}."
 
+msgid ""
+"The public archive can be deposited with the review (OSF): readable data, diagram, methods "
+"section; every number can be checked without the tool. It holds no abstract nor raw response. The"
+" complete archive also holds the database and the raw responses: keep it private."
+msgstr ""
+"L'archive publique peut être déposée avec la revue (OSF) : données lisibles, diagramme, section "
+"méthode ; chaque nombre se vérifie sans l'outil. Elle ne contient ni résumé ni réponse brute. "
+"L'archive complète contient aussi la base de données et les réponses brutes : gardez-la privée."
+
 #, python-brace-format
 msgid ""
 "The query of each database ({databases}) is generated from version {number} of the strategy "
@@ -2363,6 +2721,9 @@ msgstr ""
 "La requête de chaque base ({databases}) est produite à partir de la version {number} de la "
 "stratégie ({date}) et figure à l'annexe II ; chaque version de la stratégie et des requêtes est "
 "conservée avec sa date et son nombre de résultats."
+
+msgid "The reassessment is not completed."
+msgstr "La réévaluation n'est pas terminée."
 
 msgid "The reassessment is not finished: the AI or you still have references to decide."
 msgstr "La réévaluation n'est pas terminée : l'IA ou vous avez encore des références à décider."
@@ -2417,6 +2778,26 @@ msgstr "La sensibilité visée doit être supérieure à 0."
 msgid "The title of the review is required."
 msgstr "Le titre de la revue est obligatoire."
 
+#, python-brace-format
+msgid ""
+"The tool was validated on systematic reviews in psychology, not on scoping reviews; on the "
+"smallest dataset, the sensitivity rests on {included} included references (95% CI {low} to "
+"{high})."
+msgstr ""
+"L'outil a été validé sur des revues systématiques en psychologie, pas sur des revues de portée ; "
+"sur le plus petit jeu, la sensibilité repose sur {included} références incluses (IC à 95 % de "
+"{low} à {high})."
+
+#, python-brace-format
+msgid ""
+"The tool's developer evaluated the default configuration ({model}, prompt template version "
+"{version}, thresholds {low} and {high}) on {count} systematic reviews of the SYNERGY dataset, "
+"against their full-text inclusions ({date}; {source}):"
+msgstr ""
+"Le développeur de l'outil a évalué la configuration par défaut ({model}, gabarit d'invite version"
+" {version}, seuils {low} et {high}) sur {count} revues systématiques du jeu SYNERGY, par rapport "
+"à leurs inclusions au texte intégral ({date} ; {source}) :"
+
 msgid "The two references side by side"
 msgstr "Les deux références côte à côte"
 
@@ -2448,6 +2829,9 @@ msgstr "Aucune référence à trier pour l'instant : collectez ou importez d'ab
 
 msgid "These two references are not a pair of the deduplication."
 msgstr "Ces deux références ne forment pas une paire du dédoublonnage."
+
+msgid "This archive contains abstracts and raw responses: do not deposit it publicly."
+msgstr "Cette archive contient des résumés et des réponses brutes : ne pas la déposer publiquement."
 
 msgid "This collection is already finished."
 msgstr "Cette collecte est déjà terminée."
@@ -2496,6 +2880,22 @@ msgstr ""
 msgid "Thresholds must be numbers from 0 to 1, the first one not above the second."
 msgstr "Les seuils doivent être des nombres de 0 à 1, le premier ne dépassant pas le second."
 
+#, python-brace-format
+msgid ""
+"Thresholds: the AI excluded a reference when its {probability} was below {low}, included it from "
+"{high}, and was uncertain in between."
+msgstr ""
+"Seuils : l'IA excluait une référence quand sa {probability} était sous {low}, l'incluait à partir"
+" de {high}, et la jugeait incertaine entre les deux."
+
+#, python-brace-format
+msgid ""
+"Thresholds: the project defaults ({low} and {high}), applied to the probability of inclusion; "
+"they were not set after a pilot."
+msgstr ""
+"Seuils : ceux par défaut du projet ({low} et {high}), appliqués à la probabilité d'inclusion ; "
+"ils n'ont pas été fixés après un essai pilote."
+
 msgid "Title"
 msgstr "Titre"
 
@@ -2508,6 +2908,14 @@ msgstr "Tri des titres et résumés"
 
 msgid "Title of the review."
 msgstr "Titre de la revue."
+
+#, python-brace-format
+msgid ""
+"Titles and abstracts were screened with revue-portee {version}, free software (AGPL-3.0-or-"
+"later), with a large language model as a traceable second reviewer of every reference."
+msgstr ""
+"Les titres et résumés ont été triés avec revue-portee {version}, logiciel libre (AGPL-3.0-or-"
+"later), avec un grand modèle de langage comme second réviseur traçable de chaque référence."
 
 #, python-brace-format
 msgid ""
@@ -2543,6 +2951,9 @@ msgstr "Jetons (estimation)"
 
 msgid "Total"
 msgstr "Total"
+
+msgid "Total of the screening"
+msgstr "Total du tri"
 
 msgid ""
 "Traceability: each AI output is recorded with the provider, the exact model version returned by "
@@ -2641,6 +3052,18 @@ msgstr "Format de projet non pris en charge : {version}."
 msgid "Use of artificial intelligence"
 msgstr "Usage de l'intelligence artificielle"
 
+msgid ""
+"Use of the AI in title and abstract screening, following RAISE and the CEE guidance: models and "
+"exact versions, pilot and thresholds, disagreements, reassessments, costs. What only the team can"
+" write is left to complete."
+msgstr ""
+"Usage de l'IA au tri des titres et résumés, selon RAISE et le guide de la CEE : modèles et "
+"versions exactes, essai pilote et seuils, désaccords, réévaluations, coûts. Ce que seule l'équipe"
+" peut écrire reste à compléter."
+
+msgid "Validation"
+msgstr "Validation"
+
 msgid "Value"
 msgstr "Valeur"
 
@@ -2682,6 +3105,22 @@ msgstr "Volume (numéro)"
 
 msgid "Wording"
 msgstr "Libellé"
+
+msgid "Write the archive"
+msgstr "Écrire l'archive"
+
+msgid "Write the archive of the project (public by default) in the exports folder."
+msgstr "Écrire l'archive du projet (publique par défaut) dans le dossier des exports."
+
+msgid ""
+"Write the draft methods section on the AI in screening (Markdown and DOCX, French and English) in"
+" the exports folder."
+msgstr ""
+"Écrire l'ébauche de la section méthode sur l'IA au tri (Markdown et DOCX, en français et en "
+"anglais) dans le dossier des exports."
+
+msgid "Write the flow diagram of the screening (SVG, French and English) in the exports folder."
+msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) dans le dossier des exports."
 
 msgid "Write the protocol (Markdown and DOCX) in the exports folder."
 msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations."
@@ -2779,8 +3218,19 @@ msgstr "automatique"
 msgid "block without usable term: left out"
 msgstr "bloc sans terme utilisable : écarté"
 
+#, python-brace-format
+msgid ""
+"both keep: {tp}; AI keeps, person excludes: {fp}; AI excludes, person keeps: {fn}; both exclude: "
+"{tn}"
+msgstr ""
+"les deux conservent : {tp} ; l'IA conserve, la personne exclut : {fp} ; l'IA exclut, la personne "
+"conserve : {fn} ; les deux excluent : {tn}"
+
 msgid "broadening"
 msgstr "élargissement"
+
+msgid "calibrated probability of inclusion"
+msgstr "probabilité d'inclusion étalonnée"
 
 msgid "calibrated with the latest calibration of the round"
 msgstr "étalonnées avec le dernier étalonnage du tour"
@@ -2815,6 +3265,10 @@ msgstr "adresse de contact transmise aux API bibliographiques"
 
 msgid "context of interest (Framing and Criteria pages)"
 msgstr "contexte d'intérêt (pages « Cadrage » et « Critères »)"
+
+#, python-brace-format
+msgid "criteria version {number}"
+msgstr "critères, version {number}"
 
 msgid "data to chart, draft charting tool (Appendix III), pilot and revisions"
 msgstr "données à extraire, ébauche de la grille (annexe III), essai pilote et révisions"
@@ -2852,6 +3306,10 @@ msgstr "nombres différents dans les titres"
 
 msgid "different or missing first author"
 msgstr "premier auteur différent ou absent"
+
+#, python-brace-format
+msgid "disagreements to reconcile: {count}"
+msgstr "désaccords à réconcilier : {count}"
 
 msgid "does not exist in MeSH"
 msgstr "n'existe pas dans MeSH"
@@ -2896,6 +3354,9 @@ msgstr "existe (%(ui)s)"
 msgid "field not available: searched in title and abstract"
 msgstr "champ indisponible : cherché dans le titre et le résumé"
 
+msgid "funding of the review and of the AI use, and conflicts of interest"
+msgstr "financement de la revue et de l'usage de l'IA, et conflits d'intérêts"
+
 msgid "funding sources, or the absence of funding"
 msgstr "sources de financement, ou absence de financement"
 
@@ -2925,6 +3386,9 @@ msgstr "gardées séparées le %(date)s"
 msgid "languages: {languages}"
 msgstr "langues : {languages}"
 
+msgid "limitations specific to this review"
+msgstr "limites propres à cette revue"
+
 msgid "limits (years, languages)"
 msgstr "limites (années, langues)"
 
@@ -2942,6 +3406,10 @@ msgstr "satisfait"
 
 msgid "missing:"
 msgstr "manquants :"
+
+#, python-brace-format
+msgid "model {model}"
+msgstr "modèle {model}"
 
 msgid "names of the review team"
 msgstr "noms des membres de l'équipe de revue"
@@ -2986,6 +3454,10 @@ msgstr "un terme par ligne : utilisez des lignes distinctes plutôt que AND, OR
 msgid "or"
 msgstr "ou"
 
+#, python-brace-format
+msgid "pairs of possible duplicates to examine: {count}"
+msgstr "paires de doublons possibles à examiner : {count}"
+
 msgid "people and organizations to thank"
 msgstr "personnes et organismes à remercier"
 
@@ -2995,9 +3467,16 @@ msgstr "prévue"
 msgid "population of interest (Framing and Criteria pages)"
 msgstr "population d'intérêt (pages « Cadrage » et « Critères »)"
 
+msgid "probability of inclusion"
+msgstr "probabilité d'inclusion"
+
 #, python-format
 msgid "probability of inclusion: %(p)s"
 msgstr "probabilité d'inclusion : %(p)s"
+
+#, python-brace-format
+msgid "prompt template version {versions}"
+msgstr "gabarit d'invite version {versions}"
 
 msgid "publication type left out"
 msgstr "type de publication écarté"
@@ -3014,6 +3493,10 @@ msgstr "atteintes"
 
 msgid "reassessment"
 msgstr "réévaluation"
+
+#, python-brace-format
+msgid "reassessments not completed: {count}"
+msgstr "réévaluations non terminées : {count}"
 
 #, python-format
 msgid "recall %(value)s"
@@ -3040,6 +3523,14 @@ msgstr "notices : %(collected)s sur %(announced)s (pages : %(pages)s)"
 #, python-format
 msgid "records: %(count)s"
 msgstr "notices : %(count)s"
+
+#, python-brace-format
+msgid "references not screened by the AI: {count}"
+msgstr "références non triées par l'IA : {count}"
+
+#, python-brace-format
+msgid "references not screened by the person: {count}"
+msgstr "références non triées par la personne : {count}"
 
 #, python-format
 msgid "references: %(count)s, seed %(seed)s"
@@ -3085,6 +3576,9 @@ msgstr "même PMID, mais autres identifiants différents"
 msgid "score %(score)s"
 msgstr "score : %(score)s"
 
+msgid "secret value"
+msgstr "valeur secrète"
+
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"
 
@@ -3124,6 +3618,9 @@ msgstr "le plafond du lot est atteint"
 msgid "the combination of blocks"
 msgstr "la combinaison des blocs"
 
+msgid "the main screening has not started"
+msgstr "le tri principal n'a pas commencé"
+
 #, python-brace-format
 msgid "the results grew during the collection (records given: {received})"
 msgstr "les résultats ont augmenté pendant la collecte (notices données : {received})"
@@ -3161,6 +3658,10 @@ msgstr "inattendus :"
 msgid "unreadable line"
 msgstr "ligne illisible"
 
+#, python-brace-format
+msgid "version {before} to {after}"
+msgstr "version {before} à {after}"
+
 msgid "where existing or ongoing reviews were searched for, and what was found"
 msgstr "où les revues existantes ou en cours ont été recherchées, et ce qui a été trouvé"
 
@@ -3172,6 +3673,9 @@ msgstr "si les utilisateurs de connaissances seront consultés, et comment (facu
 
 msgid "whole dataset"
 msgstr "jeu complet"
+
+msgid "why AI was used for this task and why this model was chosen"
+msgstr "pourquoi l'IA a servi à cette tâche et pourquoi ce modèle a été choisi"
 
 msgid "why the review is needed and what is already known"
 msgstr "pourquoi la revue est nécessaire et ce qui est déjà connu"
@@ -3191,6 +3695,10 @@ msgstr "oui"
 #, python-brace-format
 msgid "{code} ({kind}): {text}"
 msgstr "{code} ({kind}) : {text}"
+
+#, python-brace-format
+msgid "{code}: {change}"
+msgstr "{code} : {change}"
 
 #, python-brace-format
 msgid "{count} AI suggestions received for the framing"
@@ -3265,8 +3773,32 @@ msgid "{service} sent an answer that cannot be read."
 msgstr "{service} a envoyé une réponse illisible."
 
 #, python-brace-format
+msgid "{template}, version {version} ({calls} calls)"
+msgstr "{template}, version {version} ({calls} appels)"
+
+#, python-brace-format
 msgid "{title}: a scoping review protocol"
 msgstr "{title} : protocole de revue de portée"
+
+#, python-brace-format
+msgid "{title}: use of AI in title and abstract screening (methods, draft)"
+msgstr "{title} : usage de l'IA au tri des titres et résumés (méthode, ébauche)"
+
+#, python-brace-format
+msgid "{value} ({low} to {high})"
+msgstr "{value} ({low} à {high})"
+
+#, python-brace-format
+msgid ""
+"† Criteria changes during the screening: {count} ({versions}). References reassessed (AI, then "
+"the person for the decisions it would change): {reassessed}; decisions changed from keep to "
+"exclude: {kept_to_excluded}; from exclude to keep: {excluded_to_kept}. The numbers above take "
+"these changes into account."
+msgstr ""
+"† Changements de critères pendant le tri : {count} ({versions}). Références réévaluées (par l'IA,"
+" puis par la personne pour les décisions que l'IA changerait) : {reassessed} ; décisions passées "
+"de « conserver » à « exclure » : {kept_to_excluded} ; d'« exclure » à « conserver » : "
+"{excluded_to_kept}. Les nombres ci-dessus tiennent compte de ces changements."
 
 #~ msgid "95 % interval: %(low)s to %(high)s"
 #~ msgstr ""
