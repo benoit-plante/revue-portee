@@ -129,3 +129,18 @@ def test_methods_export(tmp_path: Path) -> None:
     assert (folder / "exports" / "methode-en.docx").is_file()
     missing = runner.invoke(app, ["methode", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_archive_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    public = runner.invoke(app, ["archive", str(folder)])
+    assert public.exit_code == 0, public.output
+    assert "Archive écrite" in public.output
+    assert "ne pas la déposer" not in public.output
+    complete = runner.invoke(app, ["archive", str(folder), "--complete"])
+    assert complete.exit_code == 0, complete.output
+    assert "ne pas la déposer publiquement" in complete.output
+    assert len(list((folder / "exports").glob("archive-*.zip"))) == 2
+    missing = runner.invoke(app, ["archive", str(tmp_path / "absent")])
+    assert missing.exit_code == 1

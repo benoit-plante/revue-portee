@@ -207,6 +207,50 @@ def export_methods(
 
 
 @app.command(
+    "archive",
+    help=_("Write the archive of the project (public by default) in the exports folder."),
+)
+def export_archive(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    complete: Annotated[
+        bool,
+        typer.Option(
+            "--complete",
+            help=_(
+                "Complete archive: also the database, the raw responses and the imported "
+                "files (abstracts included: not for a public deposit)."
+            ),
+        ),
+    ] = False,
+) -> None:
+    from revue_portee.screening.archive import ArchiveKind, SecretInArchiveError
+    from revue_portee.screening.archive import export_archive as write
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    kind = ArchiveKind.COMPLETE if complete else ArchiveKind.PUBLIC
+    try:
+        result = write(folder, kind=kind, now=utc_now, tool_version=tool_version())
+    except SecretInArchiveError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    typer.echo(
+        _("Archive written: {path} ({files} files, SHA-256 {digest})").format(
+            path=result.path, files=result.files, digest=result.sha256
+        )
+    )
+    if complete:
+        typer.echo(
+            _("This archive contains abstracts and raw responses: do not deposit it publicly.")
+        )
+
+
+@app.command(
     "banc-synergy",
     help=_("Measure the AI screener on a labelled SYNERGY dataset (calls the model)."),
 )

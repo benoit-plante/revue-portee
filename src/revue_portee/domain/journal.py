@@ -79,6 +79,7 @@ class EntryType:
     REASSESSMENT_STARTED = "reassessment.started"
     REASSESSMENT_DECIDED = "reassessment.decided"
     REASSESSMENT_COMPLETED = "reassessment.completed"
+    ARCHIVE_EXPORTED = "archive.exported"
 
 
 class JournalEntry(BaseModel):

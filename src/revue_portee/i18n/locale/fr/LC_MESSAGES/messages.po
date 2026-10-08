@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 14:26-0400\n"
+"POT-Creation-Date: 2026-10-08 14:35-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -102,6 +102,10 @@ msgid ""
 msgstr ""
 "Une référence est conservée quand l'IA l'inclut ou est incertaine ; les étiquettes du jeu "
 "(inclusions au texte intégral) font référence."
+
+#, python-brace-format
+msgid "A secret was found in the archive, which was not written: {findings}"
+msgstr "Un secret a été trouvé dans l'archive, qui n'a pas été écrite : {findings}"
 
 #, python-format
 msgid "A word: %(example)s; truncation with an asterisk: %(truncated)s."
@@ -320,6 +324,14 @@ msgstr "Annexe V : correspondance avec le formulaire OSF « Generalized System
 msgid "Apply the thresholds to the calibrated probabilities"
 msgstr "Appliquer les seuils aux probabilités étalonnées"
 
+#, python-brace-format
+msgid "Archive exported ({kind}): {file}"
+msgstr "Archive exportée ({kind}) : {file}"
+
+#, python-brace-format
+msgid "Archive written: {path} ({files} files, SHA-256 {digest})"
+msgstr "Archive écrite : {path} ({files} fichiers, SHA-256 {digest})"
+
 msgid ""
 "Artificial intelligence (AI) is used under human supervision, following the RAISE "
 "recommendations. The review team remains responsible for every decision."
@@ -527,6 +539,13 @@ msgstr "Comparer toutes les références"
 
 msgid "Compare version"
 msgstr "Comparer la version"
+
+msgid ""
+"Complete archive: also the database, the raw responses and the imported files (abstracts "
+"included: not for a public deposit)."
+msgstr ""
+"Archive complète : aussi la base de données, les réponses brutes et les fichiers importés "
+"(résumés compris : pas pour un dépôt public)."
 
 msgid "Complete the reassessment"
 msgstr "Terminer la réévaluation"
@@ -2730,6 +2749,9 @@ msgstr "Aucune référence à trier pour l'instant : collectez ou importez d'ab
 msgid "These two references are not a pair of the deduplication."
 msgstr "Ces deux références ne forment pas une paire du dédoublonnage."
 
+msgid "This archive contains abstracts and raw responses: do not deposit it publicly."
+msgstr "Cette archive contient des résumés et des réponses brutes : ne pas la déposer publiquement."
+
 msgid "This collection is already finished."
 msgstr "Cette collecte est déjà terminée."
 
@@ -2993,6 +3015,9 @@ msgstr "Volume (numéro)"
 
 msgid "Wording"
 msgstr "Libellé"
+
+msgid "Write the archive of the project (public by default) in the exports folder."
+msgstr "Écrire l'archive du projet (publique par défaut) dans le dossier des exports."
 
 msgid ""
 "Write the draft methods section on the AI in screening (Markdown and DOCX, French and English) in"
@@ -3457,6 +3482,9 @@ msgstr "même PMID, mais autres identifiants différents"
 #, python-format
 msgid "score %(score)s"
 msgstr "score : %(score)s"
+
+msgid "secret value"
+msgstr "valeur secrète"
 
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"

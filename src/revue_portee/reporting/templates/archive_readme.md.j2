@@ -1,0 +1,68 @@
+# {{ title }}
+
+**Archive {{ "publique" if public else "complète" }} / {{ "public" if public else "complete" }} archive** — revue-portee {{ tool_version }}, {{ date }}.
+
+[Français](#français) · [English](#english)
+
+## Français
+
+Cette archive accompagne une revue de portée menée avec revue-portee, logiciel libre (AGPL-3.0-or-later). Elle permet de vérifier, sans l'outil et sans clé d'API, chaque nombre du diagramme de flux et de l'étalonnage.
+
+{% if public %}
+**Archive publique** : elle ne contient ni les résumés, ni les adresses URL des notices, ni les réponses brutes du modèle, ni la base SQLite, qui contiennent des textes protégés par le droit d'auteur. Les nombres se recalculent tous à partir des fichiers ci-dessous.
+{% else %}
+**Archive complète** : copie du dossier du projet (sans `textes/`), avec la base SQLite, les réponses brutes et les fichiers importés. Elle contient des résumés et des textes protégés par le droit d'auteur : **ne pas la déposer publiquement**. Elle se rouvre avec revue-portee.
+{% endif %}
+
+| Fichier | Contenu |
+|---|---|
+| `donnees/references.csv` | Notices (sans résumé ni URL), une par référence |
+| `donnees/dedoublonnage.csv` | Source de chaque référence et, pour un doublon, la référence principale (`duplicate_of`) |
+| `donnees/paires-a-examiner.csv` | Paires de doublons possibles encore à examiner |
+| `donnees/tours.csv`, `donnees/membres-des-tours.csv` | Tours de tri (pilote, principal, réévaluation) et leurs références, dans l'ordre tiré |
+| `donnees/decisions.csv` | Toutes les décisions, humaines et de l'IA, dans l'ordre du journal (`order`); une décision qui en remplace une autre la nomme (`supersedes_decision_id`) |
+| `donnees/etat-du-tri.csv` | Pour chaque référence après dédoublonnage : la décision en vigueur (`final_decision_id`), celle de l'IA au tri principal, désaccord et réconciliation |
+| `donnees/reevaluations.csv` | Changements de critères pendant le tri et tour de réévaluation de chacun |
+| `donnees/appels-ia.csv` | Chaque appel au modèle : fournisseur, modèle demandé, version exacte renvoyée, gabarit d'invite et sa version, jetons, coût estimé |
+| `donnees/criteres.csv` | Toutes les versions des critères |
+| `donnees/journal.jsonl` | Le journal du projet, une entrée par ligne, avec sa chaîne d'empreintes |
+| `donnees/diagramme.json` | Les nombres déclarés dans le diagramme |
+| `exports/` | Diagramme de flux (SVG) et ébauche de section méthode, en français et en anglais |
+| `etalonnage/` | Étalonnages de la probabilité d'inclusion de l'IA |
+| `projet.toml` | Métadonnées et configuration de l'IA du projet (aucun secret) |
+
+### Recompter le diagramme
+
+- **Références repérées** : lignes de `dedoublonnage.csv`, par `source`.
+- **Doublons retirés** : lignes dont `duplicate_of` est rempli. Les autres sont les références après dédoublonnage.
+- **Références triées** : lignes de `etat-du-tri.csv` dont `final_decision_id` est rempli. La décision en vigueur est la dernière décision humaine sur la référence (tri indépendant, réconciliation ou vérification d'une réévaluation), dans l'ordre `order` de `decisions.csv`.
+- **Références exclues** : celles dont la décision en vigueur vaut `exclude`; `reviewer_kind` dit qui l'a prise (`human` ou `ai`).
+- **Rapports recherchés pour le texte intégral** : références triées moins références exclues (`include` et `uncertain` sont conservées).
+- **Réévaluations** : pour chaque ligne de `reevaluations.csv`, les références réévaluées sont les membres du tour (`membres-des-tours.csv`); une décision changée est une décision humaine du tour dont la valeur et celle de la décision remplacée (`supersedes_decision_id`) diffèrent au sens « conserver » (`include`, `uncertain`) ou « exclure ».
+
+### Vérifier le journal
+
+Chaque entrée de `journal.jsonl` porte l'empreinte de la précédente (`prev_hash`, 64 zéros pour la première) et la sienne (`hash`) : SHA-256 du JSON canonique (clés triées, sans espaces, UTF-8) des champs `id`, `created_at`, `actor_reviewer_id`, `entry_type`, `subject_type`, `subject_id`, `payload`, `summary_fr`, `tool_version` et `prev_hash`.
+
+## English
+
+This archive comes with a scoping review conducted with revue-portee, free software (AGPL-3.0-or-later). It lets anyone check every number of the flow diagram and of the calibration, without the tool and without an API key.
+
+{% if public %}
+**Public archive**: it holds no abstracts, no record URLs, no raw model responses and no SQLite database, which contain copyrighted text. Every number can be recomputed from the files listed above (French section).
+{% else %}
+**Complete archive**: a copy of the project folder (without `textes/`), with the SQLite database, the raw responses and the imported files. It contains abstracts and other copyrighted text: **do not deposit it publicly**. It reopens with revue-portee.
+{% endif %}
+
+### Recounting the diagram
+
+- **Records identified**: rows of `dedoublonnage.csv`, by `source`.
+- **Duplicates removed**: rows with `duplicate_of` filled in; the others are the records after deduplication.
+- **Records screened**: rows of `etat-du-tri.csv` with `final_decision_id` filled in. The decision in force is the latest human decision on the record (independent screening, reconciliation or verification of a reassessment), in the `order` of `decisions.csv`.
+- **Records excluded**: those whose decision in force is `exclude`; `reviewer_kind` tells who took it (`human` or `ai`).
+- **Reports sought for retrieval**: records screened minus records excluded (`include` and `uncertain` are kept).
+- **Reassessments**: for each row of `reevaluations.csv`, the records reassessed are the members of its round (`membres-des-tours.csv`); a changed decision is a human decision of the round whose value and that of the decision it supersedes (`supersedes_decision_id`) differ as keep (`include`, `uncertain`) or exclude.
+
+### Checking the journal
+
+Each entry of `journal.jsonl` carries the digest of the previous one (`prev_hash`, 64 zeros for the first) and its own (`hash`): SHA-256 of the canonical JSON (sorted keys, no spaces, UTF-8) of the fields `id`, `created_at`, `actor_reviewer_id`, `entry_type`, `subject_type`, `subject_id`, `payload`, `summary_fr`, `tool_version` and `prev_hash`.
