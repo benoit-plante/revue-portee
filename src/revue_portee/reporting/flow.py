@@ -19,13 +19,14 @@ to examine, or a reassessment not completed.
 """
 
 import datetime as dt
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
 from revue_portee.dedup.counts import FlowCounts
 from revue_portee.domain.screening import Decision, DecisionValue, ReviewerKind, keeps
+from revue_portee.reporting.formats import integer
 
 __all__ = [
     "FlowBox",
@@ -36,6 +37,7 @@ __all__ = [
     "ReassessmentCounts",
     "StageStatus",
     "flow_numbers",
+    "pending_items",
     "reassessment_counts",
 ]
 
@@ -217,3 +219,20 @@ def flow_numbers(
             screening_not_started=not screening_started,
         ),
     )
+
+
+def pending_items(_: Callable[[str], str], pending: Pending, language: str) -> list[str]:
+    """What is left to do, one item per kind, in the export language (``_``)."""
+    items = []
+    if pending.screening_not_started:
+        items.append(_("the main screening has not started"))
+    for count, text in (
+        (pending.not_screened, _("references not screened by the person: {count}")),
+        (pending.without_ai, _("references not screened by the AI: {count}")),
+        (pending.disagreements, _("disagreements to reconcile: {count}")),
+        (pending.duplicate_pairs, _("pairs of possible duplicates to examine: {count}")),
+        (pending.reassessments, _("reassessments not completed: {count}")),
+    ):
+        if count:
+            items.append(text.format(count=integer(count, language)))
+    return items

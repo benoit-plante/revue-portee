@@ -9,7 +9,7 @@ whose decision it would change. Every number of the diagram is counted by hand i
 README.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -21,12 +21,13 @@ from revue_portee.ai.providers.fake import FakeBatches, FakeProvider
 from revue_portee.ai.settings import AITaskConfig
 from revue_portee.ai.tasks.screening import ScreenReferenceInput
 from revue_portee.collect import deduplication, imports
+from revue_portee.collect.enrichment import enriched_reference
 from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
-from revue_portee.domain.screening import DecisionValue
+from revue_portee.domain.screening import DecisionValue, Thresholds
 from revue_portee.protocol import criteria
-from revue_portee.screening import batch_ai, main, reassessment, settings
+from revue_portee.screening import ai_screening, batch_ai, main, pilot, reassessment, settings
 from revue_portee.storage.project_folder import ProjectFolder
 from support import TOOL_VERSION, make_clock, new_project
 
@@ -135,12 +136,13 @@ class Demo:
     impact_id: str = ""
 
     def ids(self) -> dict[str, str]:
-        """Identifier of each of the five references after deduplication, by key."""
-        state = main.main_state(self.folder, self.round_id)
-        from revue_portee.collect.enrichment import enriched_reference
+        """Identifier of each of the five references of the main screening, by key."""
+        return self.keyed(main.main_state(self.folder, self.round_id).members)
 
+    def keyed(self, reference_ids: Sequence[str]) -> dict[str, str]:
+        """``reference_ids`` by key."""
         found = {}
-        for ref in state.members:
+        for ref in reference_ids:
             reference = enriched_reference(self.folder, ref)
             assert reference is not None
             found[key_of(reference.title)] = ref
@@ -177,6 +179,38 @@ def deduplicate(demo: Demo) -> None:
         folder, pair.reference_a_id, pair.reference_b_id, PairOutcome.DUPLICATE, now=clock,
         tool_version=TOOL_VERSION,
     )  # fmt: skip
+
+
+def run_pilot(demo: Demo) -> str:
+    """A pilot round of the five references (seed 7): the AI, then the person, with
+    version 1; calibration fitted, thresholds set after the round. Returns its id."""
+    folder, clock = demo.folder, demo.clock
+    round_id = pilot.start_pilot(folder, size=5, seed=7, now=clock, tool_version=TOOL_VERSION).id
+    settings.set_budget(folder, Decimal(10), now=clock, tool_version=TOOL_VERSION)
+    ai_screening.run_ai(
+        folder, round_id, batch_limit=Decimal(5), factory=_factory(AI_V1), now=clock,
+        tool_version=TOOL_VERSION,
+    )  # fmt: skip
+    for key, ref in demo.keyed(pilot.get_round(folder, round_id).reference_ids).items():
+        value, cited = HUMAN_V1[key]
+        pilot.record_human_decision(
+            folder, round_id, ref, value, criteria_cited=cited, now=clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+    calibration = pilot.fit_round_calibration(
+        folder, round_id, now=clock, tool_version=TOOL_VERSION
+    )
+    settings.set_thresholds(
+        folder,
+        Thresholds(exclude_below=0.05, include_above=0.6),
+        justification="Aucune inclusion manquée sous 0,05.",
+        target_sensitivity=Decimal("0.95"),
+        round_id=round_id,
+        calibration_id=calibration.id,
+        now=clock,
+        tool_version=TOOL_VERSION,
+    )
+    return round_id
 
 
 def screen(demo: Demo, *, ai: bool = True, human: bool = True) -> None:

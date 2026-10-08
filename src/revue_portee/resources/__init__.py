@@ -12,6 +12,7 @@ from revue_portee.ai.costs import PriceTable
 from revue_portee.ai.settings import AISettings
 from revue_portee.domain.protocol import Checklist, OsfForm
 from revue_portee.reporting.flow import FlowTemplate
+from revue_portee.reporting.methods import ToolValidation
 
 __all__ = [
     "default_ai_settings",
@@ -20,6 +21,7 @@ __all__ = [
     "osf_form",
     "peters_checklist",
     "price_table",
+    "tool_validation",
 ]
 
 
@@ -53,3 +55,8 @@ def osf_form() -> OsfForm:
 @cache
 def flow_template() -> FlowTemplate:
     return FlowTemplate.model_validate(load_yaml("reporting/prisma_2020_flow.yaml"))
+
+
+@cache
+def tool_validation() -> ToolValidation:
+    return ToolValidation.model_validate(load_yaml("reporting/tool_validation.yaml"))

@@ -3,7 +3,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-__all__ = ["date", "integer", "number", "separator"]
+__all__ = ["date", "fixed", "integer", "number", "percent", "separator"]
 
 
 def date(moment: datetime) -> str:
@@ -25,3 +25,14 @@ def integer(value: int, language: str) -> str:
 def separator(language: str) -> str:
     """Separator of list items, with the French non-breaking space before « ; »."""
     return " ; " if language == "fr" else "; "
+
+
+def fixed(value: float, places: int, language: str) -> str:
+    """Number rounded to ``places`` decimals (0,82 in French)."""
+    return number(Decimal(f"{value:.{places}f}"), language)
+
+
+def percent(value: float, language: str) -> str:
+    """Proportion as a percentage with one decimal (97,4 % in French, 97.4% in English)."""
+    text = fixed(100 * value, 1, language)
+    return f"{text} %" if language == "fr" else f"{text}%"

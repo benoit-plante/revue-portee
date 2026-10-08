@@ -174,6 +174,39 @@ def export_flow(
 
 
 @app.command(
+    "methode",
+    help=_("Write the draft methods section on the AI in screening (Markdown and DOCX, French "
+           "and English) in the exports folder."),
+)  # fmt: skip
+def export_methods(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.i18n import EXPORT_LANGUAGES
+    from revue_portee.protocol.document import ExportFormat
+    from revue_portee.screening.methods import export_methods as write
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        for language in EXPORT_LANGUAGES:
+            for export_format in ExportFormat:
+                path = write(
+                    folder,
+                    language=language,
+                    format=export_format,
+                    now=utc_now,
+                    tool_version=tool_version(),
+                )
+                typer.echo(_("Methods section written: {path}").format(path=path))
+    finally:
+        folder.close()
+
+
+@app.command(
     "banc-synergy",
     help=_("Measure the AI screener on a labelled SYNERGY dataset (calls the model)."),
 )

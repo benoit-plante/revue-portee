@@ -15,7 +15,7 @@ from functools import cache
 from jinja2 import Environment, PackageLoader
 
 from revue_portee.i18n import translator
-from revue_portee.reporting.flow import FlowNumbers, FlowTemplate, StageStatus
+from revue_portee.reporting.flow import FlowNumbers, FlowTemplate, StageStatus, pending_items
 from revue_portee.reporting.formats import date, integer, separator
 
 __all__ = ["FlowContext", "render_flow_svg"]
@@ -199,19 +199,7 @@ def _reassessment_note(_: Translate, numbers: FlowNumbers, language: str) -> str
 
 
 def _pending_note(_: Translate, numbers: FlowNumbers, language: str) -> str:
-    pending = numbers.pending
-    items = []
-    if pending.screening_not_started:
-        items.append(_("the main screening has not started"))
-    for count, text in (
-        (pending.not_screened, _("references not screened by the person: {count}")),
-        (pending.without_ai, _("references not screened by the AI: {count}")),
-        (pending.disagreements, _("disagreements to reconcile: {count}")),
-        (pending.duplicate_pairs, _("pairs of possible duplicates to examine: {count}")),
-        (pending.reassessments, _("reassessments not completed: {count}")),
-    ):
-        if count:
-            items.append(text.format(count=integer(count, language)))
+    items = pending_items(_, numbers.pending, language)
     return _("Provisional diagram: {items}.").format(items=separator(language).join(items))
 
 
