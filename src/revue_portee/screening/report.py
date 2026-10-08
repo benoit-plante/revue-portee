@@ -4,14 +4,19 @@ The numbers are computed on every export from the data in force (``reporting/flo
 deduplication links and decisions, the main screening, reconciliations and
 reassessments. The diagram is written in ``exports/`` as ``diagramme-<langue>.svg``
 (regenerable files, docs/03-architecture.md §4).
+
+The references kept for the full text (include or uncertain) are exported as RIS and
+CSV (``references-retenues.ris`` and ``.csv``) for the next steps of the review.
 """
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
 
 from revue_portee.collect.deduplication import dedup_state
+from revue_portee.domain.screening import keeps
 from revue_portee.reporting.flow import (
     FlowNumbers,
     ReassessmentCounts,
@@ -19,6 +24,7 @@ from revue_portee.reporting.flow import (
     reassessment_counts,
 )
 from revue_portee.reporting.flow_svg import FlowContext, render_flow_svg
+from revue_portee.reporting.retained import RetainedReference, write_csv, write_ris
 from revue_portee.resources import flow_template
 from revue_portee.screening import main, reassessment
 from revue_portee.storage.project_folder import ProjectFolder
@@ -26,7 +32,15 @@ from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import screening as screening_repo
 
-__all__ = ["FlowReport", "export_flow", "flow_report"]
+__all__ = [
+    "FlowReport",
+    "RetainedExport",
+    "RetainedFormat",
+    "export_flow",
+    "export_retained",
+    "flow_report",
+    "retained_references",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,3 +121,58 @@ def export_flow(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(svg, encoding="utf-8")
     return target
+
+
+# --- References kept for the full text ----------------------------------------------
+
+
+class RetainedFormat(StrEnum):
+    RIS = "ris"
+    CSV = "csv"
+
+
+@dataclass(frozen=True, slots=True)
+class RetainedExport:
+    path: Path
+    count: int
+    provisional: bool  # the screening is not finished: the list may still change
+
+
+def retained_references(folder: ProjectFolder) -> list[RetainedReference]:
+    """References after deduplication whose decision in force keeps them (include or
+    uncertain), sorted by title."""
+    started = main.main_round(folder)
+    if started is None:
+        return []
+    dedup = dedup_state(folder)
+    duplicates = {ref for group in dedup.groups for ref in group.duplicates}
+    final = main.main_state(folder, started.id).final
+    with folder.engine.connect() as connection:
+        numbers = {v.id: v.number for v in criteria_repo.list_versions(connection)}
+    kept = [
+        RetainedReference(
+            reference=dedup.references[ref],
+            decision=decision,
+            criteria_version=numbers[decision.criteria_version_id],
+        )
+        for ref, decision in final.items()
+        if ref in dedup.references and ref not in duplicates and keeps(decision.value)
+    ]
+    return sorted(kept, key=lambda r: (r.reference.title.casefold(), r.reference.id))
+
+
+def export_retained(
+    folder: ProjectFolder,
+    *,
+    format: RetainedFormat,
+    now: Callable[[], datetime],
+    tool_version: str,
+) -> RetainedExport:
+    """Write the references kept for the full text in ``exports/``."""
+    items = retained_references(folder)
+    text = write_ris(items) if format is RetainedFormat.RIS else write_csv(items)
+    target = folder.path / "exports" / f"references-retenues.{format.value}"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
+    numbers = flow_report(folder, now=now, tool_version=tool_version).numbers
+    return RetainedExport(path=target, count=len(items), provisional=numbers.provisional)

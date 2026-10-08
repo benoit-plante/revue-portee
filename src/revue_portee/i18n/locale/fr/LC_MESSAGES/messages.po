@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 14:39-0400\n"
+"POT-Creation-Date: 2026-10-08 15:40-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -25,6 +25,20 @@ msgstr "%(code)s : %(type)s (proposé par %(who)s, confirmé par le réviseur)"
 #, python-format
 msgid "%(input)s in, %(output)s out"
 msgstr "%(input)s en entrée, %(output)s en sortie"
+
+#, python-format
+msgid ""
+"%(num)s reference kept (include or uncertain), to import in a reference manager (Zotero, EndNote)"
+" or a screening tool (Covidence, Rayyan)."
+msgid_plural ""
+"%(num)s references kept (include or uncertain), to import in a reference manager (Zotero, "
+"EndNote) or a screening tool (Covidence, Rayyan)."
+msgstr[0] ""
+"%(num)s référence retenue (inclure ou incertain), à importer dans un logiciel de gestion "
+"bibliographique (Zotero, EndNote) ou un outil de tri (Covidence, Rayyan)."
+msgstr[1] ""
+"%(num)s références retenues (inclure ou incertain), à importer dans un logiciel de gestion "
+"bibliographique (Zotero, EndNote) ou un outil de tri (Covidence, Rayyan)."
 
 msgid "(empty query)"
 msgstr "(requête vide)"
@@ -2056,6 +2070,9 @@ msgstr "Références dans l'échantillon"
 msgid "References it would exclude"
 msgstr "Références qu'elle exclurait"
 
+msgid "References kept for the full text"
+msgstr "Références retenues pour le texte intégral"
+
 #, python-format
 msgid ""
 "References reassessed: %(count)s (seed %(seed)s%(sampled)s). The AI screens them again with the "
@@ -2750,6 +2767,9 @@ msgstr "La requête du lot a été annulée."
 msgid "The screening has not started."
 msgstr "Le tri n'est pas commencé."
 
+msgid "The screening is not finished: this list may still change."
+msgstr "Le tri n'est pas terminé : cette liste peut encore changer."
+
 #, python-brace-format
 msgid ""
 "The search strategy combines the following concept blocks with AND: {blocks}. The terms of a "
@@ -3124,6 +3144,9 @@ msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) da
 
 msgid "Write the protocol (Markdown and DOCX) in the exports folder."
 msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations."
+
+msgid "Write the references kept for the full text (RIS and CSV) in the exports folder."
+msgstr "Écrire les références retenues pour le texte intégral (RIS et CSV) dans le dossier des exports."
 
 msgid "YAML file of the criteria."
 msgstr "Fichier YAML des critères."
@@ -3707,6 +3730,12 @@ msgstr "{count} suggestions de l'IA reçues pour le cadrage"
 #, python-brace-format
 msgid "{count} records ({included} included) with {provider} — {model}: at most {amount} USD."
 msgstr "{count} références ({included} incluses) avec {provider} — {model} : au plus {amount} USD."
+
+#, python-brace-format
+msgid "{count} reference kept, written: {path}"
+msgid_plural "{count} references kept, written: {path}"
+msgstr[0] "{count} référence retenue, écrite : {path}"
+msgstr[1] "{count} références retenues, écrites : {path}"
 
 #, python-brace-format
 msgid "{database} ({date}): {count}"
