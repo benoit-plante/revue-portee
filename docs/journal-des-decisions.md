@@ -1551,3 +1551,16 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : demande de Benoit.
 - **Conséquences** : le RIS est relu par le lecteur RIS du projet dans les tests; l'import dans les outils tiers est à vérifier pendant l'essai de bout en bout.
 - **Renvois** : D-079, D-088, D-092; demande de fusion benoit-plante/revue-portee#21.
+
+### D-097 — Résultats SYNERGY présentés comme des résultats de développement
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (approuvée par Benoit); précise D-093
+- **Décision** : selon le vocabulaire de RAISE 2 (test, évaluation, validation qualifiée), les résultats du banc SYNERGY sont présentés comme des **résultats de développement**, puisque ces jeux forment l'ensemble de développement (05, §5.3). La section méthode dit que le développeur a « testé » la configuration et que l'outil n'est ni testé sur des données mises de côté ni validé. Les pages « Pilote » et « Tri » signalent que le réviseur IA est en cours d'évaluation. Le rôle des jeux est une donnée (`dataset_role` dans `resources/reporting/tool_validation.yaml`) : à `test`, la mention disparaît.
+- **Contexte** : liste RAISE 2 (06), points 2.8 et 2.9 : sans preuve d'évaluation suffisante, l'outil doit être utilisé dans un cadre clairement signalé, dans l'interface comme dans la documentation.
+- **Options envisagées** :
+  1. **Vocabulaire de RAISE 2 et mention dans l'interface** : honnête sur l'état des preuves; la supervision humaine complète de la V1 reste inchangée.
+  2. Garder « validé » : contraire à RAISE 2 et au plan de validation.
+- **Justification** : choix de Benoit (action 1 de la liste RAISE 2).
+- **Conséquences** : la [fiche de l'outil](07-fiche-outil.md) emploie le même vocabulaire; la mention sera retirée après l'étude de validation (05).
+- **Renvois** : D-076, D-093, D-095; [06-liste-raise2.md](06-liste-raise2.md); demande de fusion benoit-plante/revue-portee#23.
