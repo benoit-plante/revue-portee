@@ -1,6 +1,7 @@
 """Tolerant RIS reader for exports of subscription databases (EF-COL-03).
 
-Tested on real exports from EBSCOhost (SocINDEX, CINAHL, ERIC), PubMed and Érudit.
+Tested on real exports from EBSCOhost (PsycInfo, SocINDEX, CINAHL, ERIC), Ovid
+(PsycInfo), PubMed and Érudit.
 Tolerated variants: a byte order mark, Windows line ends, one or two spaces before
 the dash, blank lines inside a record, values wrapped over several lines (each
 continuation line joins the previous value), repeated tags (two abstracts are kept
@@ -109,7 +110,11 @@ class RisRecord:
 
     @property
     def provider(self) -> str:
-        return self.first("DP")
+        """Platform named by DP; Ovid names none, but links to ovid.com."""
+        provider = self.first("DP")
+        if not provider and any("ovid.com" in v for v in self.all("L2", "UR", "L1")):
+            return "Ovid"
+        return provider
 
     @property
     def pmid(self) -> str:

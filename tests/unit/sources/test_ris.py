@@ -1,8 +1,8 @@
-"""RIS import on excerpts of six real exports, and malformed files (EF-COL-03).
+"""RIS import on excerpts of seven real exports, and malformed files (EF-COL-03).
 
 The excerpts (``tests/fixtures/ris/``) keep the exact line format of the exports
 (line ends, spacing, wrapped values); abstracts are cut short because the repository
-is public. Full exports (4,189 records) were also read without loss during the tranche.
+is public. Full exports (4,209 records) were also read without loss during the tranche.
 """
 
 import re
@@ -17,6 +17,7 @@ FIXTURES = Path(__file__).parents[2] / "fixtures" / "ris"
 
 EXPORTS = {
     "psycinfo-ebscohost.ris": "APA PsycInfo (EBSCOhost)",
+    "psycinfo-ovid.ris": "APA PsycInfo <September 2026 Week 5> (Ovid)",
     "cinahl-ebscohost.ris": "CINAHL Complete (EBSCOhost)",
     "eric-ebscohost.ris": "ERIC (EBSCOhost)",
     "socindex-ebscohost.ris": "SocINDEX (EBSCOhost)",
@@ -32,7 +33,9 @@ def read(name: str) -> str:
 @pytest.mark.parametrize(("name", "database"), EXPORTS.items())
 def test_every_record_of_real_exports_is_recognized(name: str, database: str) -> None:
     text = read(name)
-    assert ("\r\n" in text) == name.startswith(("cinahl", "eric", "socindex"))  # bytes kept
+    assert ("\r\n" in text) == name.startswith(
+        ("cinahl", "eric", "socindex", "psycinfo-ovid")
+    )  # bytes kept
     expected = len(re.findall(r"^TY  -", text, flags=re.MULTILINE))  # independent count
     assert expected == len(re.findall(r"^ER  -", text, flags=re.MULTILINE))
     result = parse_ris(text)
@@ -52,6 +55,23 @@ def test_ebscohost_record() -> None:
     assert (first.volume, first.issue, first.pages) == ("40", "3", "377-387")
     assert first.accession == "2026-69056-001"
     assert first.pmid == ""
+
+
+def test_ovid_record() -> None:
+    """Ovid: T1, A1, N2, JF, DOI as URL, cited references in A2 and M1, no DP."""
+    first = parse_ris(read("psycinfo-ovid.ris")).records[0]
+    assert first.title.startswith("Intergenerational stress proliferation")
+    assert first.authors == (
+        "Liu, Qimin",
+        "Irani, Kiyan",
+        "Standring, John P",
+        "Tang, Mingcong",
+        "Rodriguez, Violeta J",
+    )  # authors of cited references (A2) are not authors
+    assert first.doi == "10.1037/FAM0001523"
+    assert (first.year, first.container_title) == (2026, "Journal of Family Psychology")
+    assert first.abstract.startswith("Sexual and gender minority families")
+    assert (first.accession, first.provider) == ("2028-05905-001", "Ovid")
 
 
 def test_pubmed_record_and_missing_title() -> None:
