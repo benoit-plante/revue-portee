@@ -1564,3 +1564,19 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : choix de Benoit (action 1 de la liste RAISE 2).
 - **Conséquences** : la [fiche de l'outil](07-fiche-outil.md) emploie le même vocabulaire; la mention sera retirée après l'étude de validation (05).
 - **Renvois** : D-076, D-093, D-095; [06-liste-raise2.md](06-liste-raise2.md); demande de fusion benoit-plante/revue-portee#23.
+
+### D-098 — Test du dédoublonnage sur les jeux d'ASySD
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : les règles de dédoublonnage version 1 sont testées une seule fois, sans ajustement, sur les cinq jeux d'évaluation d'ASySD (Hair et al., 2023; OSF 2b8uq, CC BY 4.0), dédoublonnés par des personnes. Les fichiers restent hors du dépôt; seuls les rapports chiffrés sont versionnés dans `docs/resultats/`. La commande `revue-portee banc-doublons` lit leur format.
+- **Contexte** : liste RAISE 2, point 2.10 : les règles ont été mises au point sur le jeu annoté de la tranche 1.5 (D-062), et leurs résultats sur ce jeu sont des résultats de développement.
+- **Options envisagées** :
+  1. **Jeux publics d'ASySD** : annotés par des personnes, en groupes, sous licence ouverte, jamais utilisés pour construire nos règles.
+  2. Un nouveau jeu annoté par Benoit : proche des revues visées, mais long à constituer.
+- **Justification** : choix de Benoit (d'abord deux jeux, puis les cinq).
+- **Conséquences** :
+  - rappel de 0,998 à 1,000 et précision de 0,994 à 0,998 sur 147 112 notices : les cibles de la tranche 1.5 sont atteintes sur des données mises de côté;
+  - 86 regroupements automatiques erronés selon ASySD (0,21 %) restent à examiner;
+  - ces jeux étant désormais consultés, une future version des règles mise au point sur leurs erreurs demandera d'autres données de test.
+- **Renvois** : EF-COL-06, D-060, D-062; [resultats/README.md](resultats/README.md); [06-liste-raise2.md](06-liste-raise2.md).
