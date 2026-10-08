@@ -88,8 +88,9 @@ class MissingSecretError(RuntimeError):
         names = f" {_('or')} ".join(name.env_vars)
         super().__init__(
             _(
-                "Missing environment variable: {names} ({description}). "
-                "Set it in the environment settings, then run the command again."
+                "Missing environment variable: {names} ({description}). Set it in your "
+                "shell profile (or in the environment settings of a cloud session), then "
+                "run the command again in a new terminal."
             ).format(names=names, description=_description(name))
         )
 

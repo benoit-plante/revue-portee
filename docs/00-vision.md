@@ -126,4 +126,4 @@ L'outil ne vaut que s'il est validé. Le [plan de validation](05-plan-de-validat
 - Projet personnel de Benoit Plante, réalisé hors de son emploi, avec ses propres ressources.
 - Dépôt privé au départ (`benoit-plante/revue-portee` sur GitHub), destiné à devenir public sous licence libre.
 - Documentation et interface en français; code, noms de variables et commentaires en anglais.
-- Développement dans Claude Code (sessions infonuagiques) à partir du dépôt; cadrage et documentation dans Cowork. Voir [journal-des-decisions.md](journal-des-decisions.md).
+- Développement dans Claude Code à partir du dépôt, sur le poste de Benoit depuis octobre 2026 (sessions infonuagiques auparavant, toujours possibles); cadrage et documentation dans Cowork. Voir [journal-des-decisions.md](journal-des-decisions.md).

@@ -92,7 +92,7 @@
 ### D-005 — Environnement de développement infonuagique
 
 - **Date** : 2026-10-07
-- **Statut** : décidée; complétée par D-020 (nom de la variable de la clé Anthropic) et D-021 (clé OpenAlex facultative)
+- **Statut** : remplacée par D-085 (développement local, l'environnement infonuagique restant possible); complétée par D-020 (nom de la variable de la clé Anthropic) et D-021 (clé OpenAlex facultative)
 - **Décision** : le code est développé dans **Claude Code en mode infonuagique**, dans une machine virtuelle Ubuntu 24.04 neuve à chaque session (Python, uv, pytest, ruff préinstallés), avec un **accès réseau limité à une liste** (`api.openalex.org`, `eutils.ncbi.nlm.nih.gov`, `api.crossref.org`, `api.unpaywall.org` et les registres de paquets) et deux variables d'environnement : `ANTHROPIC_API_KEY` et `CONTACT_EMAIL`. Les dépendances sont installées par un **hook SessionStart** dans `.claude/settings.json`, créé au jalon 0.
 - **Contexte** : chaque session repart de zéro et ne connaît le projet que par les fichiers du dépôt.
 - **Options envisagées** :
@@ -122,7 +122,7 @@
 ### D-007 — Répartition du travail entre Cowork et les sessions de développement
 
 - **Date** : 2026-10-07
-- **Statut** : décidée
+- **Statut** : décidée; complétée par D-085 (les sessions de Claude Code peuvent être locales)
 - **Décision** : `docs/` (et `CLAUDE.md`) sont rédigés dans **Cowork**; le code est écrit dans les **sessions infonuagiques de Claude Code**, sur des **branches**; Benoit **révise chaque demande de fusion** avant de fusionner.
 - **Contexte** : séparer le cadrage (méthode, exigences, décisions) de la mise en œuvre, et garder Benoit maître des choix.
 - **Options envisagées** :
@@ -1261,3 +1261,138 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : critère d'acceptation atteint sur les trois jeux; coût environ dix fois sous la cible de D-015.
 - **Conséquences** : la sensibilité d'Oud_2018 est tout juste à la cible et son intervalle est large (76,4 à 99,1 %), avec 20 inclusions; l'étude de validation (05) mesurera la sensibilité sur des revues de portée.
 - **Renvois** : D-015, D-066, D-067; [docs/resultats/README.md](resultats/README.md); demande de fusion benoit-plante/revue-portee#14.
+
+### D-077 — Réévaluation des clarifications sur un échantillon
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : les références touchées par une clarification seulement sont réévaluées sur un échantillon aléatoire de **20 %**, au moins **20** (toutes s'il y en a moins), tiré avec une graine consignée. La personne peut choisir de les réévaluer toutes au moment de l'analyse d'impact. Les références touchées par un autre type de changement sont toujours toutes réévaluées.
+- **Contexte** : EF-VER-04 prévoit pour une clarification les références qui citent le critère, « à revoir par échantillon »; une clarification ne vise pas à changer la portée.
+- **Options envisagées** :
+  1. **Échantillon réglable** : coût borné; un changement de décision dans l'échantillon signale une clarification qui change en fait la portée.
+  2. Toutes les références touchées : sans choix d'échantillon à justifier, mais plus coûteux.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : la graine et le choix (échantillon ou toutes) sont consignés avec l'analyse (`impact_assessment.seed`, `sampled`); l'échantillon ne peut pas être étendu après coup.
+- **Renvois** : EF-VER-04, EF-VER-05; demande de fusion benoit-plante/revue-portee#16.
+
+### D-078 — Décisions du pilote reprises au tri principal
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : les décisions humaines d'un tour pilote pris avec la même version des critères que le tri principal comptent pour le tri principal : ces références ne sont pas triées de nouveau par la personne. Elles sont **calculées**, pas recopiées. Les décisions de l'IA du tri principal sont refaites dans tous les cas, avec les seuils fixés après le pilote.
+- **Contexte** : le pilote porte sur un échantillon des mêmes références, souvent une centaine.
+- **Options envisagées** :
+  1. **Reprises si mêmes critères** : pas de travail refait; un changement de critères impose un nouveau tri.
+  2. Jamais reprises : plus simple à expliquer, mais une centaine de références à trier de nouveau.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : le journal du début du tri consigne les tours repris et le nombre de décisions reprises (`screening.started`).
+- **Renvois** : EF-SEL-01, EF-SEL-08; demande de fusion benoit-plante/revue-portee#16.
+
+### D-079 — Définition du désaccord au tri des titres et résumés
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : l'humain et l'IA sont en **désaccord** quand l'un conserve la référence (inclure ou incertain) et l'autre l'exclut. « Inclure » contre « incertain » n'est pas un désaccord : les deux passent au texte intégral.
+- **Contexte** : EF-SEL-08 présente les désaccords pour réconciliation; le critère d'acceptation exige une file qui contient exactement les références où les deux décisions diffèrent.
+- **Options envisagées** :
+  1. **Conserver ou exclure** : même règle que la sensibilité du pilote; file limitée à ce qui change l'issue.
+  2. Toute valeur différente : file plus longue, sans effet sur ce qui passe au texte intégral.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : la même règle sert à la réévaluation (D-082).
+- **Renvois** : EF-SEL-08; demande de fusion benoit-plante/revue-portee#16.
+
+### D-080 — Tri par l'IA au moyen de l'API Batches
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Le tri principal et la réévaluation envoient les références à l'API de traitement par lots du fournisseur (`BatchProvider`), au tarif des lots (`batch_factor` dans `model_prices.yaml`, 0,5 pour Anthropic).
+  - Au plus **5 000** requêtes par lot; chaque lot enregistre la version des critères donnée au modèle (`ai_batch`), et la décision de l'IA renvoie à cette version.
+  - Avant chaque lot, son estimation est ajoutée à la dépense du projet et aux estimations des lots encore en cours : aucun lot n'est envoyé qui dépasserait le budget du projet ou le plafond de l'envoi.
+  - La collecte enregistre chaque résultat dans sa propre transaction, avec sa réponse brute, puis la fin du lot (`ai_batch_end`); collecter de nouveau saute les appels déjà consignés.
+  - Une référence est envoyée au plus **deux fois** en tout; après deux réponses inutilisables ou en erreur, l'échec est consigné.
+- **Contexte** : ENF-COU-04 demande les mécanismes de réduction des coûts du fournisseur; un projet peut compter des dizaines de milliers de références.
+- **Options envisagées** :
+  1. **API Batches** : moitié prix; résultats en général en moins d'une heure, au plus en 24 heures; reprise après interruption.
+  2. Appels simultanés (comme au banc SYNERGY) : plus simple, au plein tarif.
+- **Justification** : choix de Benoit (option 1, prévu pour la tranche 1.7 au lancement de la tranche 1.6).
+- **Conséquences** : le suivi des lots tourne en arrière-plan dans le serveur (`BackgroundJobs`, D-059) et se reprend depuis la page après un redémarrage. L'API Batches n'a pas encore été essayée avec le vrai modèle.
+- **Renvois** : ENF-COU-01, ENF-COU-02, ENF-COU-04, ENF-PER-04, D-041, D-069; demande de fusion benoit-plante/revue-portee#16.
+
+### D-081 — Règles de l'analyse d'impact
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - L'état courant d'une référence est sa dernière décision humaine (indépendante, de réconciliation ou de réévaluation), dans l'ordre du journal.
+  - Les références pas encore triées ne sont pas touchées : elles seront triées avec la nouvelle version.
+  - Élargissement : références exclues qui citent le critère. Restriction : références conservées. Clarification : références qui citent le critère. Critère ajouté : références conservées (« encore à l'étape »). Critère retiré : références exclues pour ce seul critère.
+  - Les versions activées pendant le tri sont analysées une à une, dans l'ordre.
+- **Contexte** : EF-VER-04 décrit les cinq règles; il fallait préciser l'état de référence et le sens de « encore à l'étape ».
+- **Options envisagées** :
+  1. **Règles appliquées à la dernière décision humaine** : l'IA seule ne détermine aucun état en V1 (D-014).
+  2. Règles appliquées aussi aux décisions de l'IA : contraire à la décision finale humaine.
+- **Justification** : cohérence avec EF-SEL-08 et D-014.
+- **Conséquences** : un jeu construit à la main (12 références, 28 cas, au moins 5 par type) vérifie chaque règle.
+- **Renvois** : EF-VER-04, D-014; [03-architecture.md §7](03-architecture.md#7-analyse-dimpact-fonctionnalité-distinctive); demande de fusion benoit-plante/revue-portee#16.
+
+### D-082 — Réévaluation par l'IA, puis vérification humaine des changements
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : l'IA trie de nouveau, avec la nouvelle version des critères, les références à réévaluer. La personne ne vérifie que celles où l'IA ferait passer la référence de « conserver » à « exclure » ou l'inverse (D-079); sa décision remplace la précédente, qui demeure. Là où l'IA ne change pas l'issue, l'ancienne décision reste en vigueur. La fin de la réévaluation consigne, pour chaque changement et en tout, les références réévaluées, triées par l'IA, les changements proposés par l'IA, les décisions changées et les décisions confirmées.
+- **Contexte** : EF-VER-05 prévoit en V1 la réévaluation par l'IA puis la vérification humaine des changements de décision.
+- **Options envisagées** :
+  1. **Vérifier les seuls changements** : effort humain limité à ce qui change l'issue.
+  2. Vérifier toutes les références réévaluées : plus sûr, mais l'IA n'apporte alors presque rien.
+- **Justification** : conforme à EF-VER-05 (V1).
+- **Conséquences** : la réévaluation par la personne seule est reportée à la V2.
+- **Renvois** : EF-VER-05, EF-VER-07; demande de fusion benoit-plante/revue-portee#16.
+
+### D-083 — Ordre du tri principal
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : les références du tri principal sont présentées dans un ordre tiré au hasard avec une graine consignée. Les références ajoutées plus tard (collecte ou import après le début du tri) se placent à la suite, dans un ordre tiré avec la graine du tri plus le nombre de références déjà au tour. La priorité selon la probabilité d'inclusion de l'IA reste facultative (EF-SEL-10).
+- **Contexte** : un ordre fixe (par source ou par identifiant) peut biaiser le tri, par exemple par fatigue en fin de liste.
+- **Options envisagées** :
+  1. **Ordre aléatoire avec graine** : reproductible et sans biais d'ordre.
+  2. Ordre d'arrivée : simple, mais regroupe les références d'une même source.
+- **Justification** : reproductibilité (ENF-REP-01) et absence de biais d'ordre.
+- **Conséquences** : la graine figure au journal (`screening.started`, `screening.members_added`).
+- **Renvois** : EF-SEL-10, ENF-REP-01; demande de fusion benoit-plante/revue-portee#16.
+
+### D-084 — Touches du tri au clavier
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : `i` inclure, `d` incertain (« doute »), `e` exclure, `1` à `9` pour cocher ou décocher un critère, `p` pour passer la référence pour l'instant. Les touches sont sans effet pendant la saisie d'une note; les boutons portent `aria-keyshortcuts`.
+- **Contexte** : ENF-PER-02 exige un tri entièrement au clavier.
+- **Options envisagées** :
+  1. **Lettres mnémoniques en français** : « inclure » et « incertain » commencent par la même lettre, d'où `d` pour le doute.
+  2. Chiffres pour les décisions : en conflit avec les chiffres des critères.
+- **Justification** : mémorisation facile; les chiffres restent aux critères.
+- **Conséquences** : les mêmes touches servent à la réconciliation et à la réévaluation (sans `p`).
+- **Renvois** : ENF-PER-02, ENF-PER-03; demande de fusion benoit-plante/revue-portee#16.
+
+### D-085 — Développement local avec Claude Code
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (Benoit passe à Claude Code sur son poste); remplace D-005
+- **Décision** : le développement se fait désormais avec **Claude Code sur le poste de Benoit** (macOS ou Linux; sous Windows, dans WSL). L'environnement infonuagique reste possible et décrit dans `CLAUDE.md`. Sur le poste :
+  - prérequis : Python 3.12 ou plus récent, uv, Git; facultativement `gh` pour les demandes de fusion;
+  - le hook SessionStart de `.claude/settings.json` (`uv sync --frozen`) s'exécute aussi en local; il exige uv dans le `PATH`;
+  - les variables `REVUE_PORTEE_ANTHROPIC_KEY`, `CONTACT_EMAIL` et `OPENALEX_API_KEY` sont définies par Benoit dans le profil de son shell (ou dans `env` de `.claude/settings.local.json`, non versionné), jamais dans un fichier du dépôt; `OPENALEX_API_KEY` y est **nécessaire**, aucun mandataire ne l'ajoutant;
+  - `ANTHROPIC_API_KEY` n'est pas définie dans le shell : en local, Claude Code peut s'en servir pour s'authentifier (il le propose au démarrage), ce qui facturerait les sessions de développement sur la clé du projet (D-020);
+  - le réseau n'est plus limité à une liste : les tests ordinaires restent coupés du réseau (D-016), et les appels réels (tests d'intégration, cassettes, banc SYNERGY) restent soumis à la demande explicite de Benoit;
+  - les données hors dépôt (jeux SYNERGY, réponses brutes du banc, projets `.revue` de travail) vont dans un dossier hors du dépôt, par exemple `~/revue-portee-donnees/`.
+- **Contexte** : Benoit souhaite travailler avec Claude Code hors de l'environnement infonuagique.
+- **Options envisagées** :
+  1. **Poste local, environnement infonuagique toujours possible** : fichiers persistants, réseau libre, outils de Benoit.
+  2. Environnement infonuagique seulement (D-005).
+- **Justification** : choix de Benoit. Le dépôt est déjà autonome (hook d'installation, tests sans réseau, secrets lus par `config/secrets.py`), ce qui rend le passage sans risque.
+- **Conséquences** :
+  - `CLAUDE.md` et le `README` décrivent les deux environnements, le poste local d'abord;
+  - sur le poste, rien ne garantit plus qu'une nouvelle source soit bloquée : la règle de signaler toute nouvelle source à Benoit demeure, pour la méthode et les licences;
+  - une session locale ne repart pas de zéro : `uv sync` reste la commande de référence après un changement de `uv.lock`.
+- **Renvois** : D-005, D-007, D-013, D-016, D-020, D-021; [CLAUDE.md](../CLAUDE.md); [README.md](../README.md).

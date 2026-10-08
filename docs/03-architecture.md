@@ -87,7 +87,8 @@ revue-portee/
 │   │   ├── screening.py          # Decision, CriterionAssessment, Stage, seuils, règle EF-SEL-07 (D-068),
 │   │   │                         # tours, étalonnages, budget, tirage avec graine, langue (D-073)
 │   │   ├── calibration.py        # étalonnage isotonique ou de Platt, seuil suggéré (D-072)
-│   │   ├── impact.py             # analyse d'impact des changements (EF-VER-04)
+│   │   ├── impact.py             # analyse d'impact des cinq types de changement, échantillon des
+│   │   │                         # clarifications (EF-VER-04, D-077, D-081)
 │   │   ├── grid.py               # GridVersion, Field, ExtractionValue (V3)
 │   │   ├── metrics.py            # matrice de confusion, accord, kappa, AC1, sensibilité, spécificité,
 │   │   │                         # intervalles de Wilson, courbe seuil, désaccords par critère
@@ -122,8 +123,10 @@ revue-portee/
 │   │                             # evaluation (rappel et précision sur un jeu annoté)
 │   ├── screening/                # pilote : tirage, tri humain à l'aveugle (pilot.py, D-071), lot d'IA
 │   │                             # plafonné et rejeu (ai_screening.py, D-069), budget et seuils
-│   │                             # (settings.py), banc SYNERGY (benchmark.py, D-074); plus tard
-│   │                             # tri principal et réconciliation
+│   │                             # (settings.py), banc SYNERGY (benchmark.py, D-074); tri principal
+│   │                             # et réconciliation (main.py, D-078, D-079, D-083), lots d'IA par
+│   │                             # l'API Batches (batch_ai.py, D-080), analyse d'impact et
+│   │                             # réévaluation (reassessment.py, D-081, D-082)
 │   ├── ai/
 │   │   ├── base.py               # TaskSpec, TaskInput/TaskOutput, TaskResult, AICallRecord, ModelProvider
 │   │   ├── runner.py             # run_task : exécution indépendante du fournisseur
@@ -199,7 +202,7 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 | `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `dedup.pair_decided`, `pilot.started`, `screening.human_decided`, `screening.ai_decided`, `screening.ai_failed`, `screening.ai_batch_ended`, `reviewer.ai_recorded`, `calibration.fitted`, `thresholds.set`, `budget.set`, `budget.reached`, `ai_mode.enabled`, `protocol.registered`, `note.added`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `dedup.pair_decided`, `pilot.started`, `screening.started`, `screening.members_added`, `screening.ai_batch_submitted`, `screening.reconciled`, `reassessment.started`, `reassessment.decided`, `screening.human_decided`, `screening.ai_decided`, `screening.ai_failed`, `screening.ai_batch_ended`, `reviewer.ai_recorded`, `calibration.fitted`, `thresholds.set`, `budget.set`, `budget.reached`, `ai_mode.enabled`, `protocol.registered`, `note.added`.
 
 ### 5.2 Critères versionnés
 
@@ -252,16 +255,20 @@ Toutes ces tables sont en ajout seulement (migrations 0004 et 0005). Les liens e
 
 | Table | Champs principaux | Notes |
 |---|---|---|
-| `screening_round` | id, number, stage (`title_abstract` / `full_text`), kind (`pilot`; plus tard `main` / `reassessment` / `audit_sample`), criteria_version_id, seed, sample_size, created_at, reviewer_id, journal_entry_id | Un tour de pilote (tranche 1.6); le tri principal, une réévaluation et un échantillon de vérification viendront ensuite. Ni `closed_at` ni `metrics_json` : les métriques se recalculent à partir des décisions |
-| `round_member` | round_id, position, reference_id | Échantillon ordonné d'un tour, tiré avec la graine consignée (EF-SEL-01) |
+| `screening_round` | id, number, stage (`title_abstract` / `full_text`), kind (`pilot` / `main` / `reassessment`; plus tard `audit_sample`), criteria_version_id, seed, sample_size, created_at, reviewer_id, journal_entry_id | Un tour de pilote (tranche 1.6), le tri principal ou une réévaluation (tranche 1.7). Ni `closed_at` ni `metrics_json` : les métriques se recalculent à partir des décisions |
+| `round_member` | round_id, position, reference_id | Références d'un tour, dans l'ordre tiré avec la graine consignée (EF-SEL-01, D-083); les références ajoutées au tri principal se placent à la suite |
 | `decision` | id, reference_id, stage, round_id, reviewer_id, reviewer_kind, value (`include` / `exclude` / `uncertain`), confidence_raw (probabilité d'inclusion, D-065), confidence_calibrated, rationale, criteria_cited_json, per_criterion_json, model_decision, thresholds_json, calibration_id, criteria_version_id, language, context (`independent` / `reconciliation` / `reassessment` / `audit`), blinded, supersedes_decision_id, ai_call_id, tool_version, created_at, journal_entry_id | **Ajout seulement.** Contient tous les champs d'ENF-TRA-01 directement ou via `ai_call`; des contraintes `CHECK` imposent les champs d'une décision de l'IA et interdisent un appel de modèle sur une décision humaine (ENF-TRA-05); le modèle du domaine exige en plus un critère cité pour une exclusion humaine (EF-SEL-12) |
 | `calibration_model` | id, round_id, ai_config_id, method (`isotonic` / `platt` / `none`), calibration_json, artifact_path, fitted_on_n, created_at, journal_entry_id | EF-SEL-05, D-072 |
 | `threshold_setting` | id, stage, exclude_below, include_above, target_sensitivity, justification, based_on_round_id, calibration_id, reviewer_id, created_at, journal_entry_id | EF-SEL-09; le dernier réglage dans l'ordre du journal est en vigueur, sinon les valeurs par défaut (D-066) |
-| `impact_assessment` | id, from_version_id, to_version_id, change_ids_json, affected_reference_ids_json, affected_count, reassessment_mode, reassessment_round_id, status | EF-VER-04/05 |
+| `ai_batch` | id, round_id, task, criteria_version_id, provider, provider_batch_id, item_ids_json, estimate, created_at, reviewer_id, journal_entry_id | Lot envoyé à l'API Batches du fournisseur, avec la version des critères donnée au modèle (D-080) |
+| `ai_batch_end` | batch_id, screened, failed_json, spent, created_at, journal_entry_id | Fin d'un lot, une fois tous ses résultats consignés; un lot sans fin est encore à suivre |
+| `impact_assessment` | id, from_version_id, to_version_id, main_round_id, changes_json (références touchées par changement), touched_count, reassessment_round_id, seed, sampled, created_at, reviewer_id, journal_entry_id | EF-VER-04/05; la fin de la réévaluation est une entrée du journal (`reassessment.completed`) |
 
-Tables de la tranche 1.6 en ajout seulement (déclencheurs, migration 0006). Écarts au modèle prévu : `round_member` ajoutée; `decision` gagne `model_decision`, `thresholds_json`, `calibration_id` et `language`; `screening_round` perd `closed_at` et `metrics_json`; `threshold_setting` ne porte plus `ai_config_id`, l'étalonnage étant lié à sa configuration.
+Tables des tranches 1.6 et 1.7 en ajout seulement (déclencheurs, migrations 0006 et 0007). Écarts de la tranche 1.7 : `ai_batch` et `ai_batch_end` ajoutées; `impact_assessment` garde l'impact complet dans `changes_json` et n'a ni `reassessment_mode` (un seul mode en V1 : l'IA puis la vérification humaine) ni `status`. La migration 0007 ajoute aussi des index pour le passage à la référence suivante, dont un index sur expression (`ix_decision_priority`) que SQLite ne permet pas de comparer au modèle. Écarts de la tranche 1.6 : `round_member` ajoutée; `decision` gagne `model_decision`, `thresholds_json`, `calibration_id` et `language`; `screening_round` perd `closed_at` et `metrics_json`; `threshold_setting` ne porte plus `ai_config_id`, l'étalonnage étant lié à sa configuration.
 
-**État courant** d'une référence à une étape (vue calculée) : la dernière décision de réconciliation si elle existe; sinon, en V1, la décision humaine indépendante; une décision IA seule ne détermine l'état courant que si le mode d'exclusion assistée (EF-SEL-11) est actif et que la décision dépasse le seuil.
+**État courant** d'une référence à une étape (vue calculée, `screening/main.py`) : en V1, la dernière décision humaine, dans l'ordre du journal, parmi les décisions indépendantes (pilote compris quand la version des critères est la même, D-078), de réconciliation et de réévaluation. Une décision IA seule ne déterminera l'état courant que si le mode d'exclusion assistée (EF-SEL-11, V2) est actif et que la décision dépasse le seuil.
+
+**Désaccord** (D-079) : l'humain et l'IA sont en désaccord quand l'un conserve la référence (inclure ou incertain) et l'autre l'exclut. La file de réconciliation contient les désaccords sans décision de réconciliation.
 
 ### 5.6 Appels aux modèles
 
@@ -270,7 +277,7 @@ Tables de la tranche 1.6 en ajout seulement (déclencheurs, migration 0006). Éc
 | `ai_call` | id, ai_config_id, task, item_id, provider, model_requested, **model_returned** (identifiant exact renvoyé par l'API; vide si l'API n'a renvoyé aucun modèle), provider_request_id, prompt_template_id, prompt_template_version, prompt_sha256, params_json, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_estimate, currency, latency_ms, batch_id, response_path, status, error_code, created_at |
 | `budget_setting` | id, limit_amount, currency, reviewer_id, created_at, journal_entry_id |
 
-`budget_setting` est en ajout seulement : le dernier réglage est en vigueur, et la dépense se calcule à partir de `ai_call.cost_estimate`. Le plafond de lot est un paramètre du lot, consigné à la fin du lot (écart à la table `budget` prévue, qui portait un `spent_amount` modifiable, D-069).
+Un appel fait dans un lot porte l'identifiant du lot chez le fournisseur (`batch_id`) et son coût au tarif des lots. `budget_setting` est en ajout seulement : le dernier réglage est en vigueur, et la dépense se calcule à partir de `ai_call.cost_estimate`. Le plafond de lot est un paramètre du lot, consigné à la fin du lot (écart à la table `budget` prévue, qui portait un `spent_amount` modifiable, D-069).
 
 ### 5.7 Texte complet, études, extraction (V2–V3)
 
@@ -347,7 +354,7 @@ Le **nom exact du modèle** n'est jamais codé en dur : il vient de la configura
 
 ### 6.6 Coûts
 
-`ai/costs.py` estime le coût avant chaque lot (jetons d'entrée estimés × tarif, instructions au tarif d'écriture en cache, + sortie attendue : D-040), vérifie le plafond, enregistre le coût réel par appel et arrête proprement au plafond (ENF-COU-01 à 03). Depuis la tranche 1.6, le plafond du projet et celui du lot sont vérifiés avant chaque appel, nouvelles tentatives comprises (D-069). L'appel se fait hors transaction d'écriture; il est consigné dans sa propre transaction, puis son résultat est exploité (D-041). L'API de traitement par lots du fournisseur est utilisée pour les lots non urgents quand elle est offerte.
+`ai/costs.py` estime le coût avant chaque lot (jetons d'entrée estimés × tarif, instructions au tarif d'écriture en cache, + sortie attendue : D-040), vérifie le plafond, enregistre le coût réel par appel et arrête proprement au plafond (ENF-COU-01 à 03). Depuis la tranche 1.6, le plafond du projet et celui du lot sont vérifiés avant chaque appel, nouvelles tentatives comprises (D-069). L'appel se fait hors transaction d'écriture; il est consigné dans sa propre transaction, puis son résultat est exploité (D-041). Depuis la tranche 1.7, le tri principal et la réévaluation passent par l'API de traitement par lots du fournisseur (`BatchProvider`, D-080) : tarif des lots dans `model_prices.yaml` (`batch_factor`), au plus 5 000 requêtes par lot, estimation réservée avant chaque lot en comptant les lots encore en cours, collecte qui reprend sans payer deux fois.
 
 ## 7. Analyse d'impact (fonctionnalité distinctive)
 
@@ -365,7 +372,15 @@ pour chaque changement (code, type) :
 sortie : ensemble des références touchées, par changement et au total, avec explication
 ```
 
-La réévaluation crée un `screening_round` de type `reassessment`; les nouvelles décisions pointent vers la nouvelle version des critères; les anciennes demeurent. Le diagramme de flux et la section méthode rendent compte des réévaluations.
+Mise en œuvre de la tranche 1.7 (D-077, D-081, D-082) :
+
+- l'état courant est la dernière décision humaine (§5.5); les références pas encore triées ne sont pas touchées, puisqu'elles seront triées avec la nouvelle version; une référence « encore active » est une référence conservée (inclure ou incertain); l'option sur la restriction n'est pas offerte;
+- les versions activées pendant le tri sont analysées une à une, dans l'ordre;
+- une clarification est réévaluée sur un échantillon de 20 % des références qu'elle seule touche (au moins 20), tiré avec une graine consignée, ou sur toutes au choix de la personne;
+- la réévaluation crée un `screening_round` de type `reassessment` avec la nouvelle version : l'IA trie de nouveau les références (par lots), la personne ne vérifie que celles où l'IA ferait passer de « conserver » à « exclure » ou l'inverse; sa décision remplace la précédente (`supersedes_decision_id`), qui demeure;
+- le journal consigne pour chaque changement les versions, le type, la justification de la version, le nombre de références touchées et réévaluées (`impact.assessed`), puis le résultat de la réévaluation (`reassessment.completed`).
+
+Le diagramme de flux et la section méthode rendront compte des réévaluations (tranche 1.8).
 
 ## 8. Connecteurs de sources
 
@@ -384,6 +399,7 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
 - Ajouts de la tranche 1.3 : page « Recherche » : blocs de concepts éditables et limites; requêtes de chaque base avec leurs avertissements; nombre de résultats au total et par bloc (PubMed, OpenAlex); vérification des descripteurs MeSH; articles clés et test de sensibilité; suggestions de termes par l'IA; historique des versions. Le protocole décrit la stratégie et donne les requêtes à l'annexe II.
+- Ajouts de la tranche 1.7 : pages « Tri » : avancement (références, décisions, désaccords); tri de la référence suivante sans voir l'IA, entièrement au clavier (`i`, `d`, `e`, `1` à `9`, `p`, D-084), dans l'ordre tiré ou par priorité selon la probabilité d'inclusion (EF-SEL-10); lots d'IA estimés, lancés et suivis en arrière-plan; réconciliation des désaccords, seule page où la justification de l'IA est visible; analyse d'impact d'une nouvelle version et page de réévaluation. Passage à la référence suivante mesuré sous 200 ms sur 50 000 références (ENF-PER-01).
 - Ajouts de la tranche 1.6 : page « Pilote » : budget d'IA du projet; tirage d'un échantillon avec graine; tri de la référence suivante sans voir l'IA (D-071), avec critères cités et note; estimation du coût puis lot d'IA en arrière-plan, sous un plafond de lot; table des décisions, où l'IA n'apparaît qu'après la décision humaine, avec son évaluation par critère et ses citations; table d'étalonnage (accord, kappa, AC1, sensibilité et spécificité avec intervalles, matrice de confusion, désaccords par critère, courbe seuil); ajustement de l'étalonnage et réglage des seuils avec justification.
 - Ajouts de la tranche 1.5 : page « Doublons » : nombres du diagramme par source (D-064); exécution en arrière-plan avec seuils réglables; paires à examiner côte à côte, différences signalées, raisons d'un examen humain; groupes de doublons avec leur référence principale et leurs liens, chacun annulable; paires gardées séparées, de nouveau regroupables.
 - Ajouts de la tranche 1.4 : page « Collecte » : collecte de chaque requête OpenAlex et PubMed, état mis à jour toutes les 2 secondes, reprise d'une collecte ouverte, écart entre nombre annoncé et collecté; import de fichiers RIS avec la base déclarée et la liste des enregistrements écartés; enrichissement par Crossref; nombre de références par source.
@@ -391,13 +407,13 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
 - Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
 - **Sécurité locale** (D-032) : chaque formulaire porte un jeton propre au processus du serveur; les en-têtes `Host` autres que `127.0.0.1` ou `localhost`, et les en-têtes `Origin` étrangers sur les écritures, sont refusés (requêtes intersites, DNS rebinding).
-- **Tâches de fond** (`jobs/runner.py`) : chaque tâche longue (collecte, enrichissement, dédoublonnage, lot d'IA du pilote) s'exécute dans un fil du processus du serveur, au plus une par clé. Son état est ce qu'elle a enregistré dans le projet; une tâche arrêtée avec le serveur se reprend en la relançant (ENF-PER-04). Pas de file persistée ni de reprise automatique au redémarrage (écart, D-059). Pas de Celery ni de Redis.
+- **Tâches de fond** (`jobs/runner.py`) : chaque tâche longue (collecte, enrichissement, dédoublonnage, lot d'IA du pilote, suivi des lots du tri et de la réévaluation) s'exécute dans un fil du processus du serveur, au plus une par clé. Son état est ce qu'elle a enregistré dans le projet; une tâche arrêtée avec le serveur se reprend en la relançant (ENF-PER-04). Pas de file persistée ni de reprise automatique au redémarrage (écart, D-059). Pas de Celery ni de Redis.
 
 ## 10. Sécurité et secrets
 
 - `config/secrets.py` est le **seul** module qui lit les variables d'environnement sensibles (un test d'architecture l'impose); il renvoie des `SecretStr` (Pydantic) dont la représentation est masquée.
   - Clé Anthropic : `REVUE_PORTEE_ANTHROPIC_KEY`, à défaut `ANTHROPIC_API_KEY` (D-020); toutes les valeurs définies sont enregistrées pour le masquage.
-  - `CONTACT_EMAIL` : obligatoire. `OPENALEX_API_KEY` : facultative, car le mandataire réseau de l'environnement infonuagique l'ajoute aux requêtes (D-021).
+  - `CONTACT_EMAIL` : obligatoire. `OPENALEX_API_KEY` : facultative pour le code, qui ne l'envoie que si elle est définie (D-021); elle doit être définie sur un poste local, car OpenAlex l'exige (D-013), alors que dans l'environnement infonuagique le mandataire réseau l'ajoute aux requêtes (D-085).
   - Une variable obligatoire absente lève `MissingSecretError`, avec un message en français qui nomme la variable sans jamais afficher de valeur.
 - **Masquage des journaux** (ENF-SEC-03, D-024) : `install_secret_redaction()`, appelée au démarrage de chaque point d'entrée, installe une fabrique d'entrées de journal (`logging.setLogRecordFactory`) qui masque chaque entrée dès sa création. Elle couvre ainsi tous les gestionnaires, y compris ceux configurés plus tard (uvicorn). Un filtre `logging` sur les gestionnaires sert de seconde protection.
   - Sont masqués les valeurs de secrets chargées et les motifs de clés connus (`sk-ant-…`, en-têtes `Authorization` / `x-api-key`, `api_key`, paramètres `api_key` / `email` / `mailto`), dans le message, les arguments, les traces d'exception et les piles d'appels.
