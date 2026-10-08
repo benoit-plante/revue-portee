@@ -208,7 +208,7 @@ def _store_page(
             entry_type=EntryType.COLLECT_PAGE_STORED,
             subject_type="collection_run",
             subject_id=run.id,
-            summary_fr=french("{database}: page {number} stored ({count} records)").format(
+            summary_fr=french("{database}: page {number} stored (records: {count})").format(
                 database=run.database.display_name, number=number, count=len(page.records)
             ),
             tool_version=tool_version,
@@ -231,7 +231,7 @@ def _discrepancy(announced: int, collected: int, received: int) -> str:
     reasons = []
     if received > collected:
         reasons.append(
-            french("{count} records were given more than once by the API").format(
+            french("records given more than once by the API: {count}").format(
                 count=received - collected
             )
         )
@@ -244,7 +244,7 @@ def _discrepancy(announced: int, collected: int, received: int) -> str:
         )
     elif received > announced:
         reasons.append(
-            french("the results grew during the collection ({received} records given)").format(
+            french("the results grew during the collection (records given: {received})").format(
                 received=received
             )
         )
@@ -281,10 +281,10 @@ def _end(
             ended_at=moment,
         )
         if status is CollectionStatus.COMPLETED:
-            summary = french("{database}: {collected} records collected of {announced} announced")
+            summary = french("{database}: records collected: {collected} of {announced} announced")
             entry_type = EntryType.COLLECT_COMPLETED
         else:
-            summary = french("{database}: collection stopped ({collected} records collected)")
+            summary = french("{database}: collection stopped (records collected: {collected})")
             entry_type = EntryType.COLLECT_FAILED
         entry = journal.append_entry(
             connection,

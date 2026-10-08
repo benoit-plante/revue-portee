@@ -173,7 +173,9 @@ def test_steps_and_duplicates_are_explained(setup: tuple[ProjectFolder, Clock]) 
     )
     assert final.end is not None
     assert (final.end.collected, final.end.announced) == (3, 5)
-    assert "2 notices ont été données plus d'une fois" in final.end.discrepancy.replace(" ", " ")
+    assert "notices données plus d'une fois par l'API : 2" in final.end.discrepancy.replace(
+        " ", " "
+    )
     assert notes.journal_entries(folder)[-1].payload["received"] == 5
 
 

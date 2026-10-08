@@ -1,0 +1,80 @@
+{%- macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endmacro -%}
+<div id="etat-collecte" aria-live="polite"
+     {% if running or crossref_running %}hx-get="/collecte/etat" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+<section aria-labelledby="sources-titre">
+    <h2 id="sources-titre">{{ _("References") }}</h2>
+    <p>{{ _("References stored: %(count)s", count=total) }}</p>
+    {% if counts %}
+    <ul>
+      {% for source, n in counts | dictsort %}
+      <li>{{ {"pubmed": "PubMed", "openalex": "OpenAlex", "ris": _("RIS imports")}.get(source, source) }}&nbsp;: {{ n }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="collectes-titre" id="collectes">
+    <h2 id="collectes-titre">{{ _("Collections") }}</h2>
+    {% if states %}
+    <table class="criteria">
+      <caption class="visually-hidden">{{ _("Collections, most recent first") }}</caption>
+      <thead><tr>
+        <th scope="col">{{ _("Database") }}</th>
+        <th scope="col">{{ _("Started on") }}</th>
+        <th scope="col">{{ _("Progress") }}</th>
+        <th scope="col">{{ _("Status") }}</th>
+      </tr></thead>
+      <tbody>
+      {% for s in states %}
+        <tr id="collecte-{{ s.run.id }}">
+          <th scope="row">{{ s.run.database.display_name }}</th>
+          <td>{{ s.run.started_at.strftime("%Y-%m-%d %H:%M") }} UTC</td>
+          <td>
+            {% if s.announced is not none %}
+              {{ _("records: %(collected)s of %(announced)s (pages: %(pages)s)", collected=s.collected, announced=s.announced, pages=s.pages) }}
+              <progress max="{{ [s.announced, 1] | max }}" value="{{ s.collected }}"></progress>
+            {% else %}{{ _("not started yet") }}{% endif %}
+          </td>
+          <td>
+            {% if s.end and s.end.status == "completed" %}
+              {{ _("Finished") }}
+              {% if s.end.discrepancy %}<p class="small">{{ _("Difference explained:") }} {{ s.end.discrepancy }}</p>{% endif %}
+            {% elif s.end %}
+              <strong>{{ _("Stopped") }}</strong><p class="small">{{ s.end.error }}</p>
+            {% elif s.run.id in running %}
+              {{ _("In progress…") }}
+            {% else %}
+              {{ _("Interrupted") }}
+              {% if s.run.id in job_errors %}<p class="small">{{ job_errors[s.run.id] }}</p>{% endif %}
+              <form method="post" action="/collecte/reprendre/{{ s.run.id }}">
+                {{ csrf() }}
+                <button type="submit" class="secondary">{{ _("Resume") }}</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="small">{{ _("No collection yet.") }}</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="crossref-titre" id="crossref">
+    <h2 id="crossref-titre">{{ _("Completion with Crossref") }}</h2>
+    <p>{{ _("References with a DOI whose title, abstract, authors, year, journal, volume, issue or pages are missing are completed with Crossref (three requests at a time). A field given by the source is never replaced.") }}</p>
+    {% if crossref_running %}
+      <p>{{ _("In progress…") }}</p>
+    {% else %}
+      {% if crossref_error %}<div class="message error" role="alert">{{ crossref_error }}</div>{% endif %}
+      <p>{{ _("References to complete: %(count)s", count=candidates) }}</p>
+      {% if candidates %}
+      <form method="post" action="/collecte/crossref">
+        {{ csrf() }}
+        <button type="submit" class="secondary">{{ _("Complete with Crossref") }}</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </section>
+</div>

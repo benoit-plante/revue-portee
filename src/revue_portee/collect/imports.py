@@ -25,6 +25,7 @@ from revue_portee.storage.repositories import journal
 from revue_portee.storage.repositories import references as references_repo
 
 __all__ = [
+    "DECLARED_DATABASES",
     "AlreadyImportedError",
     "NothingToImportError",
     "UnreadableFileError",
@@ -33,6 +34,20 @@ __all__ = [
 ]
 
 Clock = Callable[[], datetime]
+
+# Databases offered when importing a file (names of databases and platforms, not
+# translated); the reviewer may also leave the choice to the records themselves.
+DECLARED_DATABASES = (
+    "APA PsycInfo (EBSCOhost)",
+    "APA PsycInfo (Ovid)",
+    "CINAHL (EBSCOhost)",
+    "ERIC",
+    "SocINDEX (EBSCOhost)",
+    "Scopus",
+    "Web of Science",
+    "PubMed",
+    "Érudit",
+)
 
 
 class AlreadyImportedError(ValueError):
@@ -130,7 +145,7 @@ def import_ris(
             entry_type=EntryType.IMPORT_COMPLETED,
             subject_type="import_file",
             subject_id=imported.id,
-            summary_fr=french("RIS file imported: {count} records ({database})").format(
+            summary_fr=french("RIS file imported ({database}), records: {count}").format(
                 count=len(result.records), database=declared
             ),
             tool_version=tool_version,

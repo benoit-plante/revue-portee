@@ -108,7 +108,7 @@ def enrich_references(
                 subject_type="enrichment",
                 subject_id=batch_id,
                 summary_fr=french(
-                    "Crossref: {enriched} references completed out of {checked} checked"
+                    "Crossref: references completed: {enriched} of {checked} checked"
                 ).format(enriched=len(enriched), checked=len(items)),
                 tool_version=tool_version,
                 payload={

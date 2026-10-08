@@ -129,17 +129,17 @@ def test_crossref_work() -> None:
 
 def test_recorded_answers_are_trimmed() -> None:
     xml = (
-        "<Set><Art><AbstractText>" + "x" * 300 + " <i>a@uni.edu</i></AbstractText>"
-        "<ReferenceList><Ref>r</Ref></ReferenceList><Aff>b@uni.edu</Aff></Art></Set>"
+        "<Set><Art><AbstractText>" + "x" * 300 + " <i>a@uni.test</i></AbstractText>"
+        "<ReferenceList><Ref>r</Ref></ReferenceList><Aff>b@uni.test</Aff></Art></Set>"
     )
     trimmed = trim_body("text/xml", xml)
     assert "ReferenceList" not in trimmed
-    assert "uni.edu" not in trimmed
+    assert "uni.test" not in trimmed
     assert MASKED_EMAIL in trimmed
     assert len(trimmed) < 300
     json_body = '{"abstract_inverted_index": {"w": [1, 40]}, "abstract": "' + "y" * 300 + '"}'
     assert trim_body("application/json", json_body) == (
         '{"abstract_inverted_index": {"w": [1]}, "abstract": "' + "y" * 200 + '"}'
     )
-    assert trim_body("application/json", "not json c@uni.edu") == f"not json {MASKED_EMAIL}"
+    assert trim_body("application/json", "not json c@uni.test") == f"not json {MASKED_EMAIL}"
     assert trim_body("text/xml", "<broken") == "<broken"
