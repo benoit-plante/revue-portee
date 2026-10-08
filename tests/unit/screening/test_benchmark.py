@@ -51,7 +51,9 @@ def fake(responder: Callable[[TaskInput], dict[str, Any]] = answer) -> FakeProvi
     )
 
 
-def run(provider: ModelProvider, ceiling: str = "1") -> tuple[benchmark.BenchmarkResult, str]:
+def run(
+    provider: ModelProvider, ceiling: str = "1", workers: int = 1
+) -> tuple[benchmark.BenchmarkResult, str]:
     records = benchmark.read_dataset(DATA / "mini.csv")
     criteria = benchmark.read_criteria(DATA / "criteres.yaml")
     config = default_ai_settings().enabled_task("screen_reference")
@@ -66,6 +68,7 @@ def run(provider: ModelProvider, ceiling: str = "1") -> tuple[benchmark.Benchmar
         ceiling=Decimal(ceiling),
         raw_output=raw,
         now=make_clock(),
+        workers=workers,
     )
     return result, raw.getvalue()
 
@@ -152,6 +155,19 @@ def test_retry_then_failure_and_ceiling() -> None:
     assert not stopped.failed
 
 
+def test_parallel_calls_give_the_same_result_and_respect_the_ceiling() -> None:
+    serial, _raw = run(fake())
+    parallel, raw = run(fake(), workers=4)
+    assert parallel.values == serial.values
+    assert parallel.spent == serial.spent
+    assert len(raw.splitlines()) == 6
+    capped, _raw = run(fake(), ceiling="0.0035", workers=4)
+    assert capped.stopped
+    assert len(capped.values) == 3  # 3 calls of 0.001 fit under the ceiling, whatever the order
+    assert capped.spent == Decimal("0.003")
+    assert not capped.failed
+
+
 def test_command_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def factory(config: AITaskConfig) -> ModelProvider:
         return fake()
@@ -172,6 +188,8 @@ def test_command_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         str(raw),
         "--nom",
         "Mini",
+        "--paralleles",
+        "2",
     ]
     result = CliRunner().invoke(app, [*arguments, "--oui"])
     assert result.exit_code == 0, result.output
