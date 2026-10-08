@@ -6,7 +6,7 @@ Logiciel libre qui accompagne une équipe de recherche dans une revue de portée
 
 ### Prérequis
 
-- macOS ou Linux (sous Windows, utiliser WSL);
+- macOS, Linux ou Windows (natif ou WSL);
 - Python 3.12 ou plus récent;
 - [uv](https://docs.astral.sh/uv/) pour gérer l'environnement et les dépendances;
 - Git; [GitHub CLI](https://cli.github.com/) (`gh`) pour ouvrir des demandes de fusion depuis le poste.

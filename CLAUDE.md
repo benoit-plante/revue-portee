@@ -57,7 +57,7 @@ Claude Code tourne **sur le poste de Benoit** depuis le 2026-10-08 (D-085); l'en
 
 ### Poste local (par défaut)
 
-- macOS ou Linux (sous Windows, dans WSL). Prérequis : Python 3.12 ou plus récent, **uv** et Git dans le `PATH`; `gh` (connecté au compte de Benoit) pour ouvrir les demandes de fusion. Les fichiers persistent d'une session à l'autre : après un changement de `uv.lock`, lancer `uv sync`.
+- macOS, Linux ou Windows (natif ou WSL). Prérequis : Python 3.12 ou plus récent, **uv** et Git dans le `PATH`; `gh` (connecté au compte de Benoit) pour ouvrir les demandes de fusion. Les fichiers persistent d'une session à l'autre : après un changement de `uv.lock`, lancer `uv sync`.
 - Le **hook SessionStart** de `.claude/settings.json` (ci-dessous) s'exécute aussi en local et installe les dépendances (`uv sync --frozen`).
 - **Réseau libre** : aucune liste ne bloque plus les domaines. Les tests ordinaires restent coupés du réseau (D-016). Tout appel réel (tests d'intégration, cassettes, banc SYNERGY, API Anthropic) reste **sur demande explicite de Benoit**, et toute nouvelle source (Érudit, theses.fr, HAL, dépôts OAI-PMH…) lui est **signalée** avant d'être utilisée (méthode, licence).
 - Variables, définies par Benoit dans le profil de son shell ou dans `env` de `.claude/settings.local.json` (non versionné), **jamais** dans un fichier du dépôt; ne jamais créer ni modifier ces fichiers de réglages personnels :
@@ -104,7 +104,7 @@ Claude Code tourne **sur le poste de Benoit** depuis le 2026-10-08 (D-085); l'en
 
 ## Tests
 
-- Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016).
+- Les tests ordinaires **n'appellent jamais les vraies API** : réponses enregistrées (pytest-recording, mode lecture seule) et `FakeProvider` pour l'IA. Le réseau leur est bloqué : toute tentative de connexion échoue (D-016), sauf vers 127.0.0.1, dont la boucle asyncio a besoin sous Windows; les variables de mandataire (`HTTPS_PROXY`…) leur sont retirées.
 - Les tests qui appellent de vrais services portent le marqueur `@pytest.mark.integration`, sont exclus par défaut et ne sont lancés **que sur demande explicite de Benoit** (ils coûtent et consomment des quotas).
 - Enregistrer une nouvelle cassette = appel volontaire au vrai service, **sur autorisation de Benoit**, puis nettoyage et vérification anti-secrets :
   - cassettes vcrpy (`httpx`) : `uv run pytest -m integration --record-mode=once`;

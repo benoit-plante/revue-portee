@@ -2,6 +2,9 @@
 
 - Every test that is not marked ``integration`` runs with network access blocked
   (pytest-recording ``block_network``); cassettes are read-only (``--record-mode=none``).
+  Only the loopback address stays open, because asyncio on Windows builds the internal
+  socket pair of its event loop with a TCP connection to 127.0.0.1; proxy variables are
+  removed so that no request can leave through a local proxy.
 - Cassettes are recorded with credentials and contact parameters replaced by
   fictitious values (ENF-SEC-04).
 - A full run fails when a package listed in ``coverage_gate_packages`` is below
@@ -28,6 +31,17 @@ FAKE_EMAIL = "contact@example.org"
 
 CASSETTES = Path(__file__).parent / "cassettes"
 
+# Regexes matched from the start of the host by pytest-recording.
+LOOPBACK_ONLY = [r"127\.0\.0\.1$"]
+PROXY_VARIABLES = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+)
+
 
 def _record_mode(config: pytest.Config) -> str:
     return str(config.getoption("--record-mode") or "none")
@@ -40,7 +54,17 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             continue
         if recording and item.get_closest_marker("cassette") is not None:
             continue  # recording a cassette calls the real service
-        item.add_marker(pytest.mark.block_network)
+        item.add_marker(pytest.mark.block_network(allowed_hosts=LOOPBACK_ONLY))
+
+
+@pytest.fixture(autouse=True)
+def _no_proxy_while_blocked(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A proxy on the loopback address would otherwise reach the real network."""
+    if request.node.get_closest_marker("block_network") is not None:
+        for name in PROXY_VARIABLES:
+            monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture
