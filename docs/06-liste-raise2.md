@@ -49,8 +49,8 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 | 2.5 | Réduire la variabilité des modèles génératifs (paramètres, invites) et tester sur plusieurs exécutions | ◐ | Sortie structurée validée par schéma, une nouvelle tentative au plus (D-070), paramètres consignés à chaque appel. **Stabilité des réponses non mesurée** : prévue dans l'étude (05, §6.3, point 3) |
 | 2.6 | Hallucinations : vérifier que les résultats sont exacts **et** fondés sur les données fournies | ◐ | Chaque critère évalué porte une citation, et l'outil vérifie qu'elle figure textuellement dans le titre ou le résumé (`quote_found`). Manque : rapporter la proportion de citations retrouvées au banc et dans la section méthode |
 | 2.7 | Tester les biais, dont le biais linguistique (modèles entraînés surtout en anglais) | ◐ | Langue de chaque référence détectée et consignée (ENF-LAN-05, D-073); justifications rédigées en français. Manque : la performance sur les références en français n'est pas mesurée (05, objectif 6) |
-| 2.8 | Sans preuve d'évaluation suffisante, n'utiliser l'outil que dans un processus d'évaluation ou de pilote **clairement signalé**, avec supervision humaine, et le dire dans l'interface et la documentation | ◐ | Supervision complète en V1 : la personne trie toutes les références à l'aveugle, l'IA n'exclut jamais seule, et les désaccords sont réconciliés par la personne (principe 1, D-014, EF-SEL-08). Essai pilote et étalonnage avant le tri (EF-SEL-01). Manque : une mention explicite, dans l'interface et la section méthode, que le réviseur IA est **en cours d'évaluation** |
-| 2.9 | Documenter les contextes où l'outil peut convenir, avant une évaluation plus large | ◐ | La section méthode signale quand la configuration d'une revue diffère de celle qui a été évaluée (D-093). Manque : une fiche de l'outil (voir 5.1) |
+| 2.8 | Sans preuve d'évaluation suffisante, n'utiliser l'outil que dans un processus d'évaluation ou de pilote **clairement signalé**, avec supervision humaine, et le dire dans l'interface et la documentation | ✅ | Supervision complète en V1 : la personne trie toutes les références à l'aveugle, l'IA n'exclut jamais seule, et les désaccords sont réconciliés par la personne (principe 1, D-014, EF-SEL-08). Essai pilote et étalonnage avant le tri (EF-SEL-01). Les pages « Pilote » et « Tri » et la section méthode signalent que le réviseur IA est **en cours d'évaluation** tant qu'aucun résultat sur des données mises de côté n'est publié (D-097) |
+| 2.9 | Documenter les contextes où l'outil peut convenir, avant une évaluation plus large | ✅ | La section méthode signale quand la configuration d'une revue diffère de celle qui a été évaluée (D-093); la [fiche de l'outil](07-fiche-outil.md) décrit le contexte testé et ses limites |
 | 2.10 | Dédoublonnage : ne pas évaluer sur les données qui ont servi à mettre au point les règles; jeu de référence en **groupes** de doublons; définir ce qu'est un doublon | ◐ | Jeu annoté en groupes, avec une définition écrite du doublon, de la version et des notices distinctes (D-060). Mais les règles ont été mises au point sur ce même jeu (D-062) : le rappel et la précision de 1,000 sont **probablement surestimés**. Manque : un jeu de test indépendant (par exemple un jeu public de référence) |
 
 ## 3. Évaluations (RAISE 2, §2)
@@ -83,8 +83,8 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 
 | # | Élément à déclarer | V1 | Où, ou ce qui manque |
 |---|---|---|---|
-| 5.1 | Outil : nom et version, développeur et pays, accès, guide d'utilisation, fonctionnement, étape visée, remplacement ou complément d'une tâche, mise en œuvre de la supervision humaine | ◐ | La section méthode générée donne la version, le rôle (second réviseur) et la supervision (D-093); le README donne l'accès. Manque : une **fiche de l'outil** publique qui réunit ces éléments (développeur et pays, guide d'utilisation) |
-| 5.2 | Devis de l'évaluation, contexte (domaine, étape), sources des données | ◐ | Rapports du banc et 05. À compléter dans la fiche de l'outil |
+| 5.1 | Outil : nom et version, développeur et pays, accès, guide d'utilisation, fonctionnement, étape visée, remplacement ou complément d'une tâche, mise en œuvre de la supervision humaine | ✅ | [Fiche de l'outil](07-fiche-outil.md), qui reprend tous les éléments du §4 de RAISE 2. Pas de guide d'utilisation détaillé à ce jour |
+| 5.2 | Devis de l'évaluation, contexte (domaine, étape), sources des données | ✅ | [Fiche de l'outil](07-fiche-outil.md), « Méthode » |
 | 5.3 | Données : sélection, prétraitement, données manquantes, création et qualité de la norme de référence | ◐ | D-075 (inclusions au texte intégral, résumés absents d'OpenAlex). Qualité de la norme de référence non évaluée (05, §6.5, catégorie c) |
 | 5.4 | Type de modèle et version précise du modèle de fondation | ✅ | Modèle demandé et versions exactes renvoyées, avec leur nombre d'appels et leurs dates (section méthode, archive) |
 | 5.5 | Développement de l'outil : invites décrites en détail, absence de contamination entre les données | ◐ | Gabarits versionnés et publics. Manque : le journal de mise au point (voir 2.3) |
@@ -93,7 +93,7 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 | 5.8 | Forces, limites et généralisabilité (domaines, sources, langues, types de publication) | ◐ | Limites générées dans la section méthode (D-093); 05, §13 |
 | 5.9 | Biais et enjeux d'équité, avec stratégies d'atténuation | ◐ | Biais linguistique reconnu, langue consignée; pas de mesure (voir 2.7) |
 | 5.10 | Valeur pratique et coût | ✅ | Coût par phase dans la section méthode; coût pour 1 000 références au banc |
-| 5.11 | Conséquences pour l'usage : risque que l'IA rende les conclusions non fiables, et dans quelles circonstances | ◐ | Principe 1 et EF-SEL-07 en limitent le risque; à écrire explicitement dans la fiche de l'outil |
+| 5.11 | Conséquences pour l'usage : risque que l'IA rende les conclusions non fiables, et dans quelles circonstances | ✅ | [Fiche de l'outil](07-fiche-outil.md), « Conséquences pour l'usage » (risque d'ancrage à la réconciliation) |
 | 5.12 | Éthique, protocole public, sources de soutien, déclarations d'intérêts (outil commercial ou non) | ◐ | Outil libre et non commercial (AGPL-3.0); conflit d'intérêts du développeur et atténuations dans 05 (§10). La section méthode laisse ces éléments à compléter par l'équipe (D-093) |
 | 5.13 | Disponibilité des données, du code, des invites et des analyses; reproductibilité par des tiers | ✅ | Code et gabarits publics; archive vérifiable sans clé d'API (ENF-REP-06, D-092); la reproduction exacte des décisions de l'IA reste impossible si le modèle change, d'où la conservation des réponses brutes (ENF-TRA-03) |
 | 5.14 | Impact environnemental | ❌ | Voir 4.8 |
@@ -102,12 +102,12 @@ Les suggestions de l'IA au cadrage, aux critères et aux termes de recherche son
 
 **Bien couvert** : traçabilité et auditabilité (1.4, 4.7, 5.4), supervision humaine complète (2.8, 3.5), interopérabilité (4.6), reproductibilité des nombres déclarés (5.13). C'est le cœur de la conception de revue-portee.
 
-**À corriger dans le vocabulaire, dès maintenant** : les résultats SYNERGY portent sur l'**ensemble de développement** (05, §5.3). Au sens de RAISE 2, ce ne sont ni des résultats de test ni une validation. La section méthode générée (D-093) écrit que l'outil « a été validé ». Elle devrait plutôt parler d'une évaluation sur l'ensemble de développement, en annonçant l'étude de validation.
+**Vocabulaire, corrigé le 2026-10-08 (D-097)** : les résultats SYNERGY portent sur l'**ensemble de développement** (05, §5.3). Au sens de RAISE 2, ce ne sont ni des résultats de test ni une validation. La section méthode générée (D-093) écrit que l'outil « a été validé ». Elle devrait plutôt parler d'une évaluation sur l'ensemble de développement, en annonçant l'étude de validation.
 
 **Actions proposées, par ordre de priorité** :
 
-1. **Vocabulaire et mention « en cours d'évaluation »** (2.8, 2.9) : corriger la section méthode et `tool_validation.yaml`, et signaler dans l'interface (pages « Pilote » et « Tri ») que le réviseur IA est en cours d'évaluation. Petit changement de code.
-2. **Fiche de l'outil** (5.1 à 5.14) : un document public qui suit le cadre de déclaration de RAISE 2 (§4) et renvoie aux preuves ci-dessus. Documentation seulement.
+1. ~~**Vocabulaire et mention « en cours d'évaluation »** (2.8, 2.9)~~, fait (#23, D-097) : corriger la section méthode et `tool_validation.yaml`, et signaler dans l'interface (pages « Pilote » et « Tri ») que le réviseur IA est en cours d'évaluation. Petit changement de code.
+2. ~~**Fiche de l'outil** (5.1 à 5.14)~~, fait ([07-fiche-outil.md](07-fiche-outil.md)) : un document public qui suit le cadre de déclaration de RAISE 2 (§4) et renvoie aux preuves ci-dessus. Documentation seulement.
 3. **Rapporter les citations retrouvées** (2.6, 4.4) au banc et dans la section méthode : les données existent déjà (`quote_found`).
 4. **Journal de mise au point des gabarits d'invite** (2.2, 2.3, 5.5) : consigner, pour chaque version, les données utilisées et les essais faits; reconstituer ce qui est connu pour la v1.
 5. **Jeu de test indépendant pour le dédoublonnage** (2.10).
