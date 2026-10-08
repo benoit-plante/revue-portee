@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 19:16-0400\n"
+"POT-Creation-Date: 2026-10-08 19:25-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -635,6 +635,9 @@ msgstr "Contexte"
 msgid "Cost"
 msgstr "Coût"
 
+msgid "Cost of all the runs"
+msgstr "Coût de toutes les exécutions"
+
 #, python-brace-format
 msgid "Cost of the AI screening, estimated from the provider's prices of {date} ({currency}):"
 msgstr "Coût du tri par l'IA, estimé d'après les tarifs du fournisseur au {date} ({currency}) :"
@@ -943,6 +946,15 @@ msgstr ""
 "élargissement (plus inclusif), restriction (plus exclusif) ou clarification (sans changement de "
 "portée voulu). L'IA peut proposer une qualification ; vous la confirmez ou la corrigez."
 
+msgid ""
+"Each run asks the model again: the provider's prompt cache reuses the instructions, never an "
+"answer. A record kept by some runs and excluded by others shows how much a single run can vary "
+"(RAISE 2, response stability)."
+msgstr ""
+"Chaque exécution interroge de nouveau le modèle : le cache d'invite du fournisseur réutilise les "
+"consignes, jamais une réponse. Une notice conservée par certaines exécutions et exclue par "
+"d'autres montre à quel point une seule exécution peut varier (RAISE 2, stabilité des réponses)."
+
 #, python-format
 msgid "Edit %(code)s"
 msgstr "Modifier %(code)s"
@@ -1228,6 +1240,9 @@ msgstr "Consignes :"
 msgid "Gwet's AC1"
 msgstr "AC1 de Gwet"
 
+msgid "Gwet's AC1 between runs (keep or exclude)"
+msgstr "AC1 de Gwet entre les exécutions (conserver ou exclure)"
+
 msgid ""
 "Held-out data: these records were never used to build or tune the rules, which were not changed "
 "after this run (RAISE 2)."
@@ -1359,6 +1374,9 @@ msgstr "Justification : {text}"
 
 msgid "Keep them apart"
 msgstr "Les garder séparées"
+
+msgid "Kept by some runs, excluded by others"
+msgstr "Conservées par certaines exécutions, exclues par d'autres"
 
 msgid "Kept for the full text"
 msgstr "Retenues pour le texte intégral"
@@ -2104,6 +2122,9 @@ msgstr "Notices"
 msgid "Records after deduplication"
 msgstr "Références après dédoublonnage"
 
+msgid "Records decided in every run"
+msgstr "Notices décidées à chaque exécution"
+
 msgid "Records identified"
 msgstr "Références repérées"
 
@@ -2279,6 +2300,10 @@ msgstr "Rapport écrit : {path}"
 msgid "Reports"
 msgstr "Rapports"
 
+#, python-brace-format
+msgid "Response stability of the AI: {dataset}"
+msgstr "Stabilité des réponses de l'IA : {dataset}"
+
 msgid "Results"
 msgstr "Résultats"
 
@@ -2308,6 +2333,13 @@ msgstr "Rôle"
 msgid "Round %(number)s"
 msgstr "Tour %(number)s"
 
+msgid "Run"
+msgstr "Exécution"
+
+#, python-brace-format
+msgid "Run on {date} (UTC), {runs} runs of the same records."
+msgstr "Exécuté le {date} (UTC), {runs} exécutions des mêmes notices."
+
 #, python-brace-format
 msgid "Run on {date} (UTC)."
 msgstr "Exécuté le {date} (UTC)."
@@ -2319,9 +2351,18 @@ msgstr "Lancer le banc ?"
 msgid "Run the sensitivity test in %(database)s"
 msgstr "Lancer le test de sensibilité dans %(database)s"
 
+msgid "Runs of the same records, to measure the response stability of the AI."
+msgstr "Nombre d'exécutions des mêmes notices, pour mesurer la stabilité des réponses de l'IA."
+
 #, python-brace-format
 msgid "SYNERGY benchmark: {dataset}"
 msgstr "Banc SYNERGY : {dataset}"
+
+msgid "Same outcome in every run (keep or exclude)"
+msgstr "Même issue à chaque exécution (conserver ou exclure)"
+
+msgid "Same value in every run (include, uncertain, exclude)"
+msgstr "Même valeur à chaque exécution (inclure, incertain, exclure)"
 
 msgid "Sample"
 msgstr "Échantillon"
@@ -3942,6 +3983,10 @@ msgstr "{low} à {high}"
 #, python-brace-format
 msgid "{name}: recall {recall}, precision {precision}; report: {path}"
 msgstr "{name} : rappel {recall}, précision {precision} ; rapport : {path}"
+
+#, python-brace-format
+msgid "{runs} runs of the same records (response stability)."
+msgstr "{runs} exécutions des mêmes notices (stabilité des réponses)."
 
 #, python-brace-format
 msgid ""

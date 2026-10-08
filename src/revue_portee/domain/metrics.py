@@ -8,7 +8,7 @@ reviewer is the reference standard.
 
 import math
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from revue_portee.domain.screening import DecisionValue
@@ -17,11 +17,13 @@ __all__ = [
     "Confusion",
     "CurvePoint",
     "PilotMetrics",
+    "Stability",
     "cohen_kappa",
     "confusion",
     "disagreements_by_criterion",
     "gwet_ac1",
     "pilot_metrics",
+    "stability",
     "threshold_curve",
     "wilson_interval",
 ]
@@ -157,3 +159,39 @@ def disagreements_by_criterion(
         if _positive(human) != _positive(ai):
             counts.update(set(cited) or {""})
     return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+
+@dataclass(frozen=True, slots=True)
+class Stability:
+    """Response stability of the AI over repeated runs on the same records (RAISE 2,
+    appendix 1, « response stability »)."""
+
+    runs: int
+    records: int  # decided in every run
+    same_value: int  # the same value (include, uncertain, exclude) in every run
+    same_keep: int  # kept in every run, or excluded in every run
+    pairwise_ac1: tuple[float | None, ...]  # each pair of runs, keep against exclude
+
+    @property
+    def switched(self) -> int:
+        """Records kept in some runs and excluded in others."""
+        return self.records - self.same_keep
+
+
+def stability(runs: Sequence[Mapping[str, DecisionValue]]) -> Stability:
+    """Compare the values given to the same records by repeated runs; a record left
+    undecided by one run (failure, ceiling) is left out."""
+    common = set.intersection(*(set(run) for run in runs)) if runs else set()
+    values = [[run[ref] for run in runs] for ref in sorted(common)]
+    ac1 = tuple(
+        gwet_ac1(confusion((runs[i][ref], runs[j][ref]) for ref in sorted(common)))
+        for i in range(len(runs))
+        for j in range(i + 1, len(runs))
+    )
+    return Stability(
+        runs=len(runs),
+        records=len(common),
+        same_value=sum(1 for v in values if len(set(v)) == 1),
+        same_keep=sum(1 for v in values if len({_positive(x) for x in v}) == 1),
+        pairwise_ac1=ac1,
+    )

@@ -42,6 +42,7 @@ uv run revue-portee banc-synergy jeu.csv --criteres jeu.yaml --plafond 5 --nom <
 - `--echantillon N --graine S` trie toutes les inclusions et un tirage des exclusions, jusqu'à N références (la sensibilité porte toujours sur toutes les inclusions).
 - L'exécution s'arrête avant un appel qui dépasserait `--plafond`, même avec plusieurs appels simultanés (`--paralleles`, de 1 à 16) : le coût estimé de chaque appel est réservé avant l'appel.
 - Les réponses brutes vont dans `jeu.brut.jsonl` (ou `--brut`), à garder hors du dépôt. Le rapport `banc-synergy-<jeu>.md` est écrit dans ce dossier (`--sortie` pour en changer).
+- `--repetitions N` (de 2 à 5) relance le même échantillon N fois, sous le même plafond pour toutes les exécutions, et écrit `banc-stabilite-<jeu>.md` au lieu du rapport habituel : notices qui gardent la même valeur et la même issue (conserver ou exclure) d'une exécution à l'autre, AC1 de Gwet entre les exécutions, sensibilité et spécificité de chacune (stabilité des réponses, RAISE 2). Réponses brutes : `jeu.brut.1.jsonl`, `jeu.brut.2.jsonl`, etc. Le coût affiché tient compte des N exécutions.
 
 Les seuils appliqués sont ceux par défaut de `resources/ai_defaults.yaml` (`supervision`), avec la règle EF-SEL-07 : une référence dont un critère d'inclusion est indéterminable, et qu'aucun critère n'écarte, n'est jamais exclue.
 
