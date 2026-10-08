@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 12:08+0000\n"
+"POT-Creation-Date: 2026-10-08 12:44+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1166,6 +1166,9 @@ msgstr ""
 
 msgid "Model"
 msgstr "Modèle"
+
+msgid "Model calls made at a time."
+msgstr "Appels au modèle faits en même temps."
 
 msgid "Models returned"
 msgstr "Modèles renvoyés"

@@ -175,6 +175,9 @@ def synergy_benchmark(
         ),
     ] = None,
     oui: Annotated[bool, typer.Option("--oui", help=_("Do not ask to confirm the cost."))] = False,
+    paralleles: Annotated[
+        int, typer.Option("--paralleles", min=1, max=16, help=_("Model calls made at a time."))
+    ] = 1,
 ) -> None:
     from decimal import Decimal, InvalidOperation
 
@@ -243,6 +246,7 @@ def synergy_benchmark(
             now=utc_now,
             seed=graine,
             sampled=len(chosen) < len(records),
+            workers=paralleles,
         )
     sortie.mkdir(parents=True, exist_ok=True)
     report = sortie / f"banc-synergy-{name}.md"

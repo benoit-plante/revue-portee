@@ -11,7 +11,9 @@ report, which holds only numbers, to ``docs/resultats/``.
 
 import csv
 import json
+import threading
 from collections.abc import Callable, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -212,10 +214,12 @@ def run_benchmark(
     now: Callable[[], datetime],
     seed: int = 0,
     sampled: bool = False,
+    workers: int = 1,
 ) -> BenchmarkResult:
-    """Screen every record once (one retry on an unusable answer). The run stops before
-    a call whose estimated cost would pass ``ceiling``; each raw answer is written as
-    one JSON line of ``raw_output``."""
+    """Screen every record once (one retry on an unusable answer), with up to
+    ``workers`` calls at a time. The estimated cost of a call is reserved before it is
+    made, so the run stops before passing ``ceiling`` whatever the number of calls in
+    flight; each raw answer is written as one JSON line of ``raw_output``."""
     result = BenchmarkResult(
         dataset=dataset,
         records=len(records),
@@ -229,38 +233,65 @@ def run_benchmark(
         sampled=sampled,
     )
     codes = [c.code for c in criteria.criteria]
-    for item in to_inputs(records, criteria):
+    lock = threading.Lock()
+    reserved = [Decimal(0)]  # estimated cost of the calls in flight
+
+    def reserve(estimate: Decimal) -> bool:
+        with lock:
+            if result.stopped or result.spent + reserved[0] + estimate > ceiling:
+                result.stopped = True
+                return False
+            reserved[0] += estimate
+            return True
+
+    def settle(
+        estimate: Decimal, cost: Decimal, item_id: str, model: str | None, raw: object
+    ) -> None:
+        with lock:
+            reserved[0] -= estimate
+            result.spent += cost
+            if model:
+                result.models_returned.add(model)
+            _write_raw(raw_output, item_id, model, raw)
+
+    def screen(item: ScreenReferenceInput) -> tuple[str, DecisionValue | None]:
+        """("screened", value), ("failed", None) or ("not_run", None) at the ceiling."""
         estimate = provider.estimate_cost(SCREEN_REFERENCE, [item]).amount
         for _attempt in range(MAX_ATTEMPTS):
-            if result.spent + estimate > ceiling:
-                result.stopped = True
-                break
+            if not reserve(estimate):
+                return "not_run", None
             try:
                 (answer,) = run_task(provider, SCREEN_REFERENCE, [item])
             except ProviderCallError as error:
-                result.spent += error.call.cost_estimate
-                _write_raw(raw_output, item.item_id, error.call.model_returned, error.raw_response)
+                call = error.call
+                settle(estimate, call.cost_estimate, item.item_id, None, error.raw_response)
                 continue
-            result.spent += answer.call.cost_estimate
-            if answer.call.model_returned:
-                result.models_returned.add(answer.call.model_returned)
-            _write_raw(raw_output, item.item_id, answer.call.model_returned, answer.raw_response)
+            call = answer.call
+            settle(
+                estimate, call.cost_estimate, item.item_id, call.model_returned, answer.raw_response
+            )
             try:
                 check_answer(answer.output, codes)
             except UnusableAnswerError:
                 continue
-            result.values[item.item_id] = _value(answer.output, criteria, thresholds)
-            break
-        if result.stopped:
-            break
-        if item.item_id not in result.values:
+            return "screened", _value(answer.output, criteria, thresholds)
+        return "failed", None
+
+    inputs = to_inputs(records, criteria)
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        outcomes = list(pool.map(screen, inputs))
+    for item, (status, value) in zip(inputs, outcomes, strict=True):
+        if status == "failed":
             result.failed.append(item.item_id)
+        elif value is not None:
+            result.values[item.item_id] = value
     return result
 
 
 def _write_raw(stream: IO[str], item_id: str, model: str | None, raw: object) -> None:
     line = {"item_id": item_id, "model_returned": model, "raw_response": raw}
     stream.write(json.dumps(line, ensure_ascii=False, default=str) + "\n")
+    stream.flush()  # what was paid for is kept if the run is interrupted
 
 
 def _percent(value: float | None) -> str:

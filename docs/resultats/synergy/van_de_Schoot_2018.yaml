@@ -1,0 +1,29 @@
+# Criteria of the SYNERGY dataset van_de_Schoot_2018, paraphrased from SYNERGY+ 3.0
+# (reviews.csv, key van_de_Schoot_2025, which states that its criteria mirror those of the
+# initial review and that clinical studies are new) for: van de Schoot R et al. Bayesian
+# PTSD-trajectory analysis with informed priors. Multivariate Behav Res 2018;53(2):267-291.
+review_question: >-
+  Which trajectories of posttraumatic stress symptoms are found after a traumatic event
+  when latent growth mixture modelling is applied?
+language: fr
+criteria:
+  - code: P1
+    pcc_element: population
+    kind: inclusion
+    text: People exposed to a traumatic event, in a population-based or cohort study.
+  - code: C1
+    pcc_element: concept
+    kind: inclusion
+    text: >-
+      Posttraumatic stress symptoms assessed after the traumatic event with a validated
+      scale, at three time points or more.
+  - code: O1
+    pcc_element: other
+    kind: inclusion
+    text: >-
+      Latent growth mixture modelling (latent trajectory classes) applied to the
+      posttraumatic stress symptoms.
+  - code: X1
+    pcc_element: population
+    kind: exclusion
+    text: Clinical samples (patients recruited in treatment settings).
