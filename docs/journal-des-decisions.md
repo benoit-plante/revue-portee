@@ -842,3 +842,134 @@ Propositions de la tranche 1.3 (2026-10-07), mises en œuvre dans la demande de 
 - **Justification** : une requête produite doit être identique pour une même version de stratégie.
 - **Conséquences** : le comptage et le test de sensibilité refusent une base sans requête, avec un message qui demande un bloc d'inclusion.
 - **Renvois** : EF-REC-03, ENF-REP-01 ; demande de fusion benoit-plante/revue-portee#6.
+
+Propositions de la tranche 1.4 (2026-10-08), mises en œuvre dans les demandes de fusion benoit-plante/revue-portee#8 et benoit-plante/revue-portee#9 :
+
+### D-053 — Collecte reprenable page par page
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Une collecte (`collection_run`) récupère tous les enregistrements d'une requête, page par page. Chaque page est conservée brute dans `brut/sources/<run_id>/page-NNNN.json.gz`, puis enregistrée dans une seule transaction avec ses références, leurs provenances et son entrée de journal (`collection_page`). La page est l'**unité de reprise** : une collecte interrompue reprend après sa dernière page enregistrée, avec le curseur de cette page.
+  - Un identifiant déjà donné dans la même collecte n'est jamais enregistré de nouveau (contrainte d'unicité sur la collecte et l'identifiant d'origine).
+  - Une seule collecte ouverte à la fois par base : il faut terminer ou reprendre la précédente.
+  - À la fin (`collection_end`), le nombre d'enregistrements distincts collectés est comparé au nombre annoncé par l'API; un écart est expliqué et consigné.
+  - Les erreurs qu'une nouvelle tentative ne peut pas corriger terminent la collecte comme `failed` : clé OpenAlex refusée (401, 403), plus de 10 000 notices PubMed (D-054), requête refusée par l'API (erreur 4xx autre que 408 et 429). Les autres erreurs (réseau, 5xx après les nouvelles tentatives) laissent la collecte ouverte et reprenable.
+- **Contexte** : EF-COL-01 et ENF-PER-04 exigent une reprise sans doublon ni perte; une collecte peut compter des milliers de notices et être interrompue (serveur arrêté, réseau coupé).
+- **Options envisagées** :
+  1. **Tables propres à la collecte** (`collection_run`, `collection_page`, `collection_end`), en ajout seulement : l'état d'une collecte se lit dans ses lignes.
+  2. Réutiliser `search_run` (prévu pour les comptes et les tests de sensibilité) avec un type `collect` : une ligne unique ne peut pas décrire une progression sans être modifiée.
+- **Justification** : avec l'option 1, rien n'est modifié; une page est enregistrée entièrement ou pas du tout, ce qui suffit à garantir la reprise.
+- **Conséquences** :
+  - **Écart à 03-architecture.md** : la provenance pointe vers `collection_run_id` (et `query_id`) au lieu de `search_run_id`; `search_run` reste réservé aux comptes et aux tests de sensibilité.
+  - Une collecte terminée en échec ne se reprend pas : on en lance une nouvelle.
+  - Collecte disponible pour OpenAlex et PubMed; les bases sans API passent par l'import RIS (D-056).
+- **Renvois** : EF-COL-01, EF-COL-05, ENF-PER-04; demandes de fusion benoit-plante/revue-portee#8 et benoit-plante/revue-portee#9.
+
+### D-054 — PubMed : serveur d'historique et limite de 10 000 notices
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - La collecte PubMed lance `esearch` avec `usehistory=y`, puis lit les notices par `efetch` (XML, pages de 200) à partir de la session du serveur d'historique (`WebEnv`, `query_key`). Le curseur conservé avec chaque page contient la session et la position suivante; si la session a expiré, la recherche est relancée et la collecte continue à la même position.
+  - Au-delà de 10 000 notices annoncées, la collecte est refusée avec un message clair en français qui demande de découper la recherche (par exemple par années de publication). Le découpage n'est pas automatique.
+  - Une réponse d'erreur d'`efetch`, ou une page vide avant la fin annoncée, est une erreur (`SourceInvalidAnswerError`) et non la fin de la collecte.
+- **Contexte** : depuis 2022, les E-utilities ne donnent pas plus de 10 000 notices d'une même recherche, même avec le serveur d'historique.
+- **Options envisagées** :
+  1. **Refus avec message** : la personne choisit le découpage, qui devient visible dans les requêtes versionnées.
+  2. Découpage automatique par années : la requête exécutée ne serait plus celle de la stratégie versionnée, et le découpage devrait lui-même être documenté.
+- **Justification** : pour une revue de portée, la requête rapportée doit être exactement celle qui a été exécutée (PRISMA-S); un découpage est une décision de méthode.
+- **Conséquences** : un découpage par années se fait par des limites dans la stratégie (une version par tranche d'années, ou une stratégie dédiée); à reprendre si cela devient fréquent.
+- **Renvois** : EF-COL-01; [01-etat-de-l-art.md §6](01-etat-de-l-art.md#6-sources-de-données-et-conditions-daccès-2026); demande de fusion benoit-plante/revue-portee#8.
+
+### D-055 — Références immuables et enrichissement par Crossref
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Une référence est enregistrée une fois, telle que reçue, et n'est jamais modifiée (table en ajout seulement). Chaque fois qu'une source la donne, une provenance s'ajoute (EF-COL-05).
+  - L'enrichissement par Crossref (EF-COL-02) s'enregistre dans une table distincte, `enrichment`, qui ne contient que les champs manquants de la référence (titre, résumé, auteurs, année, revue, volume, numéro, pages). La référence « fusionnée » est calculée (`merged`) : un champ présent dans la référence n'est jamais remplacé.
+  - Les références sont traitées par lots de 100, au plus trois requêtes simultanées (pool « poli » de Crossref); chaque lot est une transaction, avec ses réponses brutes dans `brut/sources/`.
+  - Un DOI inconnu de Crossref est enregistré aussi (enrichissement vide), pour ne pas le redemander. Une référence déjà vérifiée n'est plus candidate : l'enrichissement reprend là où il s'était arrêté.
+  - Un champ invalide d'une notice collectée (par exemple une année hors de 1000–2100) est retiré seul, et la liste des champs retirés est consignée (`invalid_fields_left_out`) au lieu de rejeter la notice.
+- **Contexte** : le principe d'ajout seulement (ENF-TRA-02) interdit de compléter une référence en place.
+- **Options envisagées** :
+  1. **Table d'enrichissement distincte** : l'origine de chaque champ reste connue (source ou Crossref).
+  2. Nouvelle version de la référence : multiplie les lignes et complique le dédoublonnage.
+- **Justification** : l'option 1 garde la notice reçue intacte et rend l'enrichissement réversible.
+- **Conséquences** : le dédoublonnage (tranche 1.5) et le tri utiliseront la référence fusionnée.
+- **Renvois** : EF-COL-02, EF-COL-05, ENF-TRA-02; demandes de fusion benoit-plante/revue-portee#8 et benoit-plante/revue-portee#9.
+
+### D-056 — Lecteur RIS du projet et règles de tolérance
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Les fichiers RIS sont lus par un lecteur propre au projet (`sources/ris.py`, fonctions pures), et non par rispy.
+  - Variantes tolérées : marque d'ordre des octets, fins de ligne Windows, une ou deux espaces avant le trait d'union, lignes vides dans un enregistrement, valeurs sur plusieurs lignes (rattachées à la valeur précédente), étiquettes répétées (deux résumés sont gardés), DOI donné comme adresse ou dans un autre champ.
+  - Encodage : UTF-8, puis Latin-1 à défaut; un fichier qui contient des octets nuls est refusé.
+  - Un enregistrement sans aucun champ utilisable n'est pas importé, mais listé avec l'import; un enregistrement que le fichier termine sans `ER` est importé et signalé; les lignes hors enregistrement sont signalées (`import_file.issues_json`).
+  - La base déclarée par la personne l'emporte sur les étiquettes `DB` et `DP` du fichier; à défaut de déclaration, la base est déduite du fichier. Un export Ovid, qui n'a pas d'étiquette `DP`, est reconnu à ses liens vers `ovid.com`.
+  - Un fichier n'est importé qu'une fois (empreinte SHA-256, vérifiée aussi dans la transaction d'écriture); sa copie exacte est conservée dans `imports/<sha256>.ris`.
+- **Contexte** : les exports réels testés (PsycINFO EBSCOhost et Ovid, CINAHL, ERIC, SocINDEX, PubMed, Érudit) présentent ces variantes; le critère d'acceptation demande de lister, avec leur position, les enregistrements vides ou mal formés, ce qu'un analyseur générique ne rapporte pas.
+- **Options envisagées** :
+  1. **Lecteur propre** : chaque écart est signalé avec sa ligne, ce que demande le critère « enregistrements vides ou mal formés listés ».
+  2. rispy enveloppé (prévu dans 03-architecture.md §2) : il faudrait reprendre le texte avant et après lui.
+- **Justification** : environ 200 lignes de fonctions pures, testées sur de vrais exports, sans dépendance; les 4 209 notices des sept exports complets sont importées.
+- **Conséquences** :
+  - **Écart à 03-architecture.md §2** : rispy n'est pas une dépendance.
+  - Les bases déclarables sont listées dans `collect/imports.py` (`DECLARED_DATABASES`); Scopus et Web of Science y figurent mais n'ont pas encore été testés sur un vrai export.
+- **Renvois** : EF-COL-03; [01-etat-de-l-art.md §6](01-etat-de-l-art.md#6-sources-de-données-et-conditions-daccès-2026); demandes de fusion benoit-plante/revue-portee#8 et benoit-plante/revue-portee#9.
+
+### D-057 — Exports réels versionnés comme extraits
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Les exports réels servant aux tests sont versionnés sous forme d'**extraits** (`tests/fixtures/ris/`) : quelques dizaines d'enregistrements, octets conservés (encodage, fins de ligne, marque d'ordre des octets), protégés de la normalisation par git (`.gitattributes` : `tests/fixtures/ris/*.ris -text`).
+  - Dans ces extraits : résumés tronqués, adresses de courriel masquées, numéro de bibliothèque des liens Ovid remplacé par `0000`, champs répétés (`M1`, `A2`) limités à trois par enregistrement.
+  - Les exports complets ne sont pas versionnés; les nombres obtenus sur eux sont rapportés dans la demande de fusion.
+- **Contexte** : le dépôt est public (2026-10-07); un export contient des résumés sous droit d'auteur, des adresses d'auteurs et des identifiants d'abonnement.
+- **Options envisagées** :
+  1. **Extraits nettoyés** : les variantes de format sont testées sans publier ce qui n'est pas à nous.
+  2. Exports complets : droits d'auteur et identifiants d'abonnement publiés.
+  3. Fichiers synthétiques : ne prouvent pas la lecture des vrais exports.
+- **Justification** : les tests portent sur la forme des fichiers, que les extraits conservent.
+- **Conséquences** : un nouvel export réel s'ajoute de la même façon; le nettoyage est vérifié par le test anti-secrets.
+- **Renvois** : EF-COL-03, ENF-SEC-04; demandes de fusion benoit-plante/revue-portee#8 et benoit-plante/revue-portee#9.
+
+### D-058 — Nettoyage des réponses enregistrées
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : avant d'écrire une cassette `httpx2`, `tests/recording.py` (`trim_body`) réduit chaque réponse à ce dont les tests ont besoin, sans en changer la structure :
+  - résumés tronqués à 200 caractères (OpenAlex : 30 premiers mots de l'index inversé);
+  - adresses de courriel remplacées par `masked@example.org`;
+  - listes de références citées des notices PubMed (`ReferenceList`) retirées.
+
+  Le XML est traité par ElementTree, pas par des expressions régulières. Les paramètres `api_key`, `email` et `mailto` sont toujours remplacés par des valeurs fictives (D-047), et une cassette qui contient une valeur de secret n'est pas écrite.
+- **Contexte** : les cassettes de collecte contiennent des centaines de notices complètes (résumés, adresses d'auteurs), dans un dépôt public.
+- **Options envisagées** :
+  1. **Nettoyage à l'enregistrement** : rien de superflu n'atteint le disque.
+  2. Nettoyage manuel après coup : risque d'oubli.
+- **Justification** : comme le filtrage des secrets, le nettoyage doit être automatique.
+- **Conséquences** : les nombres (notices annoncées et collectées) restent exacts; les tests ne doivent pas dépendre du texte intégral d'un résumé.
+- **Renvois** : D-017, D-047, ENF-SEC-04; demande de fusion benoit-plante/revue-portee#8.
+
+### D-059 — Tâches de fond par fils, sans file persistée
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Les opérations longues lancées depuis l'interface (collecte, enrichissement) s'exécutent dans un fil du processus du serveur (`jobs/runner.py`, `BackgroundJobs`), au plus une par clé (par exemple une par base).
+  - L'état d'une tâche est ce qu'elle a enregistré dans le projet : la page « Collecte » le relit toutes les 2 secondes (HTMX). Le message de la dernière erreur est gardé en mémoire et affiché.
+  - Il n'y a pas de file persistée : une tâche arrêtée avec le serveur se reprend en la relançant, car les cas d'usage reprennent là où ils s'étaient arrêtés (D-053, D-055).
+- **Contexte** : 03-architecture.md §9 prévoyait une file persistée dans SQLite, reprise au redémarrage.
+- **Options envisagées** :
+  1. **Fils sans file** : la reprise repose sur les données déjà enregistrées, sans seconde source de vérité.
+  2. File persistée dans SQLite : il faudrait une table modifiable ou une suite d'événements, et une reprise automatique au démarrage qui pourrait relancer des appels payants sans que la personne le sache.
+- **Justification** : en V1, un seul réviseur humain lance les tâches; une reprise explicite est plus prévisible.
+- **Conséquences** :
+  - **Écart à 03-architecture.md §9** : pas de reprise automatique au redémarrage; la page « Collecte » propose de reprendre chaque collecte ouverte.
+  - À revoir pour les lots de tri par l'IA (tranche 1.6), si une reprise automatique devient nécessaire.
+- **Renvois** : ENF-PER-04; demande de fusion benoit-plante/revue-portee#8.
