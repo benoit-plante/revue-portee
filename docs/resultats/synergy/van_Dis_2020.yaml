@@ -1,0 +1,48 @@
+# Criteria of the SYNERGY dataset van_Dis_2020, paraphrased from the eligibility criteria
+# published with SYNERGY+ 3.0 (reviews.csv, key van_Dis_2019) for: van Dis EAM et al.
+# Long-term outcomes of cognitive behavioral therapy for anxiety-related disorders.
+# JAMA Psychiatry 2020;77(3):265-273.
+review_question: >-
+  What is the long-term outcome of cognitive behavioral therapy for anxiety disorders,
+  posttraumatic stress disorder and obsessive-compulsive disorder?
+language: fr
+criteria:
+  - code: P1
+    pcc_element: population
+    kind: inclusion
+    text: >-
+      Adult patients (or samples mostly of adults, with some adolescents aged 16 or
+      more) diagnosed with generalized anxiety disorder, panic disorder, social anxiety
+      disorder, specific phobia, posttraumatic stress disorder or obsessive-compulsive
+      disorder through a structured diagnostic interview.
+  - code: C1
+    pcc_element: concept
+    kind: inclusion
+    text: >-
+      Cognitive behavioral therapy (cognitive restructuring or a behavioral therapy such
+      as exposure as a core component), including acceptance and commitment therapy and
+      metacognitive therapy, in an individual, group or internet format, with outcomes
+      at least one month after the end of treatment.
+  - code: O1
+    pcc_element: other
+    kind: inclusion
+    text: >-
+      Randomized clinical trial with a comparison group: care as usual, relaxation,
+      psychoeducation, pill placebo, supportive therapy or waiting list.
+  - code: X1
+    pcc_element: concept
+    kind: exclusion
+    text: >-
+      The therapy studied is not cognitive behavioral therapy (for example applied
+      relaxation, eye movement desensitization and reprocessing, or interpersonal
+      therapy).
+  - code: X2
+    pcc_element: other
+    kind: exclusion
+    text: >-
+      Self-guided therapy without any guidance, cognitive behavioral therapy combined
+      with medication or pill placebo, or inpatients.
+  - code: X3
+    pcc_element: other
+    kind: exclusion
+    text: Article not in English.

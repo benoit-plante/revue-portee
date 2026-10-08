@@ -1,0 +1,37 @@
+# Criteria of the SYNERGY dataset Oud_2018, paraphrased from the eligibility criteria
+# published with SYNERGY+ 3.0 (reviews.csv) for: Oud M et al. Specialized psychotherapies
+# for adults with borderline personality disorder. Aust N Z J Psychiatry 2018;52(10):949-961.
+review_question: >-
+  Are specialized psychotherapies (dialectical behavior therapy, mentalization-based
+  treatment, transference-focused psychotherapy, schema therapy) more effective than
+  non-specialized approaches for adults with borderline personality disorder?
+language: fr
+criteria:
+  - code: P1
+    pcc_element: population
+    kind: inclusion
+    text: Adults (18 years and older) with borderline personality disorder.
+    guidance: >-
+      At least two thirds of the participants have borderline personality disorder,
+      unless results are reported separately for them.
+  - code: C1
+    pcc_element: concept
+    kind: inclusion
+    text: >-
+      One of four specialized psychotherapies (dialectical behavior therapy,
+      mentalization-based treatment, transference-focused psychotherapy or schema
+      therapy), with an individual psychotherapy component and a duration of 16 weeks
+      or more.
+  - code: O1
+    pcc_element: other
+    kind: inclusion
+    text: >-
+      Randomized controlled trial comparing the therapy with another protocolized or
+      specialized psychotherapy or with a control condition (treatment as usual,
+      waiting list, attention control, community treatment by experts).
+  - code: X1
+    pcc_element: concept
+    kind: exclusion
+    text: >-
+      Tests an incomplete version of the specialized treatment (for example, skills
+      training alone instead of the full dialectical behavior therapy program).
