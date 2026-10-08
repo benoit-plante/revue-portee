@@ -1,0 +1,4 @@
+<div id="dedup-etat"{% if dedup_running %} hx-get="/doublons/etat" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  {% if dedup_running %}<p class="message info" role="status">{{ _("Deduplication running in the background: the page refreshes when it ends.") }} <a href="/doublons">{{ _("Refresh") }}</a></p>{% endif %}
+  {% if dedup_error %}<div class="message error" role="alert">{{ _("The last deduplication stopped: %(error)s", error=dedup_error) }}</div>{% endif %}
+</div>

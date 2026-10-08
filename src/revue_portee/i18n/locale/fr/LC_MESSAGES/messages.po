@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 00:45+0000\n"
+"POT-Creation-Date: 2026-10-08 10:50+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -28,6 +28,9 @@ msgstr "%(input)s en entrée, %(output)s en sortie"
 
 msgid "(empty query)"
 msgstr "(requête vide)"
+
+msgid "(no title)"
+msgstr "(sans titre)"
 
 msgid "(none)"
 msgstr "(aucun)"
@@ -53,6 +56,9 @@ msgid ""
 msgstr ""
 "Une collecte s'exécute en arrière-plan, page par page ; si elle est interrompue, elle reprend "
 "après sa dernière page enregistrée."
+
+msgid "A deduplication is already running."
+msgstr "Un dédoublonnage est déjà en cours."
 
 msgid "A modified suggestion needs a text."
 msgstr "Une suggestion modifiée doit avoir un texte."
@@ -236,6 +242,9 @@ msgstr "Demander des termes à l'IA…"
 msgid "Ask the AI to qualify the changes…"
 msgstr "Demander à l'IA de qualifier les changements…"
 
+msgid "Authors"
+msgstr "Auteurs"
+
 msgid "Back to the criteria"
 msgstr "Retour aux critères"
 
@@ -333,6 +342,9 @@ msgstr "Collectes"
 
 msgid "Collections, most recent first"
 msgstr "Collectes, de la plus récente à la plus ancienne"
+
+msgid "Compare every reference"
+msgstr "Comparer toutes les références"
 
 msgid "Compare version"
 msgstr "Comparer la version"
@@ -445,6 +457,9 @@ msgstr "Transversal (type de source, langue, période, devis)"
 msgid "Crossref: references completed: {enriched} of {checked} checked"
 msgstr "Crossref : références complétées : {enriched} sur {checked} vérifiées"
 
+msgid "DOI"
+msgstr "DOI"
+
 msgid "DOI of the registration"
 msgstr "DOI de l'enregistrement"
 
@@ -460,6 +475,32 @@ msgstr "Base"
 #, python-brace-format
 msgid "Decision thresholds favour sensitivity, with a target of at least {target}."
 msgstr "Les seuils de décision favorisent la sensibilité, avec une cible d'au moins {target}."
+
+msgid ""
+"Decisions already taken are kept when the deduplication is run again. Pairs with different DOIs "
+"or PMIDs, and two versions of one work (a preprint and the article, for instance), are never "
+"grouped automatically."
+msgstr ""
+"Les décisions déjà prises sont conservées quand le dédoublonnage est relancé. Les paires dont les"
+" DOI ou les PMID diffèrent, et deux versions d'un même travail (une prépublication et l'article, "
+"par exemple), ne sont jamais regroupées automatiquement."
+
+msgid "Deduplication running in the background: the page refreshes when it ends."
+msgstr "Dédoublonnage en cours en arrière-plan : la page s'actualise à la fin."
+
+#, python-brace-format
+msgid ""
+"Deduplication: references compared: {references}; pairs grouped automatically: {automatic}; pairs"
+" to review: {review}"
+msgstr ""
+"Dédoublonnage : références comparées : {references} ; paires regroupées automatiquement : "
+"{automatic} ; paires à examiner : {review}"
+
+msgid "Deduplication: two references grouped as duplicates"
+msgstr "Dédoublonnage : deux références regroupées comme doublons"
+
+msgid "Deduplication: two references kept apart"
+msgstr "Dédoublonnage : deux références gardées séparées"
 
 msgid ""
 "Describe each concept with a block of terms. The terms of a block are combined with OR, the "
@@ -518,6 +559,15 @@ msgid "Draft of version %(number)s. Changes stay in the draft until you activate
 msgstr ""
 "Brouillon de la version %(number)s. Les modifications restent dans le brouillon tant que vous ne "
 "l'activez pas."
+
+msgid "Duplicate records removed"
+msgstr "Doublons retirés"
+
+msgid "Duplicates"
+msgstr "Doublons"
+
+msgid "Duplicates?"
+msgstr "Doublons ?"
 
 msgid ""
 "Each MeSH heading of the strategy and of the pending AI suggestions is looked up in MeSH (NCBI "
@@ -642,8 +692,14 @@ msgstr ""
 "Exportez les résultats de la base au format RIS, puis choisissez le fichier. Le fichier est "
 "conservé tel quel dans le projet."
 
+msgid "Field"
+msgstr "Champ"
+
 msgid "File imported."
 msgstr "Fichier importé."
+
+msgid "Find duplicates"
+msgstr "Repérer les doublons"
 
 msgid "Finished"
 msgstr "Terminée"
@@ -690,6 +746,20 @@ msgstr "Financement"
 
 msgid "German"
 msgstr "allemand"
+
+msgid "Group them"
+msgstr "Les regrouper"
+
+msgid "Groups of duplicates"
+msgstr "Groupes de doublons"
+
+#, python-format
+msgid ""
+"Groups: %(groups)s; duplicate records: %(duplicates)s. The primary reference is the most complete"
+" record (DOI, abstract, PMID, filled fields), then the oldest."
+msgstr ""
+"Groupes : %(groups)s ; doublons : %(duplicates)s. La référence principale est la notice la plus "
+"complète (DOI, résumé, PMID, champs remplis), puis la plus ancienne."
 
 msgid "Guidance"
 msgstr "Consignes"
@@ -776,6 +846,12 @@ msgid_plural "Journal intact: {count} entries, hash chain verified."
 msgstr[0] "Journal intègre : {count} entrée, chaîne d'empreintes vérifiée."
 msgstr[1] "Journal intègre : {count} entrées, chaîne d'empreintes vérifiée."
 
+msgid "Journal or book"
+msgstr "Revue ou livre"
+
+msgid "Keep them apart"
+msgstr "Les garder séparées"
+
 msgid "Key articles"
 msgstr "Articles clés"
 
@@ -806,6 +882,16 @@ msgstr "Langue du protocole : fr ou en."
 msgid "Languages (none: every language)"
 msgstr "Langues (aucune : toutes les langues)"
 
+#, python-format
+msgid ""
+"Last run: %(date)s UTC, references compared: %(references)s, pairs grouped automatically: "
+"%(automatic)s, pairs to review: %(review)s (thresholds %(low)s and %(high)s, rules version "
+"%(version)s)."
+msgstr ""
+"Dernière exécution : %(date)s UTC, références comparées : %(references)s, paires regroupées "
+"automatiquement : %(automatic)s, paires à examiner : %(review)s (seuils %(low)s et %(high)s, "
+"version des règles : %(version)s)."
+
 msgid "Limits"
 msgstr "Limites"
 
@@ -816,6 +902,9 @@ msgstr "Limites : {limits}."
 #, python-format
 msgid "Line %(line)s"
 msgstr "Ligne %(line)s"
+
+msgid "Links"
+msgstr "Liens"
 
 msgid "Local port."
 msgstr "Port local."
@@ -894,6 +983,15 @@ msgstr "Aucune collecte pour l'instant."
 msgid "No criterion yet."
 msgstr "Aucun critère pour l'instant."
 
+msgid "No group of duplicates."
+msgstr "Aucun groupe de doublons."
+
+msgid "No pair kept apart by a person."
+msgstr "Aucune paire gardée séparée par une personne."
+
+msgid "No pair to review."
+msgstr "Aucune paire à examiner."
+
 #, python-brace-format
 msgid ""
 "No price is known for the model “{model}” of “{provider}”: add it to resources/model_prices.yaml "
@@ -905,12 +1003,21 @@ msgstr ""
 msgid "No query yet: save the search strategy on the Search page."
 msgstr "Pas encore de requête : enregistrez la stratégie de recherche dans la page Recherche."
 
+msgid "No reference yet: collect or import references on the Collection page."
+msgstr "Aucune référence pour l'instant : collectez ou importez des références à la page « Collecte »."
+
 msgid "No version of the criteria is in force yet."
 msgstr "Aucune version des critères n'est encore en vigueur."
+
+msgid "Not duplicates"
+msgstr "Pas des doublons"
 
 #, python-format
 msgid "Not found in %(database)s (left out of the recall):"
 msgstr "Introuvables dans %(database)s (exclus du rappel) :"
+
+msgid "Not grouped automatically:"
+msgstr "Non regroupées automatiquement :"
 
 msgid "Note (for example, minutes of a team meeting)"
 msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
@@ -921,6 +1028,9 @@ msgstr "Note ajoutée au journal"
 #, python-brace-format
 msgid "Number of results in {database}: {count}"
 msgstr "Nombre de résultats dans {database} : {count}"
+
+msgid "Numbers for the flow diagram"
+msgstr "Nombres du diagramme de flux"
 
 msgid "OSF field"
 msgstr "Champ OSF"
@@ -937,6 +1047,9 @@ msgstr "Ouvrez http://{host}:{port}/ dans votre navigateur (Ctrl+C pour arrêter
 
 msgid "Open the web interface of a project on 127.0.0.1."
 msgstr "Ouvrir l'interface web d'un projet sur 127.0.0.1."
+
+msgid "OpenAlex"
+msgstr "OpenAlex"
 
 msgid ""
 "OpenAlex API key, required by OpenAlex since February 2026 unless a network proxy adds it to the "
@@ -963,6 +1076,39 @@ msgstr "Élément PCC"
 msgid "PCC element: %(element)s. The code and the PCC element of a criterion never change."
 msgstr "Élément PCC : %(element)s. Le code et l'élément PCC d'un critère ne changent jamais."
 
+msgid "PMID"
+msgstr "PMID"
+
+msgid "Pages"
+msgstr "Pages"
+
+msgid "Pages of groups"
+msgstr "Pages des groupes"
+
+msgid "Pairs from this score are grouped automatically (0 to 1)"
+msgstr "Paires regroupées automatiquement à partir de ce score (de 0 à 1)"
+
+msgid "Pairs from this score go to a person (0 to 1)"
+msgstr "Paires soumises à une personne à partir de ce score (de 0 à 1)"
+
+msgid "Pairs kept apart"
+msgstr "Paires gardées séparées"
+
+#, python-format
+msgid ""
+"Pairs still to review: %(count)s. Until they are decided, the numbers count their references as "
+"distinct."
+msgstr ""
+"Paires encore à examiner : %(count)s. Tant qu'elles ne sont pas décidées, les nombres comptent "
+"leurs références comme distinctes."
+
+msgid "Pairs to review"
+msgstr "Paires à examiner"
+
+#, python-format
+msgid "Pairs to review: %(count)s. Differences are marked."
+msgstr "Paires à examiner : %(count)s. Les différences sont signalées."
+
 msgid "Participants"
 msgstr "Participants"
 
@@ -977,6 +1123,9 @@ msgstr "Nombre préliminaire de notices retrouvées par les requêtes de l'annex
 
 msgid "Preliminary search for existing reviews"
 msgstr "Recherche préliminaire de revues existantes"
+
+msgid "Primary:"
+msgstr "Principale :"
 
 #, python-format
 msgid "Problems found: %(count)s"
@@ -1098,12 +1247,33 @@ msgstr "Consigner un nouvel enregistrement"
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
 
+msgid "Records after deduplication"
+msgstr "Références après dédoublonnage"
+
+msgid "Records identified"
+msgstr "Références repérées"
+
+msgid "Records identified by source"
+msgstr "Références repérées par source"
+
 #, python-brace-format
 msgid "Records matching the following blocks are removed with NOT: {blocks}."
 msgstr "Les notices qui répondent aux blocs suivants sont retirées par NOT : {blocks}."
 
+msgid "Reference 1"
+msgstr "Référence 1"
+
+msgid "Reference 2"
+msgstr "Référence 2"
+
 msgid "References"
 msgstr "Références"
+
+#, python-format
+msgid "References added since the last run: %(count)s. Run the deduplication again to compare them."
+msgstr ""
+"Références ajoutées depuis la dernière exécution : %(count)s. Relancez le dédoublonnage pour les "
+"comparer."
 
 msgid ""
 "References are collected with the queries of the current search strategy (PubMed and OpenAlex), "
@@ -1131,8 +1301,21 @@ msgstr ""
 " revue, le volume, le numéro ou les pages, sont complétées avec Crossref (trois requêtes à la "
 "fois). Un champ donné par la source n'est jamais remplacé."
 
+msgid ""
+"References with the same DOI, PMID or OpenAlex identifier are grouped first; the others are "
+"compared field by field (title, authors, year, journal, pages). Nothing is deleted: duplicates "
+"are grouped under a primary reference, and every grouping can be undone."
+msgstr ""
+"Les références qui ont le même DOI, PMID ou identifiant OpenAlex sont d'abord regroupées ; les "
+"autres sont comparées champ par champ (titre, auteurs, année, revue, pages). Rien n'est supprimé "
+": les doublons sont regroupés sous une référence principale, et tout regroupement peut être "
+"annulé."
+
 msgid "Reformulation of the question"
 msgstr "Reformulation de la question"
+
+msgid "Refresh"
+msgstr "Actualiser"
 
 msgid "Registration"
 msgstr "Enregistrement"
@@ -1272,6 +1455,9 @@ msgstr "Afficher la version et quitter."
 msgid "Skip to content"
 msgstr "Aller au contenu"
 
+msgid "Source"
+msgstr "Source"
+
 msgid "Source of evidence selection"
 msgstr "Sélection des sources"
 
@@ -1399,6 +1585,10 @@ msgstr "Le dossier {folder} existe déjà et n'est pas vide."
 msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
 msgstr "La langue doit être un code ISO 639-1 de deux lettres, par exemple fr ou en."
 
+#, python-format
+msgid "The last deduplication stopped: %(error)s"
+msgstr "Le dernier dédoublonnage s'est arrêté : %(error)s"
+
 msgid "The list of elements is to be checked against the checklist of the article."
 msgstr "La liste des éléments est à vérifier par rapport à la liste de contrôle de l'article."
 
@@ -1413,6 +1603,9 @@ msgstr "Le modèle a refusé de répondre à cette demande."
 
 msgid "The name of the reviewer is required."
 msgstr "Le nom du réviseur est obligatoire."
+
+msgid "The next pairs appear as these are decided."
+msgstr "Les paires suivantes s'affichent à mesure que celles-ci sont décidées."
 
 #, python-brace-format
 msgid "The project has an unknown database schema ({revision}); a backup copy was made before any change."
@@ -1481,6 +1674,9 @@ msgstr "La stratégie n'a pas été enregistrée :"
 msgid "The title of the review is required."
 msgstr "Le titre de la revue est obligatoire."
 
+msgid "The two references side by side"
+msgstr "Les deux références côte à côte"
+
 msgid "The two versions have the same criteria."
 msgstr "Les deux versions ont les mêmes critères."
 
@@ -1501,6 +1697,12 @@ msgstr ""
 msgid "There is no query to collect in {database}: save the search strategy."
 msgstr "Il n'y a pas de requête à collecter dans {database} : enregistrez la stratégie de recherche."
 
+msgid "There is no reference to deduplicate yet: collect or import first."
+msgstr "Il n'y a encore aucune référence à dédoublonner : collectez ou importez d'abord."
+
+msgid "These two references are not a pair of the deduplication."
+msgstr "Ces deux références ne forment pas une paire du dédoublonnage."
+
 msgid "This collection is already finished."
 msgstr "Cette collecte est déjà terminée."
 
@@ -1519,6 +1721,12 @@ msgstr ""
 
 msgid "This suggestion has already been reviewed."
 msgstr "Cette suggestion a déjà été examinée."
+
+msgid "Thresholds must be numbers from 0 to 1, the first one not above the second."
+msgstr "Les seuils doivent être des nombres de 0 à 1, le premier ne dépassant pas le second."
+
+msgid "Title"
+msgstr "Titre"
 
 #, python-format
 msgid "Title and abstract by default; other fields with a prefix: %(prefixes)s."
@@ -1555,6 +1763,9 @@ msgstr "Jusqu'à l'année"
 msgid "Tokens (estimate)"
 msgstr "Jetons (estimation)"
 
+msgid "Total"
+msgstr "Total"
+
 msgid ""
 "Traceability: each AI output is recorded with the provider, the exact model version returned by "
 "the API, the prompt template version, a hash of the prompt, the parameters, the tokens used and "
@@ -1566,6 +1777,12 @@ msgstr ""
 "paramètres, les jetons consommés et le coût ; les réponses brutes sont conservées avec le projet."
 " Les versions exactes des modèles seront déclarées avec les résultats."
 
+msgid "Two versions of one work?"
+msgstr "Deux versions d'un même travail ?"
+
+msgid "Type"
+msgstr "Type"
+
 #, python-format
 msgid "Type of change of %(code)s"
 msgstr "Type de changement de %(code)s"
@@ -1576,6 +1793,16 @@ msgstr "Types de sources de données probantes"
 #, python-format
 msgid "Unchanged: %(codes)s"
 msgstr "Inchangés : %(codes)s"
+
+msgid "Undo this grouping"
+msgstr "Annuler ce regroupement"
+
+msgid ""
+"Undoing a grouping records that the two references are not duplicates; a reference still linked "
+"to the group by another link stays in it."
+msgstr ""
+"Annuler un regroupement consigne que les deux références ne sont pas des doublons ; une référence"
+" encore reliée au groupe par un autre lien y reste."
 
 #, python-brace-format
 msgid "Unknown AI provider: {provider}."
@@ -1595,8 +1822,14 @@ msgstr "Critère inconnu : {code}."
 msgid "Unknown database."
 msgstr "Base inconnue."
 
+msgid "Unknown decision."
+msgstr "Décision inconnue."
+
 msgid "Unknown export."
 msgstr "Exportation inconnue."
+
+msgid "Unknown source"
+msgstr "Source inconnue"
 
 #, python-brace-format
 msgid "Unknown suggestion: {id}."
@@ -1638,20 +1871,38 @@ msgstr "Version en vigueur"
 msgid "Versions"
 msgstr "Versions"
 
+msgid "Volume (issue)"
+msgstr "Volume (numéro)"
+
 msgid "Wording"
 msgstr "Libellé"
 
 msgid "Write the protocol (Markdown and DOCX) in the exports folder."
 msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations."
 
+msgid "Year"
+msgstr "Année"
+
 msgid "Years are written with four digits, from 1800 to 2100."
 msgstr "Les années s'écrivent avec quatre chiffres, de 1800 à 2100."
+
+msgid "a conference paper and another version of the work"
+msgstr "une communication et une autre version du travail"
 
 msgid "a prefix needs a term"
 msgstr "un préfixe doit être suivi d'un terme"
 
+msgid "a preprint and another version of the work"
+msgstr "une prépublication et une autre version du travail"
+
+msgid "a thesis and another version of the work"
+msgstr "une thèse et une autre version du travail"
+
 msgid "added"
 msgstr "ajout"
+
+msgid "automatic"
+msgstr "automatique"
 
 msgid "block without usable term: left out"
 msgstr "bloc sans terme utilisable : écarté"
@@ -1693,11 +1944,36 @@ msgstr "données à extraire, ébauche de la grille (annexe III), essai pilote e
 msgid "databases, interfaces and grey literature sources"
 msgstr "bases de données, interfaces et sources de littérature grise"
 
+#, python-format
+msgid "decided by a person on %(date)s"
+msgstr "décidé par une personne le %(date)s"
+
 msgid "descriptor left out: vocabulary absent here"
 msgstr "descripteur écarté : vocabulaire absent de cette base"
 
 msgid "deviation from the protocol"
 msgstr "écart au protocole"
+
+msgid "different"
+msgstr "différent"
+
+msgid "different DOIs"
+msgstr "DOI différents"
+
+msgid "different OpenAlex identifiers"
+msgstr "identifiants OpenAlex différents"
+
+msgid "different PMIDs"
+msgstr "PMID différents"
+
+msgid "different first pages in the same volume"
+msgstr "premières pages différentes dans le même volume"
+
+msgid "different numbers in the titles"
+msgstr "nombres différents dans les titres"
+
+msgid "different or missing first author"
+msgstr "premier auteur différent ou absent"
 
 msgid "does not exist in MeSH"
 msgstr "n'existe pas dans MeSH"
@@ -1752,6 +2028,10 @@ msgstr "inclusion (AND)"
 
 msgid "invalid descriptor"
 msgstr "descripteur invalide"
+
+#, python-format
+msgid "kept apart on %(date)s"
+msgstr "gardées séparées le %(date)s"
 
 #, python-brace-format
 msgid "languages: {languages}"
@@ -1851,8 +2131,42 @@ msgstr "retrait"
 msgid "repeated:"
 msgstr "en double :"
 
+msgid "same DOI"
+msgstr "même DOI"
+
+msgid "same DOI, but different titles"
+msgstr "même DOI, mais titres différents"
+
+msgid "same DOI, but other identifiers differ"
+msgstr "même DOI, mais autres identifiants différents"
+
+msgid "same OpenAlex identifier"
+msgstr "même identifiant OpenAlex"
+
+msgid "same OpenAlex identifier, but different titles"
+msgstr "même identifiant OpenAlex, mais titres différents"
+
+msgid "same OpenAlex identifier, but other identifiers differ"
+msgstr "même identifiant OpenAlex, mais autres identifiants différents"
+
+msgid "same PMID"
+msgstr "même PMID"
+
+msgid "same PMID, but different titles"
+msgstr "même PMID, mais titres différents"
+
+msgid "same PMID, but other identifiers differ"
+msgstr "même PMID, mais autres identifiants différents"
+
+#, python-format
+msgid "score %(score)s"
+msgstr "score : %(score)s"
+
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"
+
+msgid "similar fields"
+msgstr "champs semblables"
 
 msgid ""
 "steps of the search, draft search for one database (Appendix II), language and date limits with "
@@ -1887,6 +2201,15 @@ msgstr "les résultats ont augmenté pendant la collecte (notices données : {r
 
 msgid "the reviewer"
 msgstr "le réviseur"
+
+msgid "the same work published in two journals"
+msgstr "le même travail publié dans deux revues"
+
+msgid "title translated by PubMed; same first author, year, journal and pages"
+msgstr "titre traduit par PubMed ; même premier auteur, même année, même revue et mêmes pages"
+
+msgid "titles less similar"
+msgstr "titres moins semblables"
 
 msgid "to be completed"
 msgstr "à compléter"
@@ -1926,6 +2249,9 @@ msgstr "avec la version"
 
 msgid "written"
 msgstr "rédigé"
+
+msgid "years more than one apart"
+msgstr "années distantes de plus d'un an"
 
 #, python-brace-format
 msgid "{code} ({kind}): {text}"
@@ -1982,4 +2308,3 @@ msgstr "{service} a envoyé une réponse illisible."
 #, python-brace-format
 msgid "{title}: a scoping review protocol"
 msgstr "{title} : protocole de revue de portée"
-

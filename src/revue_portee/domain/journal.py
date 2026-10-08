@@ -59,6 +59,8 @@ class EntryType:
     COLLECT_FAILED = "collect.failed"
     IMPORT_COMPLETED = "import.completed"
     ENRICH_COMPLETED = "enrich.completed"
+    DEDUP_COMPLETED = "dedup.completed"
+    DEDUP_PAIR_DECIDED = "dedup.pair_decided"
 
 
 class JournalEntry(BaseModel):

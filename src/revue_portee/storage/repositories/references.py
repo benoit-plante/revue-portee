@@ -16,6 +16,7 @@ from revue_portee.domain.references import (
     Reference,
     SourceKind,
 )
+from revue_portee.domain.search import Database
 from revue_portee.storage.db import (
     collection_end,
     collection_page,
@@ -50,6 +51,7 @@ __all__ = [
     "list_runs",
     "run_original_ids",
     "run_summaries",
+    "source_names",
 ]
 
 
@@ -132,6 +134,33 @@ def count_by_source(connection: Connection) -> dict[str, int]:
         )
     )
     return {str(source): int(count) for source, count in rows}
+
+
+def source_names(connection: Connection) -> dict[str, str]:
+    """Name of the source of each reference: the database of its collection, or the
+    database declared for its RIS file (its first provenance when it has several)."""
+    rows = connection.execute(
+        select(
+            provenance.c.reference_id,
+            collection_run.c.database,
+            import_file.c.database_declared,
+        )
+        .select_from(
+            provenance.outerjoin(
+                collection_run, provenance.c.collection_run_id == collection_run.c.id
+            ).outerjoin(import_file, provenance.c.import_file_id == import_file.c.id)
+        )
+        .order_by(provenance.c.created_at, provenance.c.id)
+    )
+    names: dict[str, str] = {}
+    for reference_id, database, declared in rows:
+        if str(reference_id) in names:
+            continue
+        if database is not None:
+            names[str(reference_id)] = Database(database).display_name
+        else:
+            names[str(reference_id)] = str(declared or "")
+    return names
 
 
 def run_summaries(connection: Connection) -> dict[str, tuple[int, int | None, int]]:

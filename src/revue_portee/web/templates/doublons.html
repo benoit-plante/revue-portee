@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Duplicates") }}{% endblock %}
+{% block content %}
+{% set rules = rule_labels() %}
+{% set reasons = reason_labels() %}
+<h1>{{ _("Duplicates") }}</h1>
+<p>{{ _("References with the same DOI, PMID or OpenAlex identifier are grouped first; the others are compared field by field (title, authors, year, journal, pages). Nothing is deleted: duplicates are grouped under a primary reference, and every grouping can be undone.") }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+<section aria-labelledby="nombres-titre" id="nombres">
+  <h2 id="nombres-titre">{{ _("Numbers for the flow diagram") }}</h2>
+  {% if counts.identified %}
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Records identified by source") }}</caption>
+    <thead><tr><th scope="col">{{ _("Source") }}</th><th scope="col">{{ _("Records identified") }}</th></tr></thead>
+    <tbody>
+      {% for name, count in counts.identified_by_source.items() %}
+      <tr><th scope="row">{{ name or _("Unknown source") }}</th><td>{{ count }}</td></tr>
+      {% endfor %}
+      <tr><th scope="row">{{ _("Total") }}</th><td>{{ counts.identified }}</td></tr>
+      <tr><th scope="row">{{ _("Duplicate records removed") }}</th><td>{{ counts.duplicates_removed }}</td></tr>
+      <tr><th scope="row">{{ _("Records after deduplication") }}</th><td>{{ counts.after_deduplication }}</td></tr>
+    </tbody>
+  </table>
+  {% if counts.pending_pairs %}<p class="message info">{{ _("Pairs still to review: %(count)s. Until they are decided, the numbers count their references as distinct.", count=counts.pending_pairs) }}</p>{% endif %}
+  {% else %}
+  <p>{{ _("No reference yet: collect or import references on the Collection page.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="lancer-titre" id="lancer">
+  <h2 id="lancer-titre">{{ _("Find duplicates") }}</h2>
+  {% if run %}
+  <p>{{ _("Last run: %(date)s UTC, references compared: %(references)s, pairs grouped automatically: %(automatic)s, pairs to review: %(review)s (thresholds %(low)s and %(high)s, rules version %(version)s).", date=run.created_at.strftime("%Y-%m-%d %H:%M"), references=run.reference_count, automatic=run.automatic_pairs, review=run.review_pairs, low=decimal_fr(run.settings.review_from, 2), high=decimal_fr(run.settings.auto_from, 2), version=run.settings.algorithm_version) }}</p>
+  {% if new_references %}<p class="message info">{{ _("References added since the last run: %(count)s. Run the deduplication again to compare them.", count=new_references) }}</p>{% endif %}
+  {% endif %}
+  {% include "_doublons_etat.html" %}
+  <form method="post" action="/doublons/lancer">
+    {{ csrf() }}
+    <label for="review_from">{{ _("Pairs from this score go to a person (0 to 1)") }}</label>
+    <input type="text" inputmode="decimal" id="review_from" name="review_from" value="{{ decimal_fr(settings.review_from, 2) }}" required>
+    <label for="auto_from">{{ _("Pairs from this score are grouped automatically (0 to 1)") }}</label>
+    <input type="text" inputmode="decimal" id="auto_from" name="auto_from" value="{{ decimal_fr(settings.auto_from, 2) }}" required>
+    <button type="submit"{% if dedup_running %} disabled{% endif %}>{{ _("Compare every reference") }}</button>
+  </form>
+  <p class="small">{{ _("Decisions already taken are kept when the deduplication is run again. Pairs with different DOIs or PMIDs, and two versions of one work (a preprint and the article, for instance), are never grouped automatically.") }}</p>
+</section>
+
+<section aria-labelledby="paires-titre" id="paires">
+  <h2 id="paires-titre">{{ _("Pairs to review") }}</h2>
+  {% if not pending %}
+  <p>{{ _("No pair to review.") }}</p>
+  {% else %}
+  <p>{{ _("Pairs to review: %(count)s. Differences are marked.", count=pending | length) }}</p>
+  {% for p in pending[:pairs_shown] %}
+  {% set a = references[p.reference_a_id] %}{% set b = references[p.reference_b_id] %}
+  <article class="pair" id="paire-{{ p.id }}">
+    <h3>{% if p.kind == "version" %}{{ _("Two versions of one work?") }}{% else %}{{ _("Duplicates?") }}{% endif %} — {{ rules.get(p.rule, p.rule) }} ({{ _("score %(score)s", score=decimal_fr(p.score, 2)) }})</h3>
+    {% if p.details.get("not_automatic") %}<p class="small">{{ _("Not grouped automatically:") }} {% for r in p.details["not_automatic"].split(", ") %}{{ reasons.get(r, r) }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+    <table class="criteria pair-table">
+      <caption class="visually-hidden">{{ _("The two references side by side") }}</caption>
+      <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Reference 1") }}</th><th scope="col">{{ _("Reference 2") }}</th></tr></thead>
+      <tbody>
+        {% for row in pair_rows(a, b, sources) %}
+        <tr{% if row.differs %} class="differs"{% endif %}><th scope="row">{{ row.label }}{% if row.differs %} <span class="visually-hidden">({{ _("different") }})</span>{% endif %}</th><td>{{ row.a }}</td><td>{{ row.b }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="/doublons/paire" class="inline">
+      {{ csrf() }}
+      <input type="hidden" name="reference_a" value="{{ p.reference_a_id }}">
+      <input type="hidden" name="reference_b" value="{{ p.reference_b_id }}">
+      <button type="submit" name="outcome" value="duplicate">{% if p.kind == "version" %}{{ _("Group them") }}{% else %}{{ _("Duplicates") }}{% endif %}</button>
+      <button type="submit" name="outcome" value="not_duplicate">{% if p.kind == "version" %}{{ _("Keep them apart") }}{% else %}{{ _("Not duplicates") }}{% endif %}</button>
+    </form>
+  </article>
+  {% endfor %}
+  {% if pending | length > pairs_shown %}<p class="small">{{ _("The next pairs appear as these are decided.") }}</p>{% endif %}
+  {% endif %}
+</section>
+
+<section aria-labelledby="groupes-titre" id="groupes">
+  <h2 id="groupes-titre">{{ _("Groups of duplicates") }}</h2>
+  {% if not groups %}
+  <p>{{ _("No group of duplicates.") }}</p>
+  {% else %}
+  <p>{{ _("Groups: %(groups)s; duplicate records: %(duplicates)s. The primary reference is the most complete record (DOI, abstract, PMID, filled fields), then the oldest.", groups=group_count, duplicates=counts.duplicates_removed) }}</p>
+  {% for g in groups %}
+  {% set primary = references[g.primary] %}
+  <details class="group" id="groupe-{{ g.primary }}">
+    <summary>{{ primary.title or _("(no title)") }} — {{ _("records: %(count)s", count=g.members | length) }}</summary>
+    <ul>
+      {% for ref_id in g.members %}{% set r = references[ref_id] %}
+      <li>{% if loop.first %}<strong>{{ _("Primary:") }}</strong> {% endif %}{{ r.title }} — {{ r.year or "" }} — {{ r.container_title }} — {{ sources.get(ref_id, "") }}{% if r.doi %} — {{ r.doi }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <p class="label">{{ _("Links") }}</p>
+    <ul class="small">
+      {% for link in group_links.get(g.primary, []) %}
+      {% set ra = references[link.reference_a] %}{% set rb = references[link.reference_b] %}
+      <li>
+        «&nbsp;{{ ra.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_a, "") }}) — «&nbsp;{{ rb.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_b, "") }})&nbsp;:
+        {% if link.decision %}{{ _("decided by a person on %(date)s", date=link.decision.created_at.strftime("%Y-%m-%d")) }}{% elif link.pair %}{{ _("automatic") }}, {{ rules.get(link.pair.rule, link.pair.rule) }}{% endif %}
+        <form method="post" action="/doublons/paire" class="inline">
+          {{ csrf() }}
+          <input type="hidden" name="reference_a" value="{{ link.reference_a }}">
+          <input type="hidden" name="reference_b" value="{{ link.reference_b }}">
+          <input type="hidden" name="retour" value="groupes">
+          <button type="submit" name="outcome" value="not_duplicate">{{ _("Undo this grouping") }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+  {% if pages > 1 %}
+  <nav aria-label="{{ _('Pages of groups') }}"><p>
+    {% for n in range(1, pages + 1) %}{% if n == page_number %}<strong aria-current="page">{{ n }}</strong>{% else %}<a href="/doublons?page={{ n }}#groupes">{{ n }}</a>{% endif %} {% endfor %}
+  </p></nav>
+  {% endif %}
+  {% endif %}
+  <p class="small">{{ _("Undoing a grouping records that the two references are not duplicates; a reference still linked to the group by another link stays in it.") }}</p>
+</section>
+
+<section aria-labelledby="separees-titre" id="separees">
+  <h2 id="separees-titre">{{ _("Pairs kept apart") }}</h2>
+  {% if not kept_apart %}
+  <p>{{ _("No pair kept apart by a person.") }}</p>
+  {% else %}
+  <ul class="small">
+    {% for d in kept_apart %}
+    {% set ra = references[d.reference_a_id] %}{% set rb = references[d.reference_b_id] %}
+    <li>
+      «&nbsp;{{ ra.title | truncate(60) }}&nbsp;» ({{ sources.get(d.reference_a_id, "") }}) — «&nbsp;{{ rb.title | truncate(60) }}&nbsp;» ({{ sources.get(d.reference_b_id, "") }})&nbsp;: {{ _("kept apart on %(date)s", date=d.created_at.strftime("%Y-%m-%d")) }}
+      <form method="post" action="/doublons/paire" class="inline">
+        {{ csrf() }}
+        <input type="hidden" name="reference_a" value="{{ d.reference_a_id }}">
+        <input type="hidden" name="reference_b" value="{{ d.reference_b_id }}">
+        <input type="hidden" name="retour" value="separees">
+        <button type="submit" name="outcome" value="duplicate">{{ _("Group them") }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}
