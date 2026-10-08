@@ -264,6 +264,10 @@ _AI_ERRORS: tuple[type[Exception], ...] = (
 _TERM_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, term_suggestions.NoStrategyError)
 
 
+# Key of the background job that compares the references (one at a time).
+DEDUP_JOB = "dedoublonnage"
+
+
 def create_app(
     folder: ProjectFolder,
     *,
@@ -972,7 +976,7 @@ def create_app(
         status_code: int = 200,
     ) -> HTMLResponse:
         state = deduplication.dedup_state(folder)
-        shown, pages = dedup_view.page_of(state.groups, page)
+        shown, pages, page_number = dedup_view.page_of(state.groups, page)
         kept_apart = [d for d in state.decisions.values() if d.outcome is PairOutcome.NOT_DUPLICATE]
         return render(
             request,
@@ -989,22 +993,36 @@ def create_app(
                 "groups": shown,
                 "group_count": len(state.groups),
                 "pages": pages,
-                "page_number": min(max(1, page), pages),
+                "page_number": page_number,
                 "kept_apart": sorted(kept_apart, key=lambda d: d.created_at, reverse=True),
                 "rule_labels": dedup_view.rule_labels,
                 "reason_labels": dedup_view.reason_labels,
                 "pair_rows": dedup_view.pair_rows,
-                "group_links": lambda g: dedup_view.group_links(g, state),
+                "group_links": dedup_view.links_by_group(shown, state),
                 "error": error,
                 "message": message,
-            },
+            }
+            | dedup_job_context(),
             status_code=status_code,
         )
 
+    def dedup_job_context() -> dict[str, Any]:
+        return {
+            "dedup_running": background.running(DEDUP_JOB),
+            "dedup_error": background.error(DEDUP_JOB),
+        }
+
     @app.get("/doublons", response_class=HTMLResponse)
-    def show_duplicates(request: Request, page: int = 1, fait: int = 0) -> HTMLResponse:
-        message = _("Deduplication done.") if fait else None
-        return dedup_page(request, page=page, message=message)
+    def show_duplicates(request: Request, page: int = 1) -> HTMLResponse:
+        return dedup_page(request, page=page)
+
+    @app.get("/doublons/etat", response_class=HTMLResponse)
+    def dedup_progress(request: Request) -> HTMLResponse:
+        values = dedup_job_context()
+        response = templates.TemplateResponse(request, "_doublons_etat.html", values)
+        if not values["dedup_running"]:
+            response.headers["HX-Refresh"] = "true"  # show the results of the run
+        return response
 
     @app.post("/doublons/lancer")
     def run_deduplication(
@@ -1027,13 +1045,24 @@ def create_app(
                 ),
                 status_code=422,
             )
-        try:
-            deduplication.run_deduplication(
+        with folder.engine.connect() as connection:
+            if references_repo.count_references(connection) == 0:
+                error = str(deduplication.NoReferencesError())
+                return dedup_page(request, error=error, settings=settings, status_code=422)
+        started = background.start(
+            DEDUP_JOB,
+            lambda: deduplication.run_deduplication(
                 folder, settings, now=now, tool_version=context.tool_version
+            ),
+        )
+        if not started:
+            return dedup_page(
+                request,
+                error=_("A deduplication is already running."),
+                settings=settings,
+                status_code=422,
             )
-        except deduplication.NoReferencesError as error:
-            return dedup_page(request, error=str(error), settings=settings, status_code=422)
-        return see_other("/doublons?fait=1#paires")
+        return see_other("/doublons#lancer")
 
     @app.post("/doublons/paire")
     def decide_duplicate_pair(

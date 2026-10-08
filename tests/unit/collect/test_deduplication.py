@@ -184,3 +184,17 @@ def test_kinds_of_the_pairs(setup: tuple[ProjectFolder, Clock, dict[str, str]]) 
         + [(PairKind.FUZZY, "similarity", Proposal.REVIEW)]
     )
     assert state.new_references == 0
+
+
+def test_decisions_taken_in_the_same_millisecond_keep_their_order(
+    setup: tuple[ProjectFolder, Clock, dict[str, str]],
+) -> None:
+    folder, clock, ids = setup
+    run(folder, clock)
+    a, b = ids["APA:loneliness"], ids["Pub:loneliness"]
+    frozen = clock()  # every decision at the same instant: identifiers sort at random
+    for _ in range(10):
+        decide(folder, lambda: frozen, a, b, PairOutcome.NOT_DUPLICATE)
+        decide(folder, lambda: frozen, a, b, PairOutcome.DUPLICATE)
+        state = deduplication.dedup_state(folder)
+        assert tuple(sorted((a, b))) in state.links

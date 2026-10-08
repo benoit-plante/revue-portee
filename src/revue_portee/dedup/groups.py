@@ -60,14 +60,23 @@ def links_in_force(pairs: Iterable[DuplicatePair], decisions: Iterable[PairDecis
 
 
 def pending_pairs(
-    pairs: Iterable[DuplicatePair], decisions: Iterable[PairDecision]
+    pairs: Iterable[DuplicatePair],
+    decisions: Iterable[PairDecision],
+    groups: Iterable[Group] = (),
 ) -> list[DuplicatePair]:
-    """Pairs left to a person that nobody has decided yet."""
+    """Pairs left to a person that nobody has decided yet, except those whose two
+    references are already in one group through other links (nothing to decide)."""
     decided = set(latest_decisions(decisions))
+    group_of = {ref_id: g.primary for g in groups for ref_id in g.members}
     return [
         p
         for p in pairs
-        if p.proposal is Proposal.REVIEW and (p.reference_a_id, p.reference_b_id) not in decided
+        if p.proposal is Proposal.REVIEW
+        and (p.reference_a_id, p.reference_b_id) not in decided
+        and (
+            p.reference_a_id not in group_of
+            or group_of.get(p.reference_a_id) != group_of.get(p.reference_b_id)
+        )
     ]
 
 

@@ -153,13 +153,11 @@ def decide_pair(
     a, b = sorted((reference_a_id, reference_b_id))
     with folder.write() as connection:
         run = dedup_repo.latest_run(connection)
-        listed = [] if run is None else dedup_repo.list_pairs(connection, run.id)
-        pairs = {(p.reference_a_id, p.reference_b_id): p for p in listed}
-        decisions = dedup_repo.list_decisions(connection)
-        pair = pairs.get((a, b))
-        if pair is None and (a, b) not in latest_decisions(decisions):
+        pair = None if run is None else dedup_repo.find_pair(connection, run.id, a, b)
+        decisions = dedup_repo.decisions_on(connection, a, b)
+        if pair is None and not decisions:
             raise UnknownPairError
-        before = (a, b) in links_in_force(pairs.values(), decisions)
+        before = (a, b) in links_in_force([] if pair is None else [pair], decisions)
         moment = now()
         decision = PairDecision(
             id=new_ulid(moment),
@@ -223,7 +221,8 @@ def dedup_state(folder: ProjectFolder) -> DedupState:
         sources = references_repo.source_names(connection)
     links = links_in_force(pairs, decisions)
     groups = group_references(references, links)
-    pending = pending_pairs(pairs, decisions)
+    pending = pending_pairs(pairs, decisions, groups)
+    source_of = {ref_id: sources.get(ref_id, "") for ref_id in references}
     return DedupState(
         run=run,
         pairs={(p.reference_a_id, p.reference_b_id): p for p in pairs},
@@ -232,11 +231,7 @@ def dedup_state(folder: ProjectFolder) -> DedupState:
         groups=groups,
         pending=pending,
         references=references,
-        sources={ref_id: sources.get(ref_id, "") for ref_id in references},
-        counts=flow_counts(
-            {ref_id: sources.get(ref_id, "") for ref_id in references},
-            groups,
-            pending_pairs=len(pending),
-        ),
+        sources=source_of,
+        counts=flow_counts(source_of, groups, pending_pairs=len(pending)),
         new_references=0 if run is None else max(0, len(references) - run.reference_count),
     )

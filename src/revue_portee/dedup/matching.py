@@ -32,11 +32,11 @@ from revue_portee.dedup.normalize import (
     container_key,
     first_page,
     is_conference,
-    is_notice,
     is_preprint,
     is_thesis,
     is_translated_title,
     normalize_text,
+    notice_marks,
     surname,
 )
 from revue_portee.domain.dedup import (
@@ -54,7 +54,8 @@ WEIGHTS = {"title": 0.55, "author": 0.15, "year": 0.10, "venue": 0.10, "place": 
 # Keys shared by more references than this are too common to pair everything in them.
 MAX_BLOCK = 400
 _NUMBER = re.compile(r"\d+")
-_ROMAN = re.compile(r"\b(?:i{1,3}|iv|v|vi{1,3}|ix|x)\b")
+# Roman numerals of parts and volumes; "i", "v" and "x" alone are words ("I", "v").
+_ROMAN = re.compile(r"\b(?:ii|iii|iv|vi|vii|viii|ix|xi|xii)\b")
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +77,7 @@ class _Prepared:
     title: str
     tokens: tuple[str, ...]
     translated: bool
-    notice: bool
+    notice: frozenset[str]
     author: str
     coauthors: frozenset[str]
     page: str
@@ -94,7 +95,7 @@ def _prepare(ref: Reference) -> _Prepared:
         title=title,
         tokens=tuple(title.split()),
         translated=is_translated_title(ref.title),
-        notice=is_notice(ref.title),
+        notice=notice_marks(ref.title),
         author=surname(ref.authors[0]) if ref.authors else "",
         coauthors=frozenset(surname(a) for a in ref.authors[:3]) - {""},
         page=first_page(ref.pages),

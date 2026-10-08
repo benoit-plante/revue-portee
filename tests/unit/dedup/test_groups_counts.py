@@ -69,6 +69,15 @@ def test_links_follow_the_latest_decision() -> None:
     assert pending_pairs(pairs, decisions[1:]) == [pairs[1]]
 
 
+def test_a_pair_already_joined_by_other_links_is_not_pending() -> None:
+    pairs = [pair("A", "B"), pair("B", "C"), pair("A", "C", Proposal.REVIEW)]
+    pairs.append(pair("D", "E", Proposal.REVIEW))
+    references = {k: ref(k, title="T") for k in "ABCDE"}
+    groups = group_references(references, links_in_force(pairs, []))
+    assert pending_pairs(pairs, [], groups) == [pairs[3]]
+    assert pending_pairs(pairs, []) == [pairs[2], pairs[3]]
+
+
 def test_groups_join_linked_references_under_the_most_complete() -> None:
     references = {
         "A": ref("A", title="T"),

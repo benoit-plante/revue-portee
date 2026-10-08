@@ -15,7 +15,7 @@ __all__ = [
     "PAIRS_SHOWN",
     "GroupLink",
     "PairRow",
-    "group_links",
+    "links_by_group",
     "pair_rows",
     "parse_threshold",
     "reason_labels",
@@ -113,14 +113,18 @@ class GroupLink:
     decision: PairDecision | None
 
 
-def group_links(group: Group, state: DedupState) -> list[GroupLink]:
-    """The links in force inside a group, with what made each one."""
-    members = set(group.members)
-    return [
-        GroupLink(a, b, state.pairs.get((a, b)), state.decisions.get((a, b)))
-        for a, b in sorted(state.links)
-        if a in members and b in members
-    ]
+def links_by_group(groups: Sequence[Group], state: DedupState) -> dict[str, list[GroupLink]]:
+    """The links in force inside each of ``groups`` (by primary), with what made each
+    one; the links are sorted once for the whole page."""
+    group_of = {ref_id: g.primary for g in groups for ref_id in g.members}
+    found: dict[str, list[GroupLink]] = {g.primary: [] for g in groups}
+    for a, b in sorted(state.links):
+        primary = group_of.get(a)
+        if primary is not None and group_of.get(b) == primary:
+            found[primary].append(
+                GroupLink(a, b, state.pairs.get((a, b)), state.decisions.get((a, b)))
+            )
+    return found
 
 
 def parse_threshold(value: str, default: float) -> float:
@@ -135,9 +139,10 @@ def default_settings(state: DedupState) -> DedupSettings:
     return state.run.settings if state.run is not None else DedupSettings()
 
 
-def page_of(groups: Sequence[Group], page: int) -> tuple[list[Group], int]:
-    """The groups of page ``page`` (1-based) and the number of pages."""
+def page_of(groups: Sequence[Group], page: int) -> tuple[list[Group], int, int]:
+    """The groups of page ``page`` (1-based, kept within bounds), the number of pages
+    and the page shown."""
     pages = max(1, -(-len(groups) // GROUPS_PER_PAGE))
     page = min(max(1, page), pages)
     start = (page - 1) * GROUPS_PER_PAGE
-    return list(groups[start : start + GROUPS_PER_PAGE]), pages
+    return list(groups[start : start + GROUPS_PER_PAGE]), pages, page

@@ -35,13 +35,14 @@
   <p>{{ _("Last run: %(date)s UTC, references compared: %(references)s, pairs grouped automatically: %(automatic)s, pairs to review: %(review)s (thresholds %(low)s and %(high)s, rules version %(version)s).", date=run.created_at.strftime("%Y-%m-%d %H:%M"), references=run.reference_count, automatic=run.automatic_pairs, review=run.review_pairs, low=decimal_fr(run.settings.review_from, 2), high=decimal_fr(run.settings.auto_from, 2), version=run.settings.algorithm_version) }}</p>
   {% if new_references %}<p class="message info">{{ _("References added since the last run: %(count)s. Run the deduplication again to compare them.", count=new_references) }}</p>{% endif %}
   {% endif %}
+  {% include "_doublons_etat.html" %}
   <form method="post" action="/doublons/lancer">
     {{ csrf() }}
     <label for="review_from">{{ _("Pairs from this score go to a person (0 to 1)") }}</label>
     <input type="text" inputmode="decimal" id="review_from" name="review_from" value="{{ decimal_fr(settings.review_from, 2) }}" required>
     <label for="auto_from">{{ _("Pairs from this score are grouped automatically (0 to 1)") }}</label>
     <input type="text" inputmode="decimal" id="auto_from" name="auto_from" value="{{ decimal_fr(settings.auto_from, 2) }}" required>
-    <button type="submit">{{ _("Compare every reference") }}</button>
+    <button type="submit"{% if dedup_running %} disabled{% endif %}>{{ _("Compare every reference") }}</button>
   </form>
   <p class="small">{{ _("Decisions already taken are kept when the deduplication is run again. Pairs with different DOIs or PMIDs, and two versions of one work (a preprint and the article, for instance), are never grouped automatically.") }}</p>
 </section>
@@ -96,7 +97,7 @@
     </ul>
     <p class="label">{{ _("Links") }}</p>
     <ul class="small">
-      {% for link in group_links(g) %}
+      {% for link in group_links.get(g.primary, []) %}
       {% set ra = references[link.reference_a] %}{% set rb = references[link.reference_b] %}
       <li>
         «&nbsp;{{ ra.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_a, "") }}) — «&nbsp;{{ rb.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_b, "") }})&nbsp;:

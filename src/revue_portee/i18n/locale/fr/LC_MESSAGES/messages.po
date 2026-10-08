@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 10:39+0000\n"
+"POT-Creation-Date: 2026-10-08 10:50+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -56,6 +56,9 @@ msgid ""
 msgstr ""
 "Une collecte s'exécute en arrière-plan, page par page ; si elle est interrompue, elle reprend "
 "après sa dernière page enregistrée."
+
+msgid "A deduplication is already running."
+msgstr "Un dédoublonnage est déjà en cours."
 
 msgid "A modified suggestion needs a text."
 msgstr "Une suggestion modifiée doit avoir un texte."
@@ -482,8 +485,8 @@ msgstr ""
 " DOI ou les PMID diffèrent, et deux versions d'un même travail (une prépublication et l'article, "
 "par exemple), ne sont jamais regroupées automatiquement."
 
-msgid "Deduplication done."
-msgstr "Dédoublonnage effectué."
+msgid "Deduplication running in the background: the page refreshes when it ends."
+msgstr "Dédoublonnage en cours en arrière-plan : la page s'actualise à la fin."
 
 #, python-brace-format
 msgid ""
@@ -1311,6 +1314,9 @@ msgstr ""
 msgid "Reformulation of the question"
 msgstr "Reformulation de la question"
 
+msgid "Refresh"
+msgstr "Actualiser"
+
 msgid "Registration"
 msgstr "Enregistrement"
 
@@ -1578,6 +1584,10 @@ msgstr "Le dossier {folder} existe déjà et n'est pas vide."
 
 msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
 msgstr "La langue doit être un code ISO 639-1 de deux lettres, par exemple fr ou en."
+
+#, python-format
+msgid "The last deduplication stopped: %(error)s"
+msgstr "Le dernier dédoublonnage s'est arrêté : %(error)s"
 
 msgid "The list of elements is to be checked against the checklist of the article."
 msgstr "La liste des éléments est à vérifier par rapport à la liste de contrôle de l'article."
@@ -2298,4 +2308,3 @@ msgstr "{service} a envoyé une réponse illisible."
 #, python-brace-format
 msgid "{title}: a scoping review protocol"
 msgstr "{title} : protocole de revue de portée"
-

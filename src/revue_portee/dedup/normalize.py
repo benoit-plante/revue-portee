@@ -21,6 +21,7 @@ __all__ = [
     "is_thesis",
     "is_translated_title",
     "normalize_text",
+    "notice_marks",
     "surname",
     "title_tokens",
 ]
@@ -28,11 +29,12 @@ __all__ = [
 _TAGS = re.compile(r"<[^>]{1,40}>")
 _NON_WORD = re.compile(r"[^a-z0-9]+")
 
-# DOI prefixes of preprint servers: Research Square, bioRxiv and medRxiv, PsyArXiv,
-# SocArXiv, OSF Preprints, SSRN, arXiv, Preprints.org, Authorea, EdArXiv, TechRxiv.
+# DOI prefixes of preprint servers: Research Square, PsyArXiv, SocArXiv, OSF Preprints,
+# SSRN, arXiv, Preprints.org, Authorea, EdArXiv, TechRxiv. bioRxiv and medRxiv share
+# 10.1101/ with the journals of Cold Spring Harbor Laboratory Press (Genome Research
+# 10.1101/gr…): only their own DOI forms are preprints (_RXIV_DOI).
 PREPRINT_DOI_PREFIXES = (
     "10.21203/",
-    "10.1101/",
     "10.31234/",
     "10.31235/",
     "10.31219/",
@@ -43,6 +45,7 @@ PREPRINT_DOI_PREFIXES = (
     "10.35542/",
     "10.36227/",
 )
+_RXIV_DOI = re.compile(r"^10\.1101/(?:\d{4}\.\d{2}\.\d{2}\.|\d{6,}$)")
 _PREPRINT_VENUES = re.compile(r"rxiv|research square|ssrn|preprint", re.IGNORECASE)
 _THESIS = re.compile(r"dissertation|\bthes[ei]s\b|\bthèses?\b", re.IGNORECASE)
 _CONFERENCE = re.compile(r"conference|proceedings|congress|symposium|meeting", re.IGNORECASE)
@@ -73,9 +76,17 @@ def is_translated_title(title: str) -> bool:
     return text.startswith("[") and text.endswith("]")
 
 
+def notice_marks(title: str) -> frozenset[str]:
+    """Words of a correction, retraction, comment or reply in a title.
+
+    Two records with different marks are never paired: "Correction: Nurses' response
+    to…" has a mark that the article "Nurses' response to…" has not."""
+    return frozenset(m.casefold() for m in _NOTICE.findall(title))
+
+
 def is_notice(title: str) -> bool:
     """A correction, retraction, comment or reply: a record about another one."""
-    return _NOTICE.search(title) is not None
+    return bool(notice_marks(title))
 
 
 def surname(author: str) -> str:
@@ -85,15 +96,20 @@ def surname(author: str) -> str:
         return ""
     if "," in text:
         return normalize_text(text.split(",", 1)[0])
-    words = normalize_text(text).split()
-    if not words:
-        return ""
-    # "Chow KK" or "Smith J": the surname comes first, followed by initials.
-    if len(words) > 1 and all(len(w) <= 3 and w.isalpha() for w in words[1:]):
-        original = text.split()
-        if all(w.isupper() or len(w) == 1 for w in original[1:]):
-            return words[0]
-    return words[-1]
+    original = text.split()
+    # "Chow KKW", "O'Brien J", "Le Blanc KK": the surname comes first, then initials.
+    start = len(original)
+    while start > 1 and _is_initials(original[start - 1]):
+        start -= 1
+    if start < len(original):
+        return normalize_text(" ".join(original[:start]))
+    # "Given Surname": the last word ("Maria Garcia-Lopez" gives "garcia lopez").
+    return normalize_text(original[-1])
+
+
+def _is_initials(word: str) -> bool:
+    letters = word.replace(".", "").replace("-", "")
+    return 0 < len(letters) <= 3 and letters.isalpha() and letters.isupper()
 
 
 def first_page(pages: str) -> str:
@@ -116,7 +132,8 @@ def container_key(container: str) -> str:
 def is_preprint(value: Reference) -> bool:
     if value.doc_type.lower() in ("preprint", "posted-content"):
         return True
-    if value.doi.lower().startswith(PREPRINT_DOI_PREFIXES):
+    doi = value.doi.lower()
+    if doi.startswith(PREPRINT_DOI_PREFIXES) or _RXIV_DOI.match(doi):
         return True
     return _PREPRINT_VENUES.search(value.container_title) is not None
 

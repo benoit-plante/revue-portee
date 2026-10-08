@@ -64,6 +64,12 @@ def test_normalize_text(value: str, expected: str) -> None:
         ("Vinet-St-Pierre, Marilou", "vinet st pierre"),
         ("Akin Ojagbemi", "ojagbemi"),
         ("Chow KKW", "chow"),
+        ("O'Brien J", "o brien"),
+        ("Smith-Jones AB", "smith jones"),
+        ("Le Blanc KK", "le blanc"),
+        ("Garcia-Lopez M", "garcia lopez"),
+        ("Garcia-Lopez, M.", "garcia lopez"),
+        ("Maria Garcia-Lopez", "garcia lopez"),
         ("Smith J", "smith"),
         ("Jean-Luc Picard", "picard"),
         ("Plato", "plato"),
@@ -96,6 +102,9 @@ def test_kinds_of_records() -> None:
     assert is_preprint(ref("1", doi="10.21203/RS.3.RS-1/V1"))
     assert is_preprint(ref("1", doc_type="preprint"))
     assert is_preprint(ref("1", container_title="medRxiv"))
+    assert is_preprint(ref("1", doi="10.1101/2020.03.15.20036293"))  # medRxiv
+    assert is_preprint(ref("1", doi="10.1101/123456"))  # bioRxiv, older form
+    assert not is_preprint(ref("1", doi="10.1101/GR.275193.120"))  # Genome Research
     assert not is_preprint(ref("1", doi="10.1186/X", container_title="BMC Public Health"))
     assert is_thesis(ref("1", doc_type="THES"))
     assert is_thesis(ref("1", container_title="Dissertation Abstracts International"))
@@ -202,6 +211,22 @@ def test_records_about_another_record_are_never_paired() -> None:
     a = ref("A", **ARTICLE)
     b = ref("B", **ARTICLE | {"title": "Correction: " + ARTICLE["title"]})
     assert pairs(a, b) == []
+    # the article's own title has a word of a reply: the correction still stays apart
+    title = "Nurses' response to patient aggression in emergency departments"
+    c = ref("C", **ARTICLE | {"title": title})
+    d = ref("D", **ARTICLE | {"title": "Correction: " + title})
+    e = ref("E", **ARTICLE | {"title": title.upper()})
+    assert pairs(c, d, e) == [("C", "E", PairKind.FUZZY, "similarity", Proposal.DUPLICATE)]
+
+
+def test_the_pronoun_i_is_not_a_number() -> None:
+    a = ref("A", **ARTICLE | {"title": "What I learned from caring for older adults"})
+    b = ref("B", **ARTICLE | {"title": "What learned from caring for older adults"})
+    (found,) = find_candidates([a, b], SETTINGS)
+    assert "different_numbers" not in str(found.details.get("not_automatic", ""))
+    c = ref("C", **ARTICLE | {"title": "Guidelines for housing, part II"})
+    d = ref("D", **ARTICLE | {"title": "Guidelines for housing, part III"})
+    assert "different_numbers" in str(find_candidates([c, d], SETTINGS)[0].details)
 
 
 @pytest.mark.parametrize(
