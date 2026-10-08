@@ -1395,4 +1395,159 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - `CLAUDE.md` et le `README` décrivent les deux environnements, le poste local d'abord;
   - sur le poste, rien ne garantit plus qu'une nouvelle source soit bloquée : la règle de signaler toute nouvelle source à Benoit demeure, pour la méthode et les licences;
   - une session locale ne repart pas de zéro : `uv sync` reste la commande de référence après un changement de `uv.lock`.
-- **Renvois** : D-005, D-007, D-013, D-016, D-020, D-021; [CLAUDE.md](../CLAUDE.md); [README.md](../README.md).
+- **Renvois** : D-005, D-007, D-013, D-016, D-020, D-021, D-086 (Windows natif); [CLAUDE.md](../CLAUDE.md); [README.md](../README.md).
+
+### D-086 — Adresse de bouclage permise dans les tests ordinaires
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit); complète D-016 et D-085
+- **Décision** : les tests ordinaires bloquent toute connexion, sauf vers `127.0.0.1`, et les variables de mandataire (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, en majuscules et en minuscules) leur sont retirées. Le développement est possible sous Windows natif, et toujours dans WSL.
+- **Contexte** : sous Windows, la boucle asyncio ouvre une connexion TCP vers `127.0.0.1` pour son fonctionnement interne (`socket.socketpair()`). Le blocage du réseau la refusait, et les 53 tests de l'interface échouaient sur le poste de Benoit.
+- **Options envisagées** :
+  1. **Bouclage seulement, sans mandataire** : la suite passe sous Windows; aucune API réelle ne répond sur cette adresse.
+  2. Exiger WSL (D-085) : aucun changement de code, mais un poste plus lourd à préparer.
+- **Justification** : choix de Benoit (option 1). Sans le retrait des variables de mandataire, un mandataire local permettrait à une requête de sortir.
+- **Conséquences** : `tests/conftest.py` applique `block_network(allowed_hosts=[r"127\.0\.0\.1$"])`; des tests vérifient que `127.0.0.2` et `::1` restent bloqués. Les réglages de mandataire du système Windows (registre) ne sont pas neutralisés : le risque est jugé faible. La CI ne compte pas de tâche Windows.
+- **Renvois** : D-016, D-085; demande de fusion benoit-plante/revue-portee#18.
+
+### D-087 — Formats du diagramme en V1
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : en V1, le diagramme de flux est produit en **SVG** seulement, en français et en anglais. Le PNG et le PDF demandés par EF-DEC-01 viendront en V2.
+- **Contexte** : la feuille de route (tranche 1.8) ne demande que le SVG; l'architecture prévoit CairoSVG pour la conversion, en V2.
+- **Options envisagées** :
+  1. **SVG seulement** : aucune dépendance graphique; un SVG s'ouvre dans un navigateur et s'imprime en PDF.
+  2. SVG, PNG et PDF : CairoSVG exige la bibliothèque Cairo, difficile à installer sous Windows.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : EF-DEC-01 reste partiellement couverte; la conversion est à prévoir avec la tranche 2.2.
+- **Renvois** : EF-DEC-01; [03-architecture.md §2](03-architecture.md#2-pile-technique); demande de fusion benoit-plante/revue-portee#19.
+
+### D-088 — Bas du diagramme en V1
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : le diagramme reprend le gabarit PRISMA 2020 complet. Les cases sont remplies jusqu'à « Rapports recherchés pour le texte intégral », qui compte les références conservées (inclure ou incertain). Les cases suivantes (rapports non obtenus, évalués, exclus avec motifs, sources incluses) sont en pointillés, avec la mention « étape à venir ».
+- **Contexte** : en V1, le tri s'arrête aux titres et résumés.
+- **Options envisagées** :
+  1. **Gabarit complet, étapes à venir grisées** : forme conforme au gabarit; la V2 n'aura qu'à remplir les cases.
+  2. Diagramme coupé après le tri des titres et résumés.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : le gabarit (`resources/reporting/prisma_2020_flow.yaml`) marque ces cases `stage: later`.
+- **Renvois** : EF-DEC-01, ENF-NOR-03; demande de fusion benoit-plante/revue-portee#19.
+
+### D-089 — Exclusions par des outils d'automatisation dans le diagramme
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : les cases « Références jugées inadmissibles par des outils d'automatisation » (avant la sélection) et « Références exclues… par des outils d'automatisation » sont affichées, avec leur nombre. Le second est calculé à partir des décisions en vigueur : il vaut 0 en V1 et montrerait toute exclusion par l'IA seule. Quand le diagramme est final, une note dit que l'IA a servi de second réviseur et qu'aucune exclusion n'a été décidée par elle seule.
+- **Contexte** : PRISMA 2020 demande de déclarer les exclusions faites par des outils d'automatisation.
+- **Options envisagées** :
+  1. **Afficher n = 0** : transparent, conforme à RAISE et au principe 1 du projet.
+  2. Omettre ces cases.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : les cases « Registres » et « Retirées pour d'autres raisons » sont aussi affichées; aucune de ces deux opérations n'existe dans l'outil en V1, d'où n = 0.
+- **Renvois** : EF-DEC-01, D-014; demande de fusion benoit-plante/revue-portee#19.
+
+### D-090 — Diagramme provisoire
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : un diagramme est toujours produit. Il porte le filigrane « PROVISOIRE » et une note qui liste ce qui reste à faire tant qu'il reste : le tri principal à commencer, des références non triées par la personne ou par l'IA, des désaccords à réconcilier, des paires de doublons à examiner, ou une réévaluation non terminée. La section méthode le signale de la même façon.
+- **Contexte** : un diagramme est utile pendant le travail, mais ne doit pas être publié par mégarde avant la fin du tri.
+- **Options envisagées** :
+  1. **Produit, marqué provisoire** : utile en cours de route, sans risque de confusion.
+  2. Refusé tant que le tri n'est pas fini.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : `reporting/flow.py` calcule ce qui reste (`Pending`); la page « Rapports » l'affiche aussi.
+- **Renvois** : EF-DEC-01; demande de fusion benoit-plante/revue-portee#19.
+
+### D-091 — Réévaluations dans le diagramme
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : les réévaluations dues aux changements de critères sont rendues visibles par une note marquée « † » sur la case « Références triées » : nombre de changements et versions, références réévaluées (par l'IA, puis par la personne pour les décisions que l'IA changerait), décisions passées de « conserver » à « exclure » et l'inverse. Les cases donnent l'état final. Le détail par version va dans la section méthode.
+- **Contexte** : critère d'acceptation de la tranche 1.8 (« note ou case dédiée »).
+- **Options envisagées** :
+  1. **Note** : permise par le gabarit, qui reste intact.
+  2. Case dédiée : s'écarte du gabarit PRISMA 2020.
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : une décision changée est une vérification humaine dont la valeur diffère, au sens « conserver » ou « exclure », de la décision qu'elle remplace (D-079, D-082).
+- **Renvois** : EF-DEC-01, EF-VER-07, D-082; demande de fusion benoit-plante/revue-portee#19.
+
+### D-092 — Archive publique ou complète
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** :
+  - l'archive **publique** (par défaut) contient les données lisibles (CSV, JSON lines), le diagramme, la section méthode, les étalonnages et `projet.toml`, mais ni résumé, ni URL, ni réponse brute, ni base SQLite. Chaque nombre du diagramme s'y recalcule sans l'outil (`LISEZMOI.md`);
+  - l'archive **complète** (`--complete`) y ajoute une copie du dossier sans `textes/`; elle se rouvre avec l'outil et n'est pas destinée à un dépôt public;
+  - un secret trouvé dans les fichiers texte arrête l'export; chaque export est consigné au journal (`archive.exported`) avec l'empreinte SHA-256 du fichier.
+- **Contexte** : les résumés appartiennent en général aux éditeurs, et un dépôt OSF est public; ENF-REP-06 demande que chaque nombre déclaré soit vérifiable sans clé d'API.
+- **Options envisagées** :
+  1. **Deux archives** : dépôt public sans texte protégé; copie complète pour l'équipe ou un réviseur.
+  2. Le dossier sans `textes/` seulement (prévu par l'architecture) : il contient les résumés.
+- **Justification** : choix de Benoit (option 1). À confirmer auprès d'une bibliothécaire pour les droits d'auteur.
+- **Conséquences** :
+  - un test relit l'archive publique avec la bibliothèque standard seulement et retrouve le décompte fait à la main, ainsi que la chaîne d'empreintes du journal;
+  - le même projet donne la même archive (dates des entrées fixées, rendu DOCX reproductible);
+  - les citations courtes de l'IA dans les justifications restent dans l'archive publique.
+- **Renvois** : EF-PRJ-04, ENF-REP-06, ENF-SEC-01; [03-architecture.md §4](03-architecture.md#4-format-du-dossier-de-projet); demande de fusion benoit-plante/revue-portee#19.
+
+### D-093 — Contenu de la section méthode sur l'IA au tri
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** :
+  - la section suit les quatre volets du guide de la CEE (Macura et al., 2025) : description et justification, validation, limites et éthique, financement et conflits d'intérêts; les résultats du tri avec l'IA viennent après la validation;
+  - des marqueurs « À compléter » remplacent tout texte rédigé d'avance sur la justification du recours à l'IA, les limites propres à la revue, le financement et les conflits d'intérêts;
+  - les limites générées sont factuelles et citent la validation SYNERGY (D-076), avec l'intervalle du plus petit jeu;
+  - le coût est ventilé par phase (pilote, tri principal, réévaluations, appels échoués non rattachés), d'après les tarifs datés;
+  - toutes les versions exactes du modèle renvoyées par l'API sont listées, avec leur nombre d'appels et les dates du premier et du dernier;
+  - l'essai pilote rapporté est celui d'après lequel les seuils ont été fixés (à défaut, le dernier); les autres tours sont seulement comptés.
+- **Contexte** : EF-DEC-03 (tri) et l'exigence de RAISE de déclarer l'usage de l'IA de façon complète et transparente.
+- **Options envisagées** :
+  1. **Faits générés, jugements laissés à l'équipe** : rien n'est affirmé à la place des auteurs.
+  2. Texte complet rédigé d'avance : plus rapide, mais attribue aux auteurs des jugements qu'ils n'ont pas portés.
+- **Justification** : choix de Benoit (option 1). Selon RAISE, les auteurs restent responsables de ces jugements.
+- **Conséquences** : la section dit si la configuration de la revue diffère de celle qui a été évaluée (modèle, version du gabarit d'invite).
+- **Renvois** : EF-DEC-03, ENF-LAN-04, D-076; demande de fusion benoit-plante/revue-portee#19.
+
+### D-094 — Terminologie des exports
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : en français, « références » (*records*), « rapports » (*reports*) et « sources de données probantes » (*sources of evidence*, PRISMA-ScR) au lieu d'« études ». Les nombres s'écrivent « n = 1 234 » (espace insécable) en français et « n = 1,234 » en anglais.
+- **Contexte** : ENF-LAN-01 demande le français standard du Québec; PRISMA-ScR parle de *sources of evidence*.
+- **Options envisagées** :
+  1. **« Données probantes »** : terme recommandé au Québec pour *evidence*.
+  2. « Éléments probants ».
+- **Justification** : choix de Benoit (option 1).
+- **Conséquences** : la traduction française du gabarit est celle du projet; elle n'a pas été comparée à une traduction publiée (`verified: false`).
+- **Renvois** : ENF-LAN-01, ENF-LAN-04; demande de fusion benoit-plante/revue-portee#19.
+
+### D-095 — Validation de l'outil en fichier de données
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : les résultats publiés du banc SYNERGY (D-076) sont repris dans `resources/reporting/tool_validation.yaml` (date, source, configuration évaluée, résultats par jeu), que la section méthode cite. Le fichier est mis à jour à chaque nouveau banc publié dans `docs/resultats/`.
+- **Contexte** : la section méthode doit citer la validation de l'outil, mais `docs/` ne fait pas partie du paquet installé.
+- **Options envisagées** :
+  1. **Fichier de données daté dans le paquet** : même principe que les autres normes (« les normes sont des données »).
+  2. Lire `docs/resultats/` : absent d'une installation.
+- **Justification** : principe 4 de l'architecture.
+- **Conséquences** : le fichier nomme le modèle évalué comme donnée historique, pas comme réglage; la configuration en usage reste dans `ai_defaults.yaml` et `projet.toml`.
+- **Renvois** : EF-DEC-03, ENF-NOR-02, D-076; demande de fusion benoit-plante/revue-portee#19.
+
+### D-096 — Export des références retenues pour le texte intégral
+
+- **Date** : 2026-10-08
+- **Statut** : décidée (demandée et approuvée par Benoit)
+- **Décision** : les références qui restent après dédoublonnage et dont la décision en vigueur est « inclure » ou « incertain » s'exportent en RIS et en CSV (`exports/references-retenues.ris` et `.csv`, commande `retenues`, page « Rapports »). Chaque notice RIS porte le mot-clé `revue-portee: include|uncertain` et une note avec l'identifiant dans le projet, la décision, la version des critères, le PMID et l'identifiant OpenAlex. Ces exports sont destinés à l'équipe et contiennent les résumés, contrairement à l'archive publique (D-092).
+- **Contexte** : la V1 s'arrête au tri des titres et résumés; pour l'essai de bout en bout, l'équipe doit poursuivre le texte intégral dans un autre outil (Zotero, EndNote, Covidence, Rayyan) en attendant la V2.
+- **Options envisagées** :
+  1. **RIS et CSV** : RIS pour les logiciels de gestion bibliographique et les outils de tri; CSV pour un tableur.
+  2. Retrouver les références dans l'archive : possible, mais peu pratique (deux fichiers à croiser).
+- **Justification** : demande de Benoit.
+- **Conséquences** : le RIS est relu par le lecteur RIS du projet dans les tests; l'import dans les outils tiers est à vérifier pendant l'essai de bout en bout.
+- **Renvois** : D-079, D-088, D-092; demande de fusion benoit-plante/revue-portee#21.
