@@ -203,7 +203,7 @@ class PubMed:
         text = get_text(
             self._client, EUTILS + "efetch.fcgi", params, service=SERVICE, limiter=self._limiter
         )
-        if "<ERROR>" in text[:500] and state:  # expired session: search again
+        if _is_error(text) and state:  # expired session: search again
             webenv, key, count = self._history(query)
             params.update(query_key=key, WebEnv=webenv)
             text = get_text(
@@ -213,14 +213,22 @@ class PubMed:
                 service=SERVICE,
                 limiter=self._limiter,
             )
+        if _is_error(text):  # never taken for the end of the results
+            raise SourceInvalidAnswerError(SERVICE)
         records = parse_pubmed_xml(text)
         following = retstart + PAGE_SIZE
+        if not records and retstart < count:  # an empty page before the end: an error
+            raise SourceInvalidAnswerError(SERVICE)
         next_cursor = (
             json.dumps({"webenv": webenv, "query_key": key, "count": count, "retstart": following})
-            if following < count and records
+            if following < count
             else None
         )
         return FetchedPage(records=records, announced=count, next_cursor=next_cursor, raw=text)
+
+
+def _is_error(text: str) -> bool:
+    return "<ERROR>" in text[:2000]
 
 
 def _text(element: ET.Element | None) -> str:

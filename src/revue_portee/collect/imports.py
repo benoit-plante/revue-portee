@@ -62,7 +62,7 @@ class AlreadyImportedError(ValueError):
 
 class UnreadableFileError(ValueError):
     def __init__(self) -> None:
-        super().__init__(_("The file is not a text file encoded in UTF-8 or Latin-1."))
+        super().__init__(_("The file is not a text file (UTF-8 or Latin-1 expected)."))
 
 
 class NothingToImportError(ValueError):
@@ -71,14 +71,15 @@ class NothingToImportError(ValueError):
 
 
 def _decode(content: bytes) -> str:
+    """UTF-8 (with or without byte order mark), else Latin-1, which reads any byte.
+
+    A NUL byte means a binary file or another encoding (UTF-16): refused."""
+    if b"\x00" in content:
+        raise UnreadableFileError
     try:
         return content.decode("utf-8-sig")
     except UnicodeDecodeError:
-        pass
-    try:
-        return content.decode("cp1252")
-    except UnicodeDecodeError as error:
-        raise UnreadableFileError from error
+        return content.decode("latin-1")
 
 
 def _reference(record: RisRecord, moment: datetime) -> Reference:
@@ -120,13 +121,16 @@ def import_ris(
     result = parse_ris(_decode(content))
     if result.total == 0:
         raise NothingToImportError
-    detected = ", ".join(sorted(result.database_counts))
+    detected = ", ".join(sorted(name for name in result.database_counts if name))
     declared = database.strip() or detected
     target = folder.path / "imports" / f"{sha256}.ris"
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         target.write_bytes(content)
     with folder.write() as connection:
+        existing = references_repo.get_import_by_sha256(connection, sha256)
+        if existing is not None:  # imported meanwhile (two requests at once)
+            raise AlreadyImportedError(existing)
         moment = now()
         imported = ImportFile(
             id=new_ulid(moment),

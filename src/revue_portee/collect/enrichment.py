@@ -26,6 +26,7 @@ from revue_portee.storage.repositories import journal
 from revue_portee.storage.repositories import references as references_repo
 
 __all__ = [
+    "BATCH_SIZE",
     "EnrichmentSummary",
     "WorkSource",
     "enrich_references",
@@ -59,25 +60,18 @@ def enrichment_candidates(folder: ProjectFolder) -> list[Reference]:
         ]
 
 
-def enrich_references(
+BATCH_SIZE = 100
+
+
+def _store_batch(
     folder: ProjectFolder,
+    batch: list[Reference],
+    answers: list[tuple[dict[str, Any] | None, dict[str, Any]]],
     *,
     now: Clock,
     tool_version: str,
-    source: Callable[[], WorkSource] = default_crossref,
-    limit: int | None = None,
-    max_workers: int = MAX_CONCURRENCY,
 ) -> EnrichmentSummary:
-    """Ask Crossref for the missing fields of the candidates (``limit`` at most)."""
-    candidates = enrichment_candidates(folder)[:limit]
-    if not candidates:
-        return EnrichmentSummary(checked=0, enriched=0, not_found=0, fields=0)
-    crossref = source()
-    try:
-        with ThreadPoolExecutor(max_workers=min(max_workers, MAX_CONCURRENCY)) as pool:
-            answers = list(pool.map(lambda r: crossref.work(r.doi), candidates))
-    finally:
-        close_source(crossref)
+    """Record one batch, with its raw answers and journal entry, in one transaction."""
     moment = now()
     batch_id = new_ulid(moment)
     pages: list[JsonValue] = [raw for _work, raw in answers]
@@ -85,7 +79,7 @@ def enrich_references(
     try:
         with folder.write() as connection:
             items: list[Enrichment] = []
-            for reference, (work, _raw) in zip(candidates, answers, strict=True):
+            for reference, (work, _raw) in zip(batch, answers, strict=True):
                 found = {} if work is None else fields_from_work(work)
                 missing = set(missing_fields(reference))
                 items.append(
@@ -97,9 +91,12 @@ def enrich_references(
                         created_at=moment,
                     )
                 )
-            not_found = sum(1 for _w, _r in answers if _w is None)
-            enriched = [e for e in items if e.fields]
-            added = sum(len(e.fields) for e in items)
+            summary = EnrichmentSummary(
+                checked=len(items),
+                enriched=sum(1 for e in items if e.fields),
+                not_found=sum(1 for work, _raw in answers if work is None),
+                fields=sum(len(e.fields) for e in items),
+            )
             entry = journal.append_entry(
                 connection,
                 now=moment,
@@ -109,13 +106,13 @@ def enrich_references(
                 subject_id=batch_id,
                 summary_fr=french(
                     "Crossref: references completed: {enriched} of {checked} checked"
-                ).format(enriched=len(enriched), checked=len(items)),
+                ).format(enriched=summary.enriched, checked=summary.checked),
                 tool_version=tool_version,
                 payload={
-                    "checked": len(items),
-                    "enriched": len(enriched),
-                    "not_found": not_found,
-                    "fields_added": added,
+                    "checked": summary.checked,
+                    "enriched": summary.enriched,
+                    "not_found": summary.not_found,
+                    "fields_added": summary.fields,
                     "raw_dir": raw_dir,
                 },
             )
@@ -124,9 +121,43 @@ def enrich_references(
     except BaseException:
         remove_source_pages(folder.path, raw_dir)
         raise
-    return EnrichmentSummary(
-        checked=len(items), enriched=len(enriched), not_found=not_found, fields=added
-    )
+    return summary
+
+
+def enrich_references(
+    folder: ProjectFolder,
+    *,
+    now: Clock,
+    tool_version: str,
+    source: Callable[[], WorkSource] = default_crossref,
+    limit: int | None = None,
+    max_workers: int = MAX_CONCURRENCY,
+    batch_size: int = BATCH_SIZE,
+) -> EnrichmentSummary:
+    """Ask Crossref for the missing fields of the candidates (``limit`` at most).
+
+    Answers are recorded by batches of ``batch_size``, each in its own transaction:
+    after a failure, the batches already recorded are kept and are not asked again."""
+    candidates = enrichment_candidates(folder)[:limit]
+    total = EnrichmentSummary(checked=0, enriched=0, not_found=0, fields=0)
+    if not candidates:
+        return total
+    crossref = source()
+    try:
+        with ThreadPoolExecutor(max_workers=min(max_workers, MAX_CONCURRENCY)) as pool:
+            for start in range(0, len(candidates), batch_size):
+                batch = candidates[start : start + batch_size]
+                answers = list(pool.map(lambda r: crossref.work(r.doi), batch))
+                done = _store_batch(folder, batch, answers, now=now, tool_version=tool_version)
+                total = EnrichmentSummary(
+                    checked=total.checked + done.checked,
+                    enriched=total.enriched + done.enriched,
+                    not_found=total.not_found + done.not_found,
+                    fields=total.fields + done.fields,
+                )
+    finally:
+        close_source(crossref)
+    return total
 
 
 def references_with_enrichment(folder: ProjectFolder) -> list[Reference]:

@@ -32,6 +32,7 @@ from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.search.strategies import current_queries
 from revue_portee.sources import close_source, default_source_factory
+from revue_portee.sources.http import SourceAccessError, SourceError
 from revue_portee.sources.openalex import OpenAlexKeyError
 from revue_portee.sources.pubmed import TooManyRecordsError
 from revue_portee.sources.records import FetchedPage, FetchedRecord
@@ -42,6 +43,7 @@ from revue_portee.storage.repositories import references as references_repo
 
 __all__ = [
     "AlreadyEndedError",
+    "CollectionOpenError",
     "Collector",
     "CollectorFactory",
     "NoCollectableQueryError",
@@ -53,8 +55,20 @@ __all__ = [
 
 Clock = Callable[[], datetime]
 _SOURCES = {Database.PUBMED: SourceKind.PUBMED, Database.OPENALEX: SourceKind.OPENALEX}
-# Errors that collecting again cannot fix: the collection is ended as failed.
-_PERMANENT = (OpenAlexKeyError, TooManyRecordsError)
+
+
+def _permanent(error: SourceError) -> bool:
+    """Errors that collecting again cannot fix: the collection is ended as failed.
+
+    A refused key, too many PubMed records, or a request the API refuses (4xx other
+    than 408 and 429, which are retried): an invalid query stays invalid."""
+    if isinstance(error, OpenAlexKeyError | TooManyRecordsError):
+        return True
+    return (
+        isinstance(error, SourceAccessError)
+        and 400 <= error.status < 500
+        and error.status not in (408, 429)
+    )
 
 
 class Collector(Protocol):
@@ -79,6 +93,16 @@ class NoCollectableQueryError(LookupError):
             _("There is no query to collect in {database}: save the search strategy.").format(
                 database=database.display_name
             )
+        )
+
+
+class CollectionOpenError(ValueError):
+    def __init__(self, database: Database) -> None:
+        super().__init__(
+            _(
+                "A collection in {database} is not finished: resume it (or wait for its end) "
+                "before starting another one."
+            ).format(database=database.display_name)
         )
 
 
@@ -110,6 +134,12 @@ def start_collection(
     if query is None or not query.translation.text:
         raise NoCollectableQueryError(database)
     with folder.write() as connection:
+        ends = references_repo.list_ends(connection)
+        if any(
+            r.database is database and r.id not in ends
+            for r in references_repo.list_runs(connection)
+        ):
+            raise CollectionOpenError(database)
         moment = now()
         run = CollectionRun(
             id=new_ulid(moment),
@@ -136,18 +166,25 @@ def start_collection(
     return run
 
 
-def _reference(record: FetchedRecord, moment: datetime) -> Reference:
+def _reference(record: FetchedRecord, moment: datetime) -> tuple[Reference, list[str]]:
+    """The reference of a record, and the fields left out because they are invalid."""
     fields = dict(record.fields)
     fields["authors"] = tuple(fields.get("authors") or ())
     year = fields.get("year")
     if not isinstance(year, int) or not 1000 <= year <= 2100:
         fields["year"] = None
     data = {"id": new_ulid(moment), "created_at": moment}
-    try:
-        return Reference.model_validate(data | fields)
-    except ValidationError:  # an unexpected field type: keep the text fields
-        keep = {k: v for k, v in fields.items() if isinstance(v, str)}
-        return Reference.model_validate(data | keep)
+    dropped: list[str] = []
+    while True:
+        try:
+            return Reference.model_validate(data | fields), dropped
+        except ValidationError as error:
+            bad = {str(e["loc"][0]) for e in error.errors() if e["loc"]} & set(fields)
+            if not bad:  # pragma: no cover - only record fields can be invalid
+                raise
+            dropped += sorted(bad)
+            for name in bad:
+                fields.pop(name)
 
 
 def _store_page(
@@ -171,10 +208,13 @@ def _store_page(
                 records.setdefault(record.original_id, record)
         known = references_repo.find_by_source_id(connection, source, list(records))
         new = 0
+        dropped: dict[str, list[str]] = {}
         for original_id, record in records.items():
             reference_id = known.get(original_id)
             if reference_id is None:
-                reference = _reference(record, moment)
+                reference, left_out = _reference(record, moment)
+                if left_out:
+                    dropped[original_id] = left_out
                 references_repo.insert_reference(connection, reference)
                 reference_id = reference.id
                 new += 1
@@ -219,6 +259,7 @@ def _store_page(
                 "new_references": new,
                 "announced": page.announced,
                 "raw_path": raw_path,
+                "invalid_fields_left_out": {k: list[JsonValue](v) for k, v in dropped.items()},
             },
         )
         references_repo.insert_page(connection, stored, journal_entry_id=entry.id)
@@ -340,7 +381,9 @@ def collect(
         while not done and (max_pages is None or fetched < max_pages):
             try:
                 page = source.fetch(run.query_text, cursor)
-            except _PERMANENT as error:
+            except SourceError as error:
+                if not _permanent(error):
+                    raise
                 _end(
                     folder,
                     run,
@@ -363,17 +406,18 @@ def collect(
 
 
 def collection_states(folder: ProjectFolder) -> dict[str, RunState]:
-    """State of every collection, oldest first."""
+    """State of every collection, oldest first (counted in SQL: cheap to poll)."""
     with folder.engine.connect() as connection:
         ends = references_repo.list_ends(connection)
+        summaries = references_repo.run_summaries(connection)
         states = {}
         for run in references_repo.list_runs(connection):
-            pages = references_repo.list_pages(connection, run.id)
+            pages, announced, collected = summaries.get(run.id, (0, None, 0))
             states[run.id] = RunState(
                 run=run,
-                pages=len(pages),
-                collected=len(references_repo.run_original_ids(connection, run.id)),
-                announced=pages[-1].announced if pages else None,
+                pages=pages,
+                collected=collected,
+                announced=announced,
                 end=ends.get(run.id),
             )
     return states

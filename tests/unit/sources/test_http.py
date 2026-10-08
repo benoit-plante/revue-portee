@@ -314,3 +314,25 @@ def test_crossref_unknown_doi_and_errors() -> None:
             retries=3,
             sleep=lambda _: None,
         )
+
+
+def test_pubmed_error_answers_are_never_the_end_of_results() -> None:
+    error = "<eFetchResult><ERROR>Search Backend failed</ERROR></eFetchResult>"
+    client, _ = _client(httpx2.Response(200, json=HISTORY), httpx2.Response(200, text=error))
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # first page: no new search, an error
+        pubmed.fetch("x", None)
+    empty = "<PubmedArticleSet></PubmedArticleSet>"
+    client, _ = _client(httpx2.Response(200, json=HISTORY), httpx2.Response(200, text=empty))
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # empty page before the 250 announced
+        pubmed.fetch("x", None)
+    cursor = '{"webenv": "E", "query_key": "1", "count": 250, "retstart": 200}'
+    client, _ = _client(
+        httpx2.Response(200, text=error),
+        httpx2.Response(200, json=HISTORY),
+        httpx2.Response(200, text=error),
+    )
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # still an error after the new search
+        pubmed.fetch("x", cursor)

@@ -115,6 +115,14 @@ def test_collection_in_background_with_resumption(folder: ProjectFolder) -> None
     assert (
         client.post("/collecte/lancer/zzz", data={"csrf_token": token(client)}).status_code == 404
     )
+    TwoPages.failed = False  # this one is interrupted: it stays open
+    first = client.post("/collecte/lancer/openalex", data={"csrf_token": token(client)})
+    assert first.status_code == 303
+    [_, open_run] = jobs.keys()
+    jobs.wait(open_run, 10)
+    twice = client.post("/collecte/lancer/openalex", data={"csrf_token": token(client)})
+    assert twice.status_code == 422
+    assert "n'est pas terminée" in text(twice)
     refused = client.post("/collecte/lancer/psycinfo_ebsco", data={"csrf_token": token(client)})
     assert refused.status_code == 422
 

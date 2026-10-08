@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 00:15+0000\n"
+"POT-Creation-Date: 2026-10-08 00:45+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -38,6 +38,14 @@ msgstr "(obligatoire)"
 #, python-format
 msgid "A MeSH descriptor: %(exploded)s (with narrower headings) or %(not_exploded)s."
 msgstr "Un descripteur MeSH : %(exploded)s (avec les descripteurs plus spécifiques) ou %(not_exploded)s."
+
+#, python-brace-format
+msgid ""
+"A collection in {database} is not finished: resume it (or wait for its end) before starting "
+"another one."
+msgstr ""
+"Une collecte dans {database} n'est pas terminée : reprenez-la (ou attendez sa fin) avant d'en "
+"lancer une autre."
 
 msgid ""
 "A collection runs in the background, page by page; if it is interrupted, it resumes after its "
@@ -1374,8 +1382,8 @@ msgstr "Le brouillon n'a aucun critère modifié à qualifier."
 msgid "The file holds no RIS record (no line starting with « TY  - »)."
 msgstr "Le fichier ne contient aucune notice RIS (aucune ligne ne commence par « TY  - »)."
 
-msgid "The file is not a text file encoded in UTF-8 or Latin-1."
-msgstr "Le fichier n'est pas un fichier texte encodé en UTF-8 ou en Latin-1."
+msgid "The file is not a text file (UTF-8 or Latin-1 expected)."
+msgstr "Le fichier n'est pas un fichier texte (UTF-8 ou Latin-1 attendu)."
 
 #, python-brace-format
 msgid "The file {file} is unreadable."

@@ -140,3 +140,75 @@ def test_crossref_fills_only_missing_fields(setup: tuple[ProjectFolder, Clock]) 
     assert entry.entry_type == EntryType.ENRICH_COMPLETED
     assert entry.payload["fields_added"] == summary.fields
     assert len(read_source_pages(folder.path, str(entry.payload["raw_dir"]))) == 9
+
+
+class FailingCrossref(FakeCrossref):
+    """Fails on the third DOI asked."""
+
+    def work(self, doi: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+        if len(self.asked) == 2:
+            from revue_portee.sources.http import SourceUnreachableError
+
+            self.asked.append(doi)
+            raise SourceUnreachableError("Crossref", "api.crossref.org")
+        return super().work(doi)
+
+
+def test_enrichment_keeps_the_batches_already_recorded(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    content = "".join(f"TY  - JOUR\nTI  - T{n}\nDO  - 10.1000/b{n}\nER  -\n" for n in range(5))
+    imports.import_ris(folder, "b.ris", content.encode(), now=clock, tool_version=TOOL_VERSION)
+    with folder.engine.connect() as connection:
+        assert references_repo.count_enrichment_candidates(connection) == 5
+    from revue_portee.sources.http import SourceUnreachableError
+
+    with pytest.raises(SourceUnreachableError):
+        enrichment.enrich_references(
+            folder,
+            now=clock,
+            tool_version=TOOL_VERSION,
+            source=FailingCrossref,
+            batch_size=2,
+            max_workers=1,
+        )
+    remaining = enrichment.enrichment_candidates(folder)
+    assert len(remaining) == 3  # the first batch of two is kept
+    with folder.engine.connect() as connection:
+        assert references_repo.count_enrichment_candidates(connection) == 3
+    summary = enrichment.enrich_references(
+        folder, now=clock, tool_version=TOOL_VERSION, source=FakeCrossref, batch_size=2
+    )
+    assert summary.checked == 3
+
+
+def test_concurrent_import_of_the_same_file(
+    setup: tuple[ProjectFolder, Clock], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder, clock = setup
+    content = b"TY  - JOUR\nTI  - T\nER  -\n"
+    imports.import_ris(folder, "a.ris", content, now=clock, tool_version=TOOL_VERSION)
+    original = references_repo.get_import_by_sha256
+    calls: list[int] = []
+
+    def first_check_misses(connection: Any, sha256: str) -> Any:  # noqa: ANN401
+        calls.append(1)
+        return None if len(calls) == 1 else original(connection, sha256)
+
+    monkeypatch.setattr(references_repo, "get_import_by_sha256", first_check_misses)
+    with pytest.raises(imports.AlreadyImportedError):
+        imports.import_ris(folder, "b.ris", content, now=clock, tool_version=TOOL_VERSION)
+
+
+def test_encodings_and_database_names(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    latin = b"TY  - JOUR\nTI  - Caf\xe9 \x81\nER  -\n"  # 0x81 is not cp1252
+    imported = imports.import_ris(folder, "l.ris", latin, now=clock, tool_version=TOOL_VERSION)
+    assert imported.record_count == 1
+    assert imported.database_declared == ""  # no DB or DP tag: no name
+    mixed = b"TY  - JOUR\nTI  - A\nDB  - PubMed\nER  -\nTY  - JOUR\nTI  - B\nER  -\n"
+    named = imports.import_ris(folder, "m.ris", mixed, now=clock, tool_version=TOOL_VERSION)
+    assert named.database_declared == "PubMed"
+    with pytest.raises(imports.UnreadableFileError):
+        imports.import_ris(
+            folder, "u16.ris", "TY  - JOUR".encode("utf-16"), now=clock, tool_version=TOOL_VERSION
+        )

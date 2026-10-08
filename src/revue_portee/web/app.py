@@ -847,6 +847,7 @@ def create_app(
         with folder.engine.connect() as connection:
             counts = references_repo.count_by_source(connection)
             total = references_repo.count_references(connection)
+            candidates = references_repo.count_enrichment_candidates(connection)
         return {
             "states": list(reversed(states)),
             "running": {s.run.id for s in states if background.running(s.run.id)},
@@ -857,7 +858,7 @@ def create_app(
             "counts": counts,
             "total": total,
             "imports": list(reversed(imports.imported_files(folder))),
-            "candidates": len(enrichment.enrichment_candidates(folder)),
+            "candidates": candidates,
             "crossref_running": background.running("crossref"),
             "crossref_error": background.error("crossref"),
             "declared_databases": imports.DECLARED_DATABASES,
@@ -898,12 +899,13 @@ def create_app(
     def start_collection(request: Request, database: str, _csrf: Csrf) -> Response:
         try:
             chosen = Database(database)
+        except ValueError as error:
+            raise HTTPException(status_code=404, detail=_("Unknown database.")) from error
+        try:
             run = collection.start_collection(
                 folder, chosen, now=now, tool_version=context.tool_version
             )
-        except ValueError as error:
-            raise HTTPException(status_code=404, detail=_("Unknown database.")) from error
-        except collection.NoCollectableQueryError as error:
+        except (collection.NoCollectableQueryError, collection.CollectionOpenError) as error:
             return collection_page(request, error=str(error), status_code=422)
         background.start(run.id, lambda: _run_job(run.id))
         return see_other("/collecte#collectes")

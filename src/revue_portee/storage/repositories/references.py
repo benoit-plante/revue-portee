@@ -28,6 +28,7 @@ from revue_portee.storage.db import (
 
 __all__ = [
     "count_by_source",
+    "count_enrichment_candidates",
     "count_references",
     "find_by_source_id",
     "get_import_by_sha256",
@@ -48,6 +49,7 @@ __all__ = [
     "list_references",
     "list_runs",
     "run_original_ids",
+    "run_summaries",
 ]
 
 
@@ -130,6 +132,61 @@ def count_by_source(connection: Connection) -> dict[str, int]:
         )
     )
     return {str(source): int(count) for source, count in rows}
+
+
+def run_summaries(connection: Connection) -> dict[str, tuple[int, int | None, int]]:
+    """For each collection: pages stored, number announced by its last page, distinct
+    records collected (SQL counts, without loading the records)."""
+    pages = {
+        str(run_id): (int(count), int(last))
+        for run_id, count, last in connection.execute(
+            select(
+                collection_page.c.run_id,
+                func.count(),
+                func.max(collection_page.c.number),
+            ).group_by(collection_page.c.run_id)
+        )
+    }
+    announced = {
+        str(run_id): int(value)
+        for run_id, number, value in connection.execute(
+            select(collection_page.c.run_id, collection_page.c.number, collection_page.c.announced)
+        )
+        if pages.get(str(run_id), (0, -1))[1] == number
+    }
+    collected = {
+        str(run_id): int(count)
+        for run_id, count in connection.execute(
+            select(provenance.c.collection_run_id, func.count())
+            .where(provenance.c.collection_run_id.is_not(None))
+            .group_by(provenance.c.collection_run_id)
+        )
+    }
+    return {
+        run_id: (count, announced.get(run_id), collected.get(run_id, 0))
+        for run_id, (count, _last) in pages.items()
+    }
+
+
+def count_enrichment_candidates(connection: Connection) -> int:
+    """References with a DOI, a missing enrichable field, and no Crossref check yet."""
+    missing = (
+        (reference.c.title == "")
+        | (reference.c.abstract == "")
+        | (reference.c.authors_json == "[]")
+        | reference.c.year.is_(None)
+        | (reference.c.container_title == "")
+        | (reference.c.volume == "")
+        | (reference.c.issue == "")
+        | (reference.c.pages == "")
+    )
+    checked = select(enrichment.c.reference_id)
+    statement = (
+        select(func.count())
+        .select_from(reference)
+        .where(reference.c.doi != "", missing, reference.c.id.not_in(checked))
+    )
+    return int(connection.execute(statement).scalar_one())
 
 
 def run_original_ids(connection: Connection, run_id: str) -> set[str]:

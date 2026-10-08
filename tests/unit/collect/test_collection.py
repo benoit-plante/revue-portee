@@ -222,3 +222,60 @@ def test_no_query_to_collect(setup: tuple[ProjectFolder, Clock], tmp_path: Path)
             )
     finally:
         empty.close()
+
+
+def test_one_open_collection_per_database(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    collection.start_collection(folder, Database.OPENALEX, now=clock, tool_version=TOOL_VERSION)
+    with pytest.raises(collection.CollectionOpenError):
+        collection.start_collection(folder, Database.OPENALEX, now=clock, tool_version=TOOL_VERSION)
+    collection.start_collection(folder, Database.PUBMED, now=clock, tool_version=TOOL_VERSION)
+
+
+def test_refused_request_ends_the_collection(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+    from revue_portee.sources.http import SourceAccessError
+
+    source = Pages([[1], [2]], announced=2, fail_at={0: SourceAccessError("OpenAlex", 400)})
+    run = collection.start_collection(
+        folder, Database.OPENALEX, now=clock, tool_version=TOOL_VERSION
+    )
+    with pytest.raises(SourceAccessError):
+        collection.collect(
+            folder, run.id, now=clock, tool_version=TOOL_VERSION, factory=lambda _: source
+        )
+    end = collection.collection_states(folder)[run.id].end
+    assert end is not None
+    assert end.status is CollectionStatus.FAILED
+    assert "400" in end.error
+    busy = Pages([[1]], announced=1, fail_at={0: SourceAccessError("OpenAlex", 429)})
+    second = collection.start_collection(
+        folder, Database.OPENALEX, now=clock, tool_version=TOOL_VERSION
+    )
+    with pytest.raises(SourceAccessError):  # too many requests: resumable
+        collection.collect(
+            folder, second.id, now=clock, tool_version=TOOL_VERSION, factory=lambda _: busy
+        )
+    assert collection.collection_states(folder)[second.id].end is None
+
+
+def test_invalid_fields_are_left_out_and_recorded(setup: tuple[ProjectFolder, Clock]) -> None:
+    folder, clock = setup
+
+    @dataclass
+    class Odd(Pages):
+        def fetch(self, query: str, cursor: str | None) -> FetchedPage:
+            bad = FetchedRecord(
+                original_id="W9",
+                fields={"title": "T", "authors": ("Doe, J",), "year": 2020, "volume": 3},
+            )
+            return FetchedPage(records=(bad,), announced=1, next_cursor=None, raw={})
+
+    run_all(folder, clock, Odd([[0]], announced=1))
+    with folder.engine.connect() as connection:
+        [reference] = references_repo.list_references(connection)
+    assert (reference.authors, reference.year, reference.volume) == (("Doe, J",), 2020, "")
+    pages = [
+        e for e in notes.journal_entries(folder) if e.entry_type == EntryType.COLLECT_PAGE_STORED
+    ]
+    assert pages[0].payload["invalid_fields_left_out"] == {"W9": ["volume"]}
