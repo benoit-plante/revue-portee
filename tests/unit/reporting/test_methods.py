@@ -118,10 +118,28 @@ def data(**changes: object) -> MethodsData:
             ),
         ),
         costs=(
-            CostLine(phase="pilot", calls=100, amount=Decimal("0.1")),
-            CostLine(phase="main", calls=1000, amount=Decimal("0.25")),
-            CostLine(phase="reassessment", calls=20, amount=Decimal("0.01")),
-            CostLine(phase="unlinked", calls=2, amount=Decimal("0.002")),
+            CostLine(
+                phase="pilot",
+                calls=100,
+                amount=Decimal("0.1"),
+                input_tokens=150_000,
+                output_tokens=20_000,
+            ),
+            CostLine(
+                phase="main",
+                calls=1000,
+                amount=Decimal("0.25"),
+                input_tokens=1_500_000,
+                output_tokens=200_000,
+            ),
+            CostLine(
+                phase="reassessment",
+                calls=20,
+                amount=Decimal("0.01"),
+                input_tokens=30_000,
+                output_tokens=4_000,
+            ),
+            CostLine(phase="unlinked", calls=2, amount=Decimal("0.002"), input_tokens=3_000),
         ),
         other_costs=CostLine(phase="other", calls=3, amount=Decimal("0.03")),
         currency="USD",
@@ -170,8 +188,10 @@ def test_english_draft_reports_every_part() -> None:
     assert "(C1: clarification; P1: narrowing)" in text
     assert "Clarifications were reassessed on a random sample." in text
     assert "The reassessment is not completed." in text
-    assert "| Failed calls not linked to a round | 2 | 0.0020 |" in text
-    assert "| Total of the screening | 1,122 | 0.3620 |" in text
+    assert "| Failed calls not linked to a round | 2 | 3,000 | 0 | 0.0020 |" in text
+    # by hand: 1,683,000 tokens read, 224,000 written; 1,907,000 for 1,000 references
+    assert "| Total of the screening | 1,122 | 1,683,000 | 224,000 | 0.3620 |" in text
+    assert "processed 1,907,000 tokens, about 1,907 per reference screened." in text
     assert "Other uses of the AI in the project (framing, criteria, search): 3 calls" in text
     assert "rests on 20 included references (95% CI 76.4% to 99.1%)" in text
     assert "tested on its development set" in text
@@ -198,7 +218,7 @@ def test_french_typography() -> None:
     assert "| Sensibilité (IC à 95 %) | 95,0 % (80,0 % à 99,0 %) |" in text
     assert "| Kappa de Cohen | 0,62 |" in text
     assert "« Aucune inclusion manquée sous 0,05. »" in text
-    assert "| Total du tri | 1 122 | 0,3620 |" in text
+    assert "| Total du tri | 1 122 | 1 683 000 | 224 000 | 0,3620 |" in text
     assert "Critères, version 1 à 2" in text
 
 
@@ -276,3 +296,10 @@ def test_validation_on_held_out_data() -> None:
     assert "These reviews were held out: they were not used to build the tool." in text
     assert "The tool was evaluated on systematic reviews in psychology" in text
     assert "development set" not in text
+
+
+def test_environmental_impact_without_tokens() -> None:
+    costs = (CostLine(phase="main", calls=5, amount=Decimal("0.01")),)
+    text = text_of("en", costs=costs)
+    assert "(energy, water, emissions) was not measured." in text
+    assert "tokens per reference" not in text

@@ -133,13 +133,24 @@ def _costs(folder: ProjectFolder, calls: list[StoredCall]) -> tuple[CostLine, ..
         }
     calls_by_phase: Counter[str] = Counter()
     amounts: defaultdict[str, Decimal] = defaultdict(Decimal)
+    read: Counter[str] = Counter()
+    written: Counter[str] = Counter()
     for call in calls:
         phase = phase_of_call.get(call.id) or phase_of_batch.get(call.record.batch_id or "")
         phase = phase or "unlinked"
+        record = call.record
         calls_by_phase[phase] += 1
-        amounts[phase] += call.record.cost_estimate
+        amounts[phase] += record.cost_estimate
+        read[phase] += record.input_tokens + record.cache_read_tokens + record.cache_write_tokens
+        written[phase] += record.output_tokens
     return tuple(
-        CostLine(phase=phase, calls=calls_by_phase[phase], amount=amounts[phase])
+        CostLine(
+            phase=phase,
+            calls=calls_by_phase[phase],
+            amount=amounts[phase],
+            input_tokens=read[phase],
+            output_tokens=written[phase],
+        )
         for phase in (RoundKind.PILOT.value, RoundKind.MAIN.value, RoundKind.REASSESSMENT.value,
                       "unlinked")
     )  # fmt: skip

@@ -23,7 +23,7 @@ from typing import IO
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from revue_portee.ai.base import CostEstimate, ModelProvider, ProviderCallError
+from revue_portee.ai.base import AICallRecord, CostEstimate, ModelProvider, ProviderCallError
 from revue_portee.ai.runner import run_task
 from revue_portee.ai.settings import AITaskConfig
 from revue_portee.ai.tasks.screening import (
@@ -183,6 +183,8 @@ class BenchmarkResult:
     failed: list[str] = field(default_factory=list)
     stopped: bool = False
     spent: Decimal = Decimal(0)
+    input_tokens: int = 0  # read by the model, from the prompt cache included
+    output_tokens: int = 0
     models_returned: set[str] = field(default_factory=set)
     quotes_found: int = 0  # quotes of the AI found in the title or abstract
     quotes_checked: int = 0
@@ -253,11 +255,15 @@ def run_benchmark(
             return True
 
     def settle(
-        estimate: Decimal, cost: Decimal, item_id: str, model: str | None, raw: object
+        estimate: Decimal, call: AICallRecord, item_id: str, model: str | None, raw: object
     ) -> None:
         with lock:
             reserved[0] -= estimate
-            result.spent += cost
+            result.spent += call.cost_estimate
+            result.input_tokens += (
+                call.input_tokens + call.cache_read_tokens + call.cache_write_tokens
+            )
+            result.output_tokens += call.output_tokens
             if model:
                 result.models_returned.add(model)
             _write_raw(raw_output, item_id, model, raw)
@@ -272,12 +278,10 @@ def run_benchmark(
                 (answer,) = run_task(provider, SCREEN_REFERENCE, [item])
             except ProviderCallError as error:
                 call = error.call
-                settle(estimate, call.cost_estimate, item.item_id, None, error.raw_response)
+                settle(estimate, call, item.item_id, None, error.raw_response)
                 continue
             call = answer.call
-            settle(
-                estimate, call.cost_estimate, item.item_id, call.model_returned, answer.raw_response
-            )
+            settle(estimate, call, item.item_id, call.model_returned, answer.raw_response)
             try:
                 check_answer(answer.output, codes)
             except UnusableAnswerError:
@@ -362,6 +366,13 @@ def _lines(result: BenchmarkResult, labels: dict[str, bool]) -> Iterator[str]:
             if result.quotes_checked == 0
             else f"{result.quotes_found} / {result.quotes_checked} "
             f"({_percent(result.quotes_found / result.quotes_checked)})",
+        ),
+        (_("Tokens read and written"), f"{result.input_tokens}, {result.output_tokens}"),
+        (
+            _("Tokens per record screened"),
+            "—"
+            if not result.values
+            else str(round((result.input_tokens + result.output_tokens) / len(result.values))),
         ),
         (_("Cost"), f"{result.spent} USD"),
         (

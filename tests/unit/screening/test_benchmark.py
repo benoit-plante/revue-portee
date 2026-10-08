@@ -129,6 +129,11 @@ def test_metrics_and_cost_on_a_case_computed_by_hand() -> None:
     assert "| Confusion (vp, fn, fp, vn) | 2, 1, 1, 2 |" in report
     # quotes: records 1, 2 and 4 found, record 3 made up
     assert (result.quotes_found, result.quotes_checked) == (3, 4)
+    tokens = result.input_tokens + result.output_tokens
+    assert result.input_tokens > 0
+    assert result.output_tokens > 0
+    assert f"| Jetons lus et écrits | {result.input_tokens}, {result.output_tokens} |" in report
+    assert f"| Jetons par notice triée | {round(tokens / 6)} |" in report
     assert "| Citations de l'IA retrouvées dans le titre ou le résumé | 3 / 4 (75,0 %) |" in report
     assert "| Coût pour 1 000 références | 1.00 USD |" in report
     assert "non atteintes" in report
