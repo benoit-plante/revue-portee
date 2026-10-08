@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Reports") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Reports") }}</h1>
+<p>{{ _("The flow diagram, the methods section and the archive are generated from the project data every time: no number is typed in by hand.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+
+<section aria-labelledby="diagramme">
+  <h2 id="diagramme">{{ _("Flow diagram (PRISMA 2020, adapted for scoping reviews)") }}</h2>
+  {% if numbers.provisional %}
+  <p class="message info" role="status">{{ _("Provisional diagram: %(items)s.", items=pending) }}</p>
+  {% endif %}
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Numbers of the flow diagram") }}</caption>
+    <tbody>
+      <tr><th scope="row">{{ _("References identified") }}</th><td>{{ numbers.identified }}</td></tr>
+      <tr><th scope="row">{{ _("Duplicates removed") }}</th><td>{{ numbers.duplicates_removed }}</td></tr>
+      <tr><th scope="row">{{ _("References screened") }}</th><td>{{ numbers.screened }}</td></tr>
+      <tr><th scope="row">{{ _("References excluded") }}</th><td>{{ numbers.excluded }}</td></tr>
+      <tr><th scope="row">{{ _("Kept for the full text") }}</th><td>{{ numbers.sought }}</td></tr>
+      <tr><th scope="row">{{ _("Criteria changes reassessed") }}</th><td>{{ numbers.reassessments | length }}</td></tr>
+    </tbody>
+  </table>
+  <p><img class="diagram" src="/rapports/diagramme?langue=fr" alt="{{ _('Flow diagram of the screening, in French; its numbers are in the table above.') }}"></p>
+  <ul>
+    <li><a href="/rapports/diagramme?langue=fr&amp;telecharger=1">{{ _("French, SVG") }}</a> · <a href="/rapports/diagramme?langue=en&amp;telecharger=1">{{ _("English, SVG") }}</a></li>
+  </ul>
+</section>
+
+<section aria-labelledby="methode">
+  <h2 id="methode">{{ _("Methods section (draft)") }}</h2>
+  <p>{{ _("Use of the AI in title and abstract screening, following RAISE and the CEE guidance: models and exact versions, pilot and thresholds, disagreements, reassessments, costs. What only the team can write is left to complete.") }}</p>
+  <ul>
+    <li><a href="/rapports/methode?langue=fr&amp;format=docx">{{ _("French, Word (DOCX)") }}</a> · <a href="/rapports/methode?langue=fr&amp;format=md">{{ _("French, Markdown") }}</a></li>
+    <li><a href="/rapports/methode?langue=en&amp;format=docx">{{ _("English, Word (DOCX)") }}</a> · <a href="/rapports/methode?langue=en&amp;format=md">{{ _("English, Markdown") }}</a></li>
+  </ul>
+</section>
+
+<section aria-labelledby="archive">
+  <h2 id="archive">{{ _("Archive of the project") }}</h2>
+  {% if archive %}<div class="message success" role="status">{{ _("Archive written: %(name)s.", name=archive) }} <a href="/rapports/archives/{{ archive }}">{{ _("Download") }}</a></div>{% endif %}
+  <p>{{ _("The public archive can be deposited with the review (OSF): readable data, diagram, methods section; every number can be checked without the tool. It holds no abstract nor raw response. The complete archive also holds the database and the raw responses: keep it private.") }}</p>
+  <form method="post" action="/rapports/archive">
+    {{ csrf() }}
+    <fieldset>
+      <legend>{{ _("Kind of archive") }}</legend>
+      <label><input type="radio" name="sorte" value="publique" checked> {{ _("Public (to deposit)") }}</label>
+      <label><input type="radio" name="sorte" value="complete"> {{ _("Complete (private: abstracts and raw responses included)") }}</label>
+    </fieldset>
+    <button type="submit">{{ _("Write the archive") }}</button>
+  </form>
+  {% if archives %}
+  <h3>{{ _("Archives written") }}</h3>
+  <ul>
+    {% for name in archives %}<li><a href="/rapports/archives/{{ name }}">{{ name }}</a></li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

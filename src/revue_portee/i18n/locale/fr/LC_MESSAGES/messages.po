@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 14:35-0400\n"
+"POT-Creation-Date: 2026-10-08 14:39-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -328,9 +328,19 @@ msgstr "Appliquer les seuils aux probabilités étalonnées"
 msgid "Archive exported ({kind}): {file}"
 msgstr "Archive exportée ({kind}) : {file}"
 
+msgid "Archive of the project"
+msgstr "Archive du projet"
+
+#, python-format
+msgid "Archive written: %(name)s."
+msgstr "Archive écrite : %(name)s."
+
 #, python-brace-format
 msgid "Archive written: {path} ({files} files, SHA-256 {digest})"
 msgstr "Archive écrite : {path} ({files} fichiers, SHA-256 {digest})"
+
+msgid "Archives written"
+msgstr "Archives écrites"
 
 msgid ""
 "Artificial intelligence (AI) is used under human supervision, following the RAISE "
@@ -499,6 +509,9 @@ msgstr "Choisissez un fichier RIS."
 msgid "Choose a decision."
 msgstr "Choisissez une décision."
 
+msgid "Choose the kind of archive."
+msgstr "Choisissez le type d'archive."
+
 msgid "Cite at least one criterion to exclude a reference."
 msgstr "Citez au moins un critère pour exclure une référence."
 
@@ -539,6 +552,9 @@ msgstr "Comparer toutes les références"
 
 msgid "Compare version"
 msgstr "Comparer la version"
+
+msgid "Complete (private: abstracts and raw responses included)"
+msgstr "Complète (privée : résumés et réponses brutes compris)"
 
 msgid ""
 "Complete archive: also the database, the raw responses and the imported files (abstracts "
@@ -631,6 +647,9 @@ msgstr ""
 
 msgid "Criteria changes"
 msgstr "Changements de critères"
+
+msgid "Criteria changes reassessed"
+msgstr "Changements de critères réévalués"
 
 msgid "Criteria concerned (required to exclude)"
 msgstr "Critères en cause (obligatoires pour exclure)"
@@ -867,6 +886,9 @@ msgstr "Doublons retirés"
 msgid "Duplicates"
 msgstr "Doublons"
 
+msgid "Duplicates removed"
+msgstr "Doublons retirés"
+
 msgid "Duplicates?"
 msgstr "Doublons ?"
 
@@ -906,6 +928,9 @@ msgstr "anglais"
 
 msgid "English, Markdown"
 msgstr "Anglais, Markdown"
+
+msgid "English, SVG"
+msgstr "Anglais, SVG"
 
 msgid "English, Word (DOCX)"
 msgstr "Anglais, Word (DOCX)"
@@ -1061,6 +1086,12 @@ msgstr "Ajuster l'étalonnage sur ce tour"
 msgid "Fix the thresholds"
 msgstr "Fixer les seuils"
 
+msgid "Flow diagram (PRISMA 2020, adapted for scoping reviews)"
+msgstr "Diagramme de flux (PRISMA 2020, adapté aux revues de portée)"
+
+msgid "Flow diagram of the screening, in French; its numbers are in the table above."
+msgstr "Diagramme de flux du tri, en français ; ses nombres sont dans le tableau ci-dessus."
+
 #, python-brace-format
 msgid "Flow diagram written: {path}"
 msgstr "Diagramme de flux écrit : {path}"
@@ -1104,6 +1135,9 @@ msgstr "Un bloc peut mêler des termes français et anglais."
 
 msgid "French, Markdown"
 msgstr "Français, Markdown"
+
+msgid "French, SVG"
+msgstr "Français, SVG"
 
 msgid "French, Word (DOCX)"
 msgstr "Français, Word (DOCX)"
@@ -1266,6 +1300,9 @@ msgstr "Justification : {text}"
 msgid "Keep them apart"
 msgstr "Les garder séparées"
 
+msgid "Kept for the full text"
+msgstr "Retenues pour le texte intégral"
+
 msgid "Key articles"
 msgstr "Articles clés"
 
@@ -1300,6 +1337,9 @@ msgstr ""
 
 msgid "Kind"
 msgstr "Nature"
+
+msgid "Kind of archive"
+msgstr "Type d'archive"
 
 msgid "Label"
 msgstr "Libellé"
@@ -1400,6 +1440,9 @@ msgstr "Cadre méthodologique"
 
 msgid "Methods"
 msgstr "Méthode"
+
+msgid "Methods section (draft)"
+msgstr "Section méthode (ébauche)"
 
 #, python-brace-format
 msgid "Methods section written: {path}"
@@ -1565,6 +1608,9 @@ msgid "Number of results in {database}: {count}"
 msgstr "Nombre de résultats dans {database} : {count}"
 
 msgid "Numbers for the flow diagram"
+msgstr "Nombres du diagramme de flux"
+
+msgid "Numbers of the flow diagram"
 msgstr "Nombres du diagramme de flux"
 
 msgid "OSF field"
@@ -1815,6 +1861,10 @@ msgstr "Fournisseur et modèle"
 msgid "Provider and model requested"
 msgstr "Fournisseur et modèle demandé"
 
+#, python-format
+msgid "Provisional diagram: %(items)s."
+msgstr "Diagramme provisoire : %(items)s."
+
 #, python-brace-format
 msgid "Provisional diagram: {items}."
 msgstr "Diagramme provisoire : {items}."
@@ -1837,6 +1887,9 @@ msgid ""
 msgstr ""
 "PubMed annonce {count} notices, mais en donne au plus 10 000 par requête : divisez la recherche "
 "(par exemple par années de publication) avant de collecter."
+
+msgid "Public (to deposit)"
+msgstr "Publique (à déposer)"
 
 msgid "Qualification of criteria changes (broadening, narrowing, clarification)"
 msgstr "Qualification des changements de critères (élargissement, restriction, clarification)"
@@ -1991,6 +2044,12 @@ msgstr ""
 "et OpenAlex), ou importées de fichiers RIS exportés d'autres bases. Chaque référence conserve sa "
 "source, sa requête, son fichier et sa date d'origine."
 
+msgid "References excluded"
+msgstr "Références exclues"
+
+msgid "References identified"
+msgstr "Références repérées"
+
 msgid "References in the sample"
 msgstr "Références dans l'échantillon"
 
@@ -2005,6 +2064,9 @@ msgstr ""
 "Références réévaluées : %(count)s (graine %(seed)s%(sampled)s). L'IA les trie de nouveau avec la "
 "nouvelle version ; vous vérifiez celles dont la décision changerait. Les anciennes décisions sont"
 " conservées."
+
+msgid "References screened"
+msgstr "Références triées"
 
 #, python-brace-format
 msgid ""
@@ -2104,6 +2166,9 @@ msgstr "Retiré : %(code)s"
 #, python-brace-format
 msgid "Report written: {path}"
 msgstr "Rapport écrit : {path}"
+
+msgid "Reports"
+msgstr "Rapports"
 
 msgid "Results"
 msgstr "Résultats"
@@ -2554,6 +2619,13 @@ msgstr "Le fichier {path} doit contenir les colonnes title, abstract et label_in
 msgid "The first year comes after the last year."
 msgstr "La première année vient après la dernière."
 
+msgid ""
+"The flow diagram, the methods section and the archive are generated from the project data every "
+"time: no number is typed in by hand."
+msgstr ""
+"Le diagramme de flux, la section méthode et l'archive sont produits chaque fois à partir des "
+"données du projet : aucun nombre n'est saisi à la main."
+
 #, python-brace-format
 msgid "The folder {folder} already exists and is not empty."
 msgstr "Le dossier {folder} existe déjà et n'est pas vide."
@@ -2630,6 +2702,15 @@ msgid "The provider “{provider}” returned inconsistent results for the task 
 msgstr ""
 "Le fournisseur « {provider} » a renvoyé des résultats incohérents pour la tâche « {task} » : "
 "{mismatch}."
+
+msgid ""
+"The public archive can be deposited with the review (OSF): readable data, diagram, methods "
+"section; every number can be checked without the tool. It holds no abstract nor raw response. The"
+" complete archive also holds the database and the raw responses: keep it private."
+msgstr ""
+"L'archive publique peut être déposée avec la revue (OSF) : données lisibles, diagramme, section "
+"méthode ; chaque nombre se vérifie sans l'outil. Elle ne contient ni résumé ni réponse brute. "
+"L'archive complète contient aussi la base de données et les réponses brutes : gardez-la privée."
 
 #, python-brace-format
 msgid ""
@@ -2971,6 +3052,15 @@ msgstr "Format de projet non pris en charge : {version}."
 msgid "Use of artificial intelligence"
 msgstr "Usage de l'intelligence artificielle"
 
+msgid ""
+"Use of the AI in title and abstract screening, following RAISE and the CEE guidance: models and "
+"exact versions, pilot and thresholds, disagreements, reassessments, costs. What only the team can"
+" write is left to complete."
+msgstr ""
+"Usage de l'IA au tri des titres et résumés, selon RAISE et le guide de la CEE : modèles et "
+"versions exactes, essai pilote et seuils, désaccords, réévaluations, coûts. Ce que seule l'équipe"
+" peut écrire reste à compléter."
+
 msgid "Validation"
 msgstr "Validation"
 
@@ -3015,6 +3105,9 @@ msgstr "Volume (numéro)"
 
 msgid "Wording"
 msgstr "Libellé"
+
+msgid "Write the archive"
+msgstr "Écrire l'archive"
 
 msgid "Write the archive of the project (public by default) in the exports folder."
 msgstr "Écrire l'archive du projet (publique par défaut) dans le dossier des exports."

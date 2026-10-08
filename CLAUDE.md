@@ -131,6 +131,9 @@ uv run revue-portee nouveau ma-revue --titre "…" --reviseur "…"   # crée ma
 uv run revue-portee serve ma-revue   # interface web sur http://127.0.0.1:8000/
 uv run revue-portee verifier-journal ma-revue   # vérifie la chaîne d'empreintes (lecture seule)
 uv run revue-portee protocole ma-revue --langue fr   # écrit protocole-fr.md et .docx dans exports/
+uv run revue-portee diagramme ma-revue   # diagramme de flux du tri (SVG, fr et en) dans exports/
+uv run revue-portee methode ma-revue     # ébauche de section méthode sur l'IA au tri (md et docx, fr et en)
+uv run revue-portee archive ma-revue [--complete]   # archive publique (ou complète, privée) dans exports/
 ```
 
 Avant de proposer une demande de fusion : `ruff check`, `ruff format --check`, `mypy` et `pytest` (seuil de couverture compris) doivent passer. La CI GitHub (`.github/workflows/ci.yml`) les exécute sous Python 3.12 et 3.13.

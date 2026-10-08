@@ -241,7 +241,9 @@ class _FormAudit(HTMLParser):
             self.wrapped_depth -= 1
 
 
-@pytest.mark.parametrize("path", ["/cadrage", "/criteres", "/journal", "/criteres/brouillon/P1"])
+@pytest.mark.parametrize(
+    "path", ["/cadrage", "/criteres", "/journal", "/criteres/brouillon/P1", "/rapports"]
+)
 def test_pages_are_usable_with_the_keyboard(client: TestClient, path: str) -> None:
     post(client, "/criteres/brouillon/ajouter", element="population", nature="inclusion", texte="A")
     audit = _FormAudit()
