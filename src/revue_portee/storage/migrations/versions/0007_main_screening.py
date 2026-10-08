@@ -89,9 +89,22 @@ def upgrade() -> None:
         sa.Column("reviewer_id", sa.String(26), sa.ForeignKey("reviewer.id"), nullable=False),
         _journal(),
     )
-    # Next reference to screen among tens of thousands (ENF-PER-01).
+    # Next reference to screen among tens of thousands (ENF-PER-01): whether a reference
+    # has a human decision is read from the index alone, and the references are taken in
+    # the order of the AI's probability by walking an index.
     op.create_index(
-        "ix_decision_round_reference", "decision", ["round_id", "reviewer_kind", "reference_id"]
+        "ix_decision_reference_kind",
+        "decision",
+        ["reference_id", "reviewer_kind", "context", "round_id"],
+    )
+    op.create_index(
+        "ix_decision_round_kind",
+        "decision",
+        ["round_id", "reviewer_kind", "context", "reference_id"],
+    )
+    op.execute(
+        "CREATE INDEX ix_decision_priority ON decision "
+        "(round_id, reviewer_kind, coalesce(confidence_calibrated, confidence_raw))"
     )
     op.create_index("ix_ai_call_batch", "ai_call", ["batch_id", "item_id"])
     for table in _APPEND_ONLY:

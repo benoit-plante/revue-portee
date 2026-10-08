@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Reconciliation") }}{% endblock %}
+{% block content %}
+{% set values = value_labels() %}
+<p><a href="/tri">{{ _("Screening") }}</a></p>
+<h1>{{ _("Reconcile the disagreements") }}</h1>
+<p class="small">{{ _("Disagreements left: %(count)s.", count=left) }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if ref %}
+{% include "_tri_notice.html" %}
+<div class="two-columns">
+  <section aria-labelledby="vous-titre">
+    <h2 id="vous-titre">{{ _("Your decision") }}</h2>
+    <p><strong>{{ values[human.value] }}</strong>{% if human.criteria_cited %} ({{ human.criteria_cited | join(", ") }}){% endif %}</p>
+    {% if human.rationale %}<p>{{ human.rationale }}</p>{% endif %}
+  </section>
+  <section aria-labelledby="ia-titre">
+    <h2 id="ia-titre">{{ _("Decision of the AI") }}</h2>
+    {% include "_tri_ai_decision.html" %}
+  </section>
+</div>
+<h2>{{ _("Final decision") }}</h2>
+{% with action = "/tri/reconciliation", reference_id = ref.id, checked = human.criteria_cited, criteria = criteria %}{% include "_tri_form.html" %}{% endwith %}
+{% else %}
+<p>{{ _("No disagreement to reconcile.") }}</p>
+{% endif %}
+{% endblock %}

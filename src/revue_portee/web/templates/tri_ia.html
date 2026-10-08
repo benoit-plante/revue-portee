@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("AI screening") }}{% endblock %}
+{% block content %}
+<p><a href="{{ back }}">{{ _("Back") }}</a></p>
+<h1>{{ _("Estimated cost before the batch") }}</h1>
+<dl class="meta">
+  <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+  <dt>{{ _("References") }}</dt><dd>{{ preview.items }}</dd>
+  <dt>{{ _("Tokens (estimate)") }}</dt><dd>{{ _("%(input)s in, %(output)s out", input=preview.estimate.input_tokens, output=preview.estimate.output_tokens) }}</dd>
+  <dt>{{ _("Estimated cost (batch price)") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+</dl>
+<p class="small">{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model, at the price of the asynchronous batches. No batch is sent that would pass its ceiling or the budget of the project; what is screened stays recorded.", date=preview.prices_as_of.isoformat()) }}</p>
+<form method="post" action="/tri/ia/{{ round_id }}/lancer" class="inline-form">
+  {{ csrf() }}
+  <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+  <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+  <button type="submit">{{ _("Start the AI screening (confirm the cost)") }}</button>
+  <a href="{{ back }}">{{ _("Cancel") }}</a>
+</form>
+{% endblock %}

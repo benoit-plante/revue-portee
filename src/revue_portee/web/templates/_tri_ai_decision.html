@@ -1,0 +1,7 @@
+{#- The AI's decision, its probability, rationale and assessment by criterion. -#}
+{% set statuses = assessment_labels() %}
+<p><strong>{{ values[a.value] }}</strong> — {{ _("probability of inclusion: %(p)s", p=percent(a.confidence_calibrated if a.confidence_calibrated is not none else a.confidence_raw)) }}</p>
+<p>{{ a.rationale }}</p>
+<ul class="small">
+{% for item in a.assessments %}<li>{{ item.code }} : {{ statuses[item.status] }}{% if item.evidence_quote %} — «&nbsp;{{ item.evidence_quote }}&nbsp;»{% if item.quote_found == false %} ({{ _("not found in the reference") }}){% endif %}{% endif %}</li>{% endfor %}
+</ul>

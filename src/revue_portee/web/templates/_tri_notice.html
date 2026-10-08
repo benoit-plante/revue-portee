@@ -1,0 +1,5 @@
+<article class="pair" aria-labelledby="notice-titre">
+  <h3 id="notice-titre">{{ ref.title or _("(no title)") }}</h3>
+  <p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %}{% if ref.authors %} — {{ ref.authors[:3] | join("; ") }}{% if ref.authors | length > 3 %} {{ _("et al.") }}{% endif %}{% endif %}</p>
+  <p>{{ ref.abstract or _("(no abstract)") }}</p>
+</article>

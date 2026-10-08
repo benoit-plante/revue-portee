@@ -1,0 +1,19 @@
+{#- Decision form, entirely usable with the keyboard (ENF-PER-02). Variables: action,
+    reference_id, criteria (version), values. -#}
+<form method="post" action="{{ action }}" id="tri-form">
+  {{ csrf() }}
+  <input type="hidden" name="reference" value="{{ reference_id }}">
+  <fieldset>
+    <legend>{{ _("Criteria concerned (required to exclude)") }}</legend>
+    {% for c in criteria.criteria %}
+    <label class="inline"><input type="checkbox" name="criteres" value="{{ c.code }}"{% if c.code in checked %} checked{% endif %}>{% if loop.index < 10 %} <kbd>{{ loop.index }}</kbd>{% endif %} {{ c.code }} — {{ c.text }}</label>
+    {% endfor %}
+  </fieldset>
+  <label for="justification">{{ _("Note (optional)") }}</label>
+  <textarea id="justification" name="justification" rows="2"></textarea>
+  <button type="submit" name="valeur" value="include" aria-keyshortcuts="i">{{ values["include"] }} <kbd>i</kbd></button>
+  <button type="submit" name="valeur" value="uncertain" aria-keyshortcuts="d">{{ values["uncertain"] }} <kbd>d</kbd></button>
+  <button type="submit" name="valeur" value="exclude" aria-keyshortcuts="e">{{ values["exclude"] }} <kbd>e</kbd></button>
+</form>
+<p class="small">{% if skippable %}{{ _("Keyboard: i include, d uncertain, e exclude, 1 to 9 tick a criterion, p skip for now. The keys do nothing while you type a note.") }}{% else %}{{ _("Keyboard: i include, d uncertain, e exclude, 1 to 9 tick a criterion. The keys do nothing while you type a note.") }}{% endif %}</p>
+<script src="/statique/tri.js" defer></script>

@@ -33,6 +33,7 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     event,
+    func,
     text,
 )
 from sqlalchemy.pool import ConnectionPoolEntry
@@ -817,10 +818,24 @@ impact_assessment = Table(
 )
 
 Index(
-    "ix_decision_round_reference",
+    "ix_decision_reference_kind",
+    decision.c.reference_id,
+    decision.c.reviewer_kind,
+    decision.c.context,
+    decision.c.round_id,
+)
+Index(
+    "ix_decision_round_kind",
     decision.c.round_id,
     decision.c.reviewer_kind,
+    decision.c.context,
     decision.c.reference_id,
+)
+Index(
+    "ix_decision_priority",
+    decision.c.round_id,
+    decision.c.reviewer_kind,
+    func.coalesce(decision.c.confidence_calibrated, decision.c.confidence_raw),
 )
 Index("ix_ai_call_batch", ai_call.c.batch_id, ai_call.c.item_id)
 

@@ -3,10 +3,16 @@ deterministic AI reviewer."""
 
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from revue_portee.ai.base import TaskInput
 from revue_portee.ai.tasks.screening import ScreenReferenceInput
+from revue_portee.collect import imports
+from revue_portee.domain.criteria import CriterionKind, PccElement
+from revue_portee.protocol import criteria
+from revue_portee.storage.project_folder import ProjectFolder
+from support import TOOL_VERSION, make_clock, new_project
 
 Clock = Callable[[], datetime]
 TITLES = [
@@ -59,3 +65,24 @@ def answer(item: TaskInput) -> dict[str, Any]:
         "rationale": "P1 et C1 évalués.",
         "decisive_criteria": ["P1", "C1"],
     }
+
+
+def make_project(tmp_path: Path) -> tuple[ProjectFolder, Clock]:
+    """A project with criteria P1, C1 (inclusion) and X1 (exclusion) in force and the
+    ten references of ``TITLES``; the caller closes it."""
+    clock = make_clock()
+    folder = new_project(tmp_path, clock)
+    for element, kind, text in (
+        (PccElement.POPULATION, CriterionKind.INCLUSION, "Older adults (65 and over)."),
+        (PccElement.CONCEPT, CriterionKind.INCLUSION, "Housing or living conditions."),
+        (PccElement.OTHER, CriterionKind.EXCLUSION, "Study protocols without results."),
+    ):
+        criteria.add_criterion(
+            folder, pcc_element=element, kind=kind, text=text, now=clock, tool_version=TOOL_VERSION
+        )
+    criteria.activate_draft(folder, rationale="", now=clock, tool_version=TOOL_VERSION)
+    imports.import_ris(
+        folder, "demo.ris", ris(TITLES), database="APA PsycInfo", now=clock,
+        tool_version=TOOL_VERSION,
+    )  # fmt: skip
+    return folder, clock

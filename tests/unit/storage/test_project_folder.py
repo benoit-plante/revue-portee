@@ -127,6 +127,10 @@ def test_unknown_schema_revision_is_backed_up_and_refused(tmp_path: Path) -> Non
     assert list(folder.path.glob(f"{DATABASE_FILE}.sauvegarde-*"))
 
 
+# SQLite cannot reflect the expression index ix_decision_priority (migration 0007): it is
+# left out of the comparison, and its creation is checked by the migration itself.
+@pytest.mark.filterwarnings("ignore:Skipped unsupported reflection of expression-based index")
+@pytest.mark.filterwarnings("ignore:autogenerate skipping metadata-specified expression-based")
 def test_migrated_schema_matches_table_definitions(tmp_path: Path) -> None:
     from alembic.autogenerate import compare_metadata
     from alembic.runtime.migration import MigrationContext

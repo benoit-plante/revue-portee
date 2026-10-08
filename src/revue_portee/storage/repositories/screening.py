@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ColumnElement, Connection, and_, exists, func, select
+from sqlalchemy import ColumnElement, Connection, exists, func, select
 
 from revue_portee.domain.calibration import Calibration
 from revue_portee.domain.impact import Impact, ImpactAssessment
@@ -44,6 +44,7 @@ __all__ = [
     "batch_end",
     "batch_item_ids_recorded",
     "batch_spent",
+    "count_decided",
     "get_ai_batch",
     "get_calibration",
     "get_impact",
@@ -219,6 +220,17 @@ def is_member(connection: Connection, round_id: str, reference_id: str) -> bool:
     )
 
 
+def _human_decided(decided_in: Sequence[str], reference: Any) -> Any:  # noqa: ANN401
+    """Whether ``reference`` has an independent human decision in ``decided_in`` (read
+    from the index ``ix_decision_reference_kind`` alone)."""
+    return exists().where(
+        decision.c.reference_id == reference,
+        decision.c.reviewer_kind == "human",
+        decision.c.context == "independent",
+        decision.c.round_id.in_(decided_in),
+    )
+
+
 def next_to_screen(
     connection: Connection,
     round_id: str,
@@ -228,38 +240,29 @@ def next_to_screen(
     skip: Sequence[str] = (),
 ) -> str | None:
     """The first member of the round with no human decision in any of the rounds
-    ``decided_in`` (in the round's order, or by the AI's probability of inclusion,
-    highest first, with the references the AI has not screened last). One query on
-    indexed columns, whatever the number of references (ENF-PER-01)."""
-    human_decided = exists().where(
-        decision.c.reference_id == round_member.c.reference_id,
-        decision.c.reviewer_kind == "human",
-        decision.c.context == "independent",
-        decision.c.round_id.in_(decided_in),
-    )
+    ``decided_in``: in the round's order, or, with ``priority``, by the AI's probability
+    of inclusion, highest first, then the references the AI has not screened in the
+    round's order. Indexed queries that stop at the first reference found, whatever the
+    number of references (ENF-PER-01)."""
+    if priority:
+        probability = func.coalesce(decision.c.confidence_calibrated, decision.c.confidence_raw)
+        query = select(decision.c.reference_id).where(
+            decision.c.round_id == round_id,
+            decision.c.reviewer_kind == "ai",
+            ~_human_decided(decided_in, decision.c.reference_id),
+        )
+        if skip:
+            query = query.where(decision.c.reference_id.not_in(skip))
+        found = connection.execute(query.order_by(probability.desc()).limit(1)).scalar_one_or_none()
+        if found is not None:
+            return str(found)
     query = select(round_member.c.reference_id).where(
-        round_member.c.round_id == round_id, ~human_decided
+        round_member.c.round_id == round_id,
+        ~_human_decided(decided_in, round_member.c.reference_id),
     )
     if skip:
         query = query.where(round_member.c.reference_id.not_in(skip))
-    if priority:
-        probability = (
-            select(
-                func.max(func.coalesce(decision.c.confidence_calibrated, decision.c.confidence_raw))
-            )
-            .where(
-                and_(
-                    decision.c.round_id == round_id,
-                    decision.c.reviewer_kind == "ai",
-                    decision.c.reference_id == round_member.c.reference_id,
-                )
-            )
-            .scalar_subquery()
-        )
-        query = query.order_by(probability.is_(None), probability.desc(), round_member.c.position)
-    else:
-        query = query.order_by(round_member.c.position)
-    return connection.execute(query.limit(1)).scalar_one_or_none()
+    return connection.execute(query.order_by(round_member.c.position).limit(1)).scalar_one_or_none()
 
 
 # --- Decisions ----------------------------------------------------------------------
@@ -303,6 +306,38 @@ def list_decisions(
         .order_by(journal_entry.c.position)
     ).mappings()
     return [_to_decision(row) for row in rows]
+
+
+def count_decided(connection: Connection, round_id: str, *, decided_in: Sequence[str]) -> int:
+    """Members of the round with an independent human decision in ``decided_in``: the
+    decisions of the round itself (read from an index), and those of the other rounds
+    (pilots, a few references) whose reference is a member not decided in the round."""
+    independent = (decision.c.reviewer_kind == "human", decision.c.context == "independent")
+    own = connection.execute(
+        select(func.count(func.distinct(decision.c.reference_id))).where(
+            decision.c.round_id == round_id, *independent
+        )
+    ).scalar_one()
+    others = [r for r in decided_in if r != round_id]
+    if not others:
+        return int(own)
+    member = (
+        select(round_member.c.position)
+        .where(
+            round_member.c.round_id == round_id,
+            round_member.c.reference_id == decision.c.reference_id,
+        )
+        .exists()
+    )
+    carried = connection.execute(
+        select(func.count(func.distinct(decision.c.reference_id))).where(
+            decision.c.round_id.in_(others),
+            *independent,
+            member,
+            ~_human_decided([round_id], decision.c.reference_id),
+        )
+    ).scalar_one()
+    return int(own) + int(carried)
 
 
 def latest_by_reference(
