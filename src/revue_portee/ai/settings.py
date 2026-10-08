@@ -49,6 +49,9 @@ class SupervisionSettings(BaseModel):
     pilot_sample_size: int = Field(ge=1)
     target_sensitivity: Decimal = Field(gt=0, le=1)
     calibration_method: Literal["isotonic", "platt", "none"]
+    # Thresholds on the probability of inclusion before any pilot (EF-SEL-09).
+    exclude_below: Decimal = Field(default=Decimal("0.10"), ge=0, le=1)
+    include_above: Decimal = Field(default=Decimal("0.60"), ge=0, le=1)
 
 
 class TaskNotAvailableError(LookupError):

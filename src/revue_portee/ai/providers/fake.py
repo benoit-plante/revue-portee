@@ -41,6 +41,7 @@ class FakeProvider:
         confidence: float | None = None,
         supported_tasks: Collection[str] | None = None,
         clock: Callable[[], datetime] = utc_now,
+        cost_per_call: Decimal = Decimal(0),
     ) -> None:
         self._model = model
         self._model_returned = model_returned or model
@@ -48,6 +49,7 @@ class FakeProvider:
         self._confidence = confidence
         self._supported = None if supported_tasks is None else frozenset(supported_tasks)
         self._clock = clock
+        self._cost = cost_per_call
         self.calls: list[AICallRecord] = []
 
     @property
@@ -62,7 +64,7 @@ class FakeProvider:
     ) -> CostEstimate:
         self._check(task)
         tokens = sum(_count_tokens(_render(task, item)) for item in inputs)
-        return CostEstimate(input_tokens=tokens, output_tokens=0, amount=Decimal(0))
+        return CostEstimate(input_tokens=tokens, output_tokens=0, amount=self._cost * len(inputs))
 
     def run[InputT: TaskInput, OutputT: TaskOutput](
         self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
@@ -92,7 +94,7 @@ class FakeProvider:
                 params={"temperature": 0},
                 input_tokens=_count_tokens(prompt),
                 output_tokens=_count_tokens(output.model_dump_json()),
-                cost_estimate=Decimal(0),
+                cost_estimate=self._cost,
                 latency_ms=0,
                 created_at=self._clock(),
             )
@@ -102,6 +104,13 @@ class FakeProvider:
                 output=output,
                 raw_confidence=self._confidence,
                 call=call,
+                # Shaped like a Messages API response, so that a decision can be rebuilt
+                # from it without calling the model again (ENF-REP-02).
+                raw_response={
+                    "id": call.provider_request_id,
+                    "model": self._model_returned,
+                    "content": [{"type": "text", "text": output.model_dump_json()}],
+                },
             )
 
     def _check(self, task: TaskSpec[Any, Any]) -> None:

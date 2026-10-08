@@ -47,6 +47,8 @@ __all__ = [
     "call_summary",
     "default_provider_factory",
     "preview",
+    "record_call",
+    "record_unusable",
     "run_and_record",
 ]
 
@@ -120,7 +122,7 @@ def _call_summary(call: AICallRecord) -> dict[str, JsonValue]:
     }
 
 
-def _record_call(
+def record_call(
     folder: ProjectFolder,
     *,
     task: str,
@@ -255,7 +257,7 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
         try:
             (result,) = run_task(provider, task, [item])
         except ProviderCallError as error:
-            failed = _record_call(
+            failed = record_call(
                 folder,
                 task=task.name,
                 item_id=error.item_id,
@@ -265,7 +267,7 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
                 tool_version=tool_version,
             )
             raise AITaskError(str(error), call_id=failed.id) from error
-        stored = _record_call(
+        stored = record_call(
             folder,
             task=task.name,
             item_id=result.item_id,
@@ -278,7 +280,7 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
             with folder.write() as connection:
                 on_result(connection, stored, result)
         except Exception as error:
-            _record_unusable(folder, stored, error, now=now, tool_version=tool_version)
+            record_unusable(folder, stored, error, now=now, tool_version=tool_version)
             raise AITaskError(
                 _("The answer of the model could not be used; the call is recorded."),
                 call_id=stored.id,
@@ -287,7 +289,7 @@ def run_and_record[InputT: TaskInput, OutputT: TaskOutput](
     return stored_calls
 
 
-def _record_unusable(
+def record_unusable(
     folder: ProjectFolder, stored: StoredCall, error: Exception, *, now: Clock, tool_version: str
 ) -> None:
     with folder.write() as connection:

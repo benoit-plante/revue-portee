@@ -1,0 +1,12 @@
+# Fictional criteria of the benchmark tests (SYNERGY datasets get their own file).
+review_question: "What is known about the housing of older adults?"
+language: en
+criteria:
+  - code: P1
+    pcc_element: population
+    kind: inclusion
+    text: Older adults (65 and over).
+  - code: C1
+    pcc_element: concept
+    kind: inclusion
+    text: Housing or living conditions.

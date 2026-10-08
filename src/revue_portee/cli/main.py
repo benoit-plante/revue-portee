@@ -148,6 +148,109 @@ def export_protocol(
         folder.close()
 
 
+@app.command(
+    "banc-synergy",
+    help=_("Measure the AI screener on a labelled SYNERGY dataset (calls the model)."),
+)
+def synergy_benchmark(
+    donnees: Annotated[Path, typer.Argument(help=_("CSV file: title, abstract, label_included."))],
+    criteres: Annotated[Path, typer.Option("--criteres", help=_("YAML file of the criteria."))],
+    plafond: Annotated[str, typer.Option("--plafond", help=_("Ceiling of the run in US dollars."))],
+    nom: Annotated[str, typer.Option("--nom", help=_("Name of the dataset."))] = "",
+    echantillon: Annotated[
+        int | None,
+        typer.Option(
+            "--echantillon",
+            help=_("Records to screen: every inclusion, the rest drawn among exclusions."),
+        ),
+    ] = None,
+    graine: Annotated[int, typer.Option("--graine", help=_("Seed of the draw."))] = 2026,
+    sortie: Annotated[
+        Path, typer.Option("--sortie", help=_("Folder of the Markdown report."))
+    ] = Path("docs/resultats"),
+    brut: Annotated[
+        Path | None,
+        typer.Option(
+            "--brut", help=_("JSON Lines file of the raw answers (outside the repository).")
+        ),
+    ] = None,
+    oui: Annotated[bool, typer.Option("--oui", help=_("Do not ask to confirm the cost."))] = False,
+) -> None:
+    from decimal import Decimal, InvalidOperation
+
+    from revue_portee.ai.costs import UnknownPriceError
+    from revue_portee.ai.providers import UnknownProviderError
+    from revue_portee.ai.settings import TaskNotAvailableError
+    from revue_portee.ai.tasks.screening import SCREEN_REFERENCE
+    from revue_portee.config.secrets import MissingSecretError
+    from revue_portee.domain.screening import Thresholds
+    from revue_portee.protocol import ai_assist
+    from revue_portee.resources import default_ai_settings
+    from revue_portee.screening import benchmark
+
+    try:
+        ceiling = Decimal(plafond.replace(",", "."))
+    except InvalidOperation as error:
+        raise _fail(_("The ceiling must be a positive amount.")) from error
+    if not ceiling.is_finite() or ceiling <= 0:
+        raise _fail(_("The ceiling must be a positive amount."))
+    name = nom or donnees.stem
+    try:
+        records = benchmark.read_dataset(donnees)
+        chosen_criteria = benchmark.read_criteria(criteres)
+        settings = default_ai_settings()
+        config = settings.enabled_task(SCREEN_REFERENCE.name)
+        provider = ai_assist.default_provider_factory(config)
+        chosen = benchmark.select_records(records, echantillon, graine)
+        cost = benchmark.estimate(provider, benchmark.to_inputs(chosen, chosen_criteria))
+    except (
+        benchmark.BenchmarkError,
+        TaskNotAvailableError,
+        UnknownPriceError,
+        UnknownProviderError,
+        MissingSecretError,
+    ) as error:
+        raise _fail(str(error)) from error
+    typer.echo(
+        _(
+            "{count} records ({included} included) with {provider} — {model}: at most {amount} USD."
+        ).format(
+            count=len(chosen),
+            included=sum(r.included for r in chosen),
+            provider=provider.name,
+            model=config.model,
+            amount=cost.amount,
+        )
+    )
+    if not oui and not typer.confirm(_("Run the benchmark?")):
+        raise typer.Exit(code=1)
+    supervision = settings.supervision
+    thresholds = Thresholds(
+        exclude_below=float(supervision.exclude_below),
+        include_above=float(supervision.include_above),
+    )
+    raw_path = brut or donnees.with_suffix(".brut.jsonl")
+    with raw_path.open("w", encoding="utf-8") as raw_output:
+        result = benchmark.run_benchmark(
+            name,
+            chosen,
+            chosen_criteria,
+            config=config,
+            provider=provider,
+            thresholds=thresholds,
+            ceiling=ceiling,
+            raw_output=raw_output,
+            now=utc_now,
+            seed=graine,
+            sampled=len(chosen) < len(records),
+        )
+    sortie.mkdir(parents=True, exist_ok=True)
+    report = sortie / f"banc-synergy-{name}.md"
+    report.write_text(benchmark.report_markdown(result, chosen), encoding="utf-8")
+    typer.echo(_("Report written: {path}").format(path=report))
+    typer.echo(_("Raw answers: {path}").format(path=raw_path))
+
+
 @app.command("serve", help=_("Open the web interface of a project on 127.0.0.1."))
 def serve(
     dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],

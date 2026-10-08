@@ -1,0 +1,5 @@
+<div id="pilote-etat"{% if running %} hx-get="/pilote/{{ round_id }}/etat" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  {% if running %}<p class="message info" role="status">{{ _("AI screening running in the background: the page refreshes when it ends.") }} <a href="/pilote/{{ round_id }}#ia">{{ _("Refresh") }}</a></p>{% endif %}
+  {% if job_error %}<div class="message error" role="alert">{{ _("The last AI batch stopped: %(error)s", error=job_error) }}</div>{% endif %}
+  {% if last_batch %}<p class="small">{{ _("Last batch: references screened: %(screened)s, failed: %(failed)s, cost: %(spent)s.", screened=last_batch.screened, failed=last_batch.failed | length, spent=money(last_batch.spent, "USD")) }}{% if last_batch.stopped %} {{ _("Stopped: %(reason)s.", reason=stopped_labels()[last_batch.stopped]) }}{% endif %}</p>{% endif %}
+</div>

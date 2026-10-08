@@ -162,7 +162,8 @@ def test_ai_section_comes_from_the_project_configuration() -> None:
         f"| Suggestions pour le cadrage (reformulations, éléments PCC) | anthropic — {model} |"
         in text
     )
-    assert "| Second réviseur au tri des titres et résumés | à déterminer | prévue |" in text
+    screener = settings.enabled_task("screen_reference").model
+    assert f"| Second réviseur au tri des titres et résumés | anthropic — {screener} |" in text
     assert f"échantillon aléatoire de {settings.supervision.pilot_sample_size} références" in text
     target = str(settings.supervision.target_sensitivity)
     assert f"au moins {target.replace('.', ',')}." in text

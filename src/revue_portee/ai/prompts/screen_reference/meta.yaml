@@ -1,0 +1,7 @@
+id: screen_reference
+version: "1"
+task: screen_reference
+changelog:
+  - version: "1"
+    date: "2026-10-08"
+    change: First version (tranche 1.6), one call per reference.

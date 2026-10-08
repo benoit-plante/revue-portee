@@ -61,6 +61,16 @@ class EntryType:
     ENRICH_COMPLETED = "enrich.completed"
     DEDUP_COMPLETED = "dedup.completed"
     DEDUP_PAIR_DECIDED = "dedup.pair_decided"
+    PILOT_STARTED = "pilot.started"
+    SCREENING_HUMAN_DECIDED = "screening.human_decided"
+    SCREENING_AI_DECIDED = "screening.ai_decided"
+    SCREENING_AI_FAILED = "screening.ai_failed"
+    SCREENING_AI_BATCH_ENDED = "screening.ai_batch_ended"
+    REVIEWER_AI_RECORDED = "reviewer.ai_recorded"
+    CALIBRATION_FITTED = "calibration.fitted"
+    THRESHOLDS_SET = "thresholds.set"
+    BUDGET_SET = "budget.set"
+    BUDGET_REACHED = "budget.reached"
 
 
 class JournalEntry(BaseModel):
