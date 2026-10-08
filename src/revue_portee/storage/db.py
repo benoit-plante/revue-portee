@@ -40,6 +40,8 @@ from sqlalchemy.pool import ConnectionPoolEntry
 __all__ = [
     "DecimalText",
     "UTCDateTime",
+    "ai_batch",
+    "ai_batch_end",
     "ai_call",
     "ai_config",
     "ai_suggestion",
@@ -59,6 +61,7 @@ __all__ = [
     "duplicate_pair",
     "enrichment",
     "framing_version",
+    "impact_assessment",
     "import_file",
     "journal_entry",
     "key_article_set_version",
@@ -767,6 +770,59 @@ budget_setting = Table(
     Column("created_at", UTCDateTime, nullable=False),
     _journal_column(),
 )
+
+
+ai_batch = Table(
+    "ai_batch",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("round_id", String(26), ForeignKey("screening_round.id"), nullable=False),
+    Column("task", String(64), nullable=False),
+    Column("criteria_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("provider", String(32), nullable=False),
+    Column("provider_batch_id", Text, nullable=False),
+    Column("item_ids_json", Text, nullable=False),
+    Column("estimate", DecimalText, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+ai_batch_end = Table(
+    "ai_batch_end",
+    metadata,
+    Column("batch_id", String(26), ForeignKey("ai_batch.id"), primary_key=True),
+    Column("screened", Integer, nullable=False),
+    Column("failed_json", Text, nullable=False),
+    Column("spent", DecimalText, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+)
+
+impact_assessment = Table(
+    "impact_assessment",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("from_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("to_version_id", String(26), ForeignKey("criteria_version.id"), nullable=False),
+    Column("main_round_id", String(26), ForeignKey("screening_round.id"), nullable=False),
+    Column("changes_json", Text, nullable=False),
+    Column("touched_count", Integer, nullable=False),
+    Column("reassessment_round_id", String(26), ForeignKey("screening_round.id"), nullable=True),
+    Column("seed", Integer, nullable=False),
+    Column("sampled", Boolean, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+Index(
+    "ix_decision_round_reference",
+    decision.c.round_id,
+    decision.c.reviewer_kind,
+    decision.c.reference_id,
+)
+Index("ix_ai_call_batch", ai_call.c.batch_id, ai_call.c.item_id)
 
 
 def _on_connect(dbapi_connection: object, _record: ConnectionPoolEntry) -> None:

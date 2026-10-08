@@ -9,6 +9,9 @@ source: >-
   prices apply to prompts up to 100K tokens.
 currency: USD
 per_tokens: 1000000
+# Message Batches API: every token at half price (asynchronous, results within 24 h).
+batch_factor:
+  anthropic: "0.5"
 providers:
   anthropic:
     claude-fable-5-1:

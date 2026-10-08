@@ -1,27 +1,37 @@
-"""Pilot rounds, screening decisions, calibrations, thresholds and budget (tranche 1.6)."""
+"""Screening rounds, decisions, calibrations, thresholds, budget (tranche 1.6), AI batches
+and impact assessments (tranche 1.7)."""
 
 import json
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ColumnElement, Connection, select
+from sqlalchemy import ColumnElement, Connection, and_, exists, func, select
 
 from revue_portee.domain.calibration import Calibration
+from revue_portee.domain.impact import Impact, ImpactAssessment
 from revue_portee.domain.screening import (
+    AIBatch,
+    AIBatchEnd,
     BudgetSetting,
     CalibrationRecord,
     CriterionAssessment,
     Decision,
     PilotRound,
+    RoundKind,
+    ScreeningRound,
     Stage,
     Thresholds,
     ThresholdSetting,
 )
 from revue_portee.storage.db import (
+    ai_batch,
+    ai_batch_end,
     ai_call,
     budget_setting,
     calibration_model,
     decision,
+    impact_assessment,
     journal_entry,
     round_member,
     screening_round,
@@ -29,18 +39,38 @@ from revue_portee.storage.db import (
 )
 
 __all__ = [
+    "append_members",
+    "batch_attempts",
+    "batch_end",
+    "batch_item_ids_recorded",
+    "batch_spent",
+    "get_ai_batch",
     "get_calibration",
+    "get_impact",
     "get_round",
+    "get_screening_round",
+    "insert_ai_batch",
+    "insert_batch_end",
     "insert_budget",
     "insert_calibration",
     "insert_decision",
+    "insert_impact",
     "insert_round",
+    "insert_screening_round",
     "insert_threshold",
+    "is_member",
     "latest_budget",
+    "latest_by_reference",
     "latest_calibration",
     "latest_threshold",
+    "list_ai_batches",
     "list_decisions",
+    "list_impacts",
     "list_rounds",
+    "list_screening_rounds",
+    "member_count",
+    "member_ids",
+    "next_to_screen",
     "total_spent",
 ]
 
@@ -94,11 +124,142 @@ def list_rounds(connection: Connection, stage: Stage) -> list[PilotRound]:
 
 def get_round(connection: Connection, round_id: str) -> PilotRound | None:
     row = (
-        connection.execute(select(screening_round).where(screening_round.c.id == round_id))
+        connection.execute(
+            select(screening_round).where(
+                screening_round.c.id == round_id, screening_round.c.kind == PILOT
+            )
+        )
         .mappings()
         .one_or_none()
     )
     return None if row is None else _to_round(connection, row)
+
+
+def insert_screening_round(
+    connection: Connection,
+    value: ScreeningRound,
+    members: Sequence[str],
+    *,
+    journal_entry_id: str,
+) -> None:
+    connection.execute(
+        screening_round.insert().values(
+            **value.model_dump(mode="python"), journal_entry_id=journal_entry_id
+        )
+    )
+    append_members(connection, value.id, members)
+
+
+def append_members(connection: Connection, round_id: str, reference_ids: Sequence[str]) -> None:
+    """Add references at the end of a round, in the order given."""
+    if not reference_ids:
+        return
+    last = connection.execute(
+        select(func.coalesce(func.max(round_member.c.position), 0)).where(
+            round_member.c.round_id == round_id
+        )
+    ).scalar_one()
+    connection.execute(
+        round_member.insert(),
+        [
+            {"round_id": round_id, "position": last + offset, "reference_id": reference_id}
+            for offset, reference_id in enumerate(reference_ids, start=1)
+        ],
+    )
+
+
+def get_screening_round(connection: Connection, round_id: str) -> ScreeningRound | None:
+    row = (
+        connection.execute(select(screening_round).where(screening_round.c.id == round_id))
+        .mappings()
+        .one_or_none()
+    )
+    return None if row is None else ScreeningRound.model_validate(_plain(row))
+
+
+def list_screening_rounds(
+    connection: Connection, stage: Stage, kind: RoundKind
+) -> list[ScreeningRound]:
+    rows = connection.execute(
+        select(screening_round)
+        .where(screening_round.c.stage == stage.value, screening_round.c.kind == kind.value)
+        .order_by(screening_round.c.number)
+    ).mappings()
+    return [ScreeningRound.model_validate(_plain(row)) for row in rows]
+
+
+def member_ids(connection: Connection, round_id: str) -> list[str]:
+    return list(
+        connection.execute(
+            select(round_member.c.reference_id)
+            .where(round_member.c.round_id == round_id)
+            .order_by(round_member.c.position)
+        ).scalars()
+    )
+
+
+def member_count(connection: Connection, round_id: str) -> int:
+    return int(
+        connection.execute(
+            select(func.count())
+            .select_from(round_member)
+            .where(round_member.c.round_id == round_id)
+        ).scalar_one()
+    )
+
+
+def is_member(connection: Connection, round_id: str, reference_id: str) -> bool:
+    return (
+        connection.execute(
+            select(round_member.c.position).where(
+                round_member.c.round_id == round_id, round_member.c.reference_id == reference_id
+            )
+        ).first()
+        is not None
+    )
+
+
+def next_to_screen(
+    connection: Connection,
+    round_id: str,
+    *,
+    decided_in: Sequence[str],
+    priority: bool = False,
+    skip: Sequence[str] = (),
+) -> str | None:
+    """The first member of the round with no human decision in any of the rounds
+    ``decided_in`` (in the round's order, or by the AI's probability of inclusion,
+    highest first, with the references the AI has not screened last). One query on
+    indexed columns, whatever the number of references (ENF-PER-01)."""
+    human_decided = exists().where(
+        decision.c.reference_id == round_member.c.reference_id,
+        decision.c.reviewer_kind == "human",
+        decision.c.context == "independent",
+        decision.c.round_id.in_(decided_in),
+    )
+    query = select(round_member.c.reference_id).where(
+        round_member.c.round_id == round_id, ~human_decided
+    )
+    if skip:
+        query = query.where(round_member.c.reference_id.not_in(skip))
+    if priority:
+        probability = (
+            select(
+                func.max(func.coalesce(decision.c.confidence_calibrated, decision.c.confidence_raw))
+            )
+            .where(
+                and_(
+                    decision.c.round_id == round_id,
+                    decision.c.reviewer_kind == "ai",
+                    decision.c.reference_id == round_member.c.reference_id,
+                )
+            )
+            .scalar_subquery()
+        )
+        query = query.order_by(probability.is_(None), probability.desc(), round_member.c.position)
+    else:
+        query = query.order_by(round_member.c.position)
+    return connection.execute(query.limit(1)).scalar_one_or_none()
 
 
 # --- Decisions ----------------------------------------------------------------------
@@ -142,6 +303,167 @@ def list_decisions(
         .order_by(journal_entry.c.position)
     ).mappings()
     return [_to_decision(row) for row in rows]
+
+
+def latest_by_reference(
+    connection: Connection,
+    round_ids: Sequence[str],
+    *,
+    reviewer_kind: str,
+    contexts: Sequence[str] | None = None,
+) -> dict[str, Decision]:
+    """The latest decision on each reference among the rounds ``round_ids``, in the
+    order of the journal."""
+    conditions: list[ColumnElement[bool]] = [
+        decision.c.round_id.in_(round_ids),
+        decision.c.reviewer_kind == reviewer_kind,
+    ]
+    if contexts is not None:
+        conditions.append(decision.c.context.in_(contexts))
+    rows = connection.execute(
+        select(decision)
+        .join(journal_entry, decision.c.journal_entry_id == journal_entry.c.id)
+        .where(*conditions)
+        .order_by(journal_entry.c.position)
+    ).mappings()
+    latest: dict[str, Decision] = {}
+    for row in rows:
+        found = _to_decision(row)
+        latest[found.reference_id] = found
+    return latest
+
+
+# --- AI batches ---------------------------------------------------------------------
+
+
+def insert_ai_batch(connection: Connection, value: AIBatch, *, journal_entry_id: str) -> None:
+    data = value.model_dump(mode="python", exclude={"item_ids"})
+    connection.execute(
+        ai_batch.insert().values(
+            **data, item_ids_json=_dumps(list(value.item_ids)), journal_entry_id=journal_entry_id
+        )
+    )
+
+
+def _to_batch(row: Any) -> AIBatch:  # noqa: ANN401
+    data = _plain(row)
+    data["item_ids"] = tuple(json.loads(data.pop("item_ids_json")))
+    return AIBatch.model_validate(data)
+
+
+def get_ai_batch(connection: Connection, batch_id: str) -> AIBatch | None:
+    row = connection.execute(select(ai_batch).where(ai_batch.c.id == batch_id)).mappings().first()
+    return None if row is None else _to_batch(row)
+
+
+def list_ai_batches(connection: Connection, round_id: str) -> list[AIBatch]:
+    rows = connection.execute(
+        select(ai_batch).where(ai_batch.c.round_id == round_id).order_by(ai_batch.c.id)
+    ).mappings()
+    return [_to_batch(row) for row in rows]
+
+
+def insert_batch_end(connection: Connection, value: AIBatchEnd, *, journal_entry_id: str) -> None:
+    connection.execute(
+        ai_batch_end.insert().values(
+            batch_id=value.batch_id,
+            screened=value.screened,
+            failed_json=_dumps(list(value.failed)),
+            spent=value.spent,
+            created_at=value.created_at,
+            journal_entry_id=journal_entry_id,
+        )
+    )
+
+
+def batch_end(connection: Connection, batch_id: str) -> AIBatchEnd | None:
+    row = (
+        connection.execute(select(ai_batch_end).where(ai_batch_end.c.batch_id == batch_id))
+        .mappings()
+        .first()
+    )
+    if row is None:
+        return None
+    data = _plain(row)
+    data["failed"] = tuple(json.loads(data.pop("failed_json")))
+    return AIBatchEnd.model_validate(data)
+
+
+def batch_spent(connection: Connection, provider_batch_ids: Sequence[str]) -> Decimal:
+    """Cost of the calls recorded for the provider batches."""
+    costs = connection.execute(
+        select(ai_call.c.cost_estimate).where(ai_call.c.batch_id.in_(provider_batch_ids))
+    ).scalars()
+    return sum((Decimal(cost) for cost in costs), Decimal(0))
+
+
+def batch_attempts(connection: Connection, provider_batch_ids: Sequence[str]) -> dict[str, int]:
+    """Number of calls recorded for each item in the provider batches."""
+    rows = connection.execute(
+        select(ai_call.c.item_id, func.count())
+        .where(ai_call.c.batch_id.in_(provider_batch_ids))
+        .group_by(ai_call.c.item_id)
+    ).all()
+    return {item: int(count) for item, count in rows}
+
+
+def batch_item_ids_recorded(connection: Connection, provider_batch_id: str) -> set[str]:
+    """Items of a provider batch whose call is already recorded (collection resumes)."""
+    return set(
+        connection.execute(
+            select(ai_call.c.item_id).where(ai_call.c.batch_id == provider_batch_id)
+        ).scalars()
+    )
+
+
+# --- Impact assessments -------------------------------------------------------------
+
+
+def insert_impact(
+    connection: Connection, value: ImpactAssessment, *, journal_entry_id: str
+) -> None:
+    connection.execute(
+        impact_assessment.insert().values(
+            id=value.id,
+            from_version_id=value.from_version_id,
+            to_version_id=value.to_version_id,
+            main_round_id=value.main_round_id,
+            changes_json=value.impact.model_dump_json(),
+            touched_count=len(value.impact.touched),
+            reassessment_round_id=value.reassessment_round_id,
+            seed=value.seed,
+            sampled=value.sampled,
+            created_at=value.created_at,
+            reviewer_id=value.reviewer_id,
+            journal_entry_id=journal_entry_id,
+        )
+    )
+
+
+def _to_impact(row: Any) -> ImpactAssessment:  # noqa: ANN401
+    data = _plain(row)
+    data.pop("touched_count")
+    data["impact"] = Impact.model_validate_json(data.pop("changes_json"))
+    return ImpactAssessment.model_validate(data)
+
+
+def get_impact(connection: Connection, impact_id: str) -> ImpactAssessment | None:
+    row = (
+        connection.execute(select(impact_assessment).where(impact_assessment.c.id == impact_id))
+        .mappings()
+        .first()
+    )
+    return None if row is None else _to_impact(row)
+
+
+def list_impacts(connection: Connection, main_round_id: str) -> list[ImpactAssessment]:
+    rows = connection.execute(
+        select(impact_assessment)
+        .join(journal_entry, impact_assessment.c.journal_entry_id == journal_entry.c.id)
+        .where(impact_assessment.c.main_round_id == main_round_id)
+        .order_by(journal_entry.c.position)
+    ).mappings()
+    return [_to_impact(row) for row in rows]
 
 
 # --- Calibration, thresholds, budget ------------------------------------------------

@@ -21,6 +21,8 @@ from pydantic import BaseModel, JsonValue, SecretStr, ValidationError
 
 from revue_portee.ai.base import (
     AICallRecord,
+    BatchError,
+    BatchStatus,
     CostEstimate,
     ProviderCallError,
     TaskInput,
@@ -118,7 +120,8 @@ def _default_api_key() -> SecretStr:
 
 
 class AnthropicProvider:
-    """Runs tasks with one Claude model, one call per input."""
+    """Runs tasks with one Claude model: one call per input, or asynchronous batches
+    (Message Batches API, every token at the batch price)."""
 
     def __init__(
         self,
@@ -163,6 +166,16 @@ class AnthropicProvider:
     def estimate_cost[InputT: TaskInput, OutputT: TaskOutput](
         self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
     ) -> CostEstimate:
+        return self._estimate(task, inputs, batch=False)
+
+    def estimate_batch_cost[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> CostEstimate:
+        return self._estimate(task, inputs, batch=True)
+
+    def _estimate(
+        self, task: TaskSpec[Any, Any], inputs: Sequence[TaskInput], *, batch: bool
+    ) -> CostEstimate:
         self._check(task)
         schema = str(output_schema(task.output_model))
         prompts = [self._render(task, item) for item in inputs]
@@ -175,6 +188,7 @@ class AnthropicProvider:
             input_tokens=system_tokens + other_tokens,
             output_tokens=self._expected_output_tokens * len(inputs),
             cacheable_tokens=system_tokens,
+            batch=batch,
         )
 
     def request_params(self) -> dict[str, JsonValue]:
@@ -205,9 +219,13 @@ class AnthropicProvider:
         request["messages"] = [{"role": "user", "content": prompt.user}]
         return request
 
-    def _send(self, request: dict[str, Any]) -> _Message:
+    def _connected(self) -> Any:  # noqa: ANN401 - the SDK client
         if self._client is None:
             self._client = self._client_factory(self._api_key())
+        return self._client
+
+    def _send(self, request: dict[str, Any]) -> _Message:
+        self._connected()
         if "betas" in request:
             return cast(_Message, self._client.beta.messages.create(**request))
         return cast(_Message, self._client.messages.create(**request))
@@ -234,6 +252,7 @@ class AnthropicProvider:
         message: _Message | None = None,
         error_code: str | None = None,
         request_id: str | None = None,
+        batch_id: str | None = None,
     ) -> AICallRecord:
         """Call record. Without a message (the API answered with an error, or not at all),
         no model was returned: ``model_returned`` stays empty and the cost is zero."""
@@ -252,6 +271,7 @@ class AnthropicProvider:
                 self.name,
                 _priced_model(self._prices, message.model, self._model),
                 **tokens,
+                batch=batch_id is not None,
             )
             request_id = getattr(message, "_request_id", None) or message.id
         return AICallRecord(
@@ -270,6 +290,7 @@ class AnthropicProvider:
             cost_estimate=cost,
             currency=self._prices.currency,
             latency_ms=latency_ms,
+            batch_id=batch_id,
             status="ok" if error_code is None else "error",
             error_code=error_code,
             created_at=started,
@@ -298,6 +319,23 @@ class AnthropicProvider:
                 _api_error_message(error), item_id=item.item_id, call=call
             ) from error
         latency = int((time.perf_counter() - start) * 1000)
+        outcome = self._outcome(task, item, prompt, message, started=started, latency_ms=latency)
+        if isinstance(outcome, ProviderCallError):
+            raise outcome
+        return outcome
+
+    def _outcome[InputT: TaskInput, OutputT: TaskOutput](
+        self,
+        task: TaskSpec[InputT, OutputT],
+        item: InputT,
+        prompt: RenderedPrompt,
+        message: _Message,
+        *,
+        started: datetime,
+        latency_ms: int,
+        batch_id: str | None = None,
+    ) -> TaskResult[OutputT] | ProviderCallError:
+        """The validated output of a message, or the error of its call."""
         raw = cast(JsonValue, message.to_dict())
         text = "".join(
             block.text for block in message.content if getattr(block, "type", None) == "text"
@@ -312,10 +350,16 @@ class AnthropicProvider:
             except ValidationError:
                 failure = "invalid_output"
         call = self._record(
-            prompt, task, started=started, latency_ms=latency, message=message, error_code=failure
+            prompt,
+            task,
+            started=started,
+            latency_ms=latency_ms,
+            message=message,
+            error_code=failure,
+            batch_id=batch_id,
         )
         if output is None:
-            raise ProviderCallError(
+            return ProviderCallError(
                 _failure_message(failure or "invalid_output"),
                 item_id=item.item_id,
                 call=call,
@@ -324,6 +368,92 @@ class AnthropicProvider:
         return result_type(task.output_model)(
             item_id=item.item_id, output=output, call=call, raw_response=raw
         )
+
+    # --- Message Batches API ---------------------------------------------------------
+
+    def _batches(self, beta: bool) -> Any:  # noqa: ANN401 - the SDK batch resource
+        client = self._connected()
+        return client.beta.messages.batches if beta else client.messages.batches
+
+    def submit_batch[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> str:
+        """Send one request per input, identified by its ``item_id``; returns the
+        identifier of the batch at the provider."""
+        self._check(task)
+        requests: list[dict[str, Any]] = []
+        betas: list[str] = []
+        for item in inputs:
+            request = self._request(task, self._render(task, item))
+            betas = request.pop("betas", betas)
+            requests.append({"custom_id": item.item_id, "params": request})
+        try:
+            if betas:
+                batch = self._batches(beta=True).create(requests=requests, betas=betas)
+            else:
+                batch = self._batches(beta=False).create(requests=requests)
+        except anthropic.APIError as error:
+            raise BatchError(_api_error_message(error)) from error
+        return str(batch.id)
+
+    def batch_status(self, provider_batch_id: str) -> BatchStatus:
+        try:
+            batch = self._batches(beta=False).retrieve(provider_batch_id)
+        except anthropic.APIError as error:
+            raise BatchError(_api_error_message(error)) from error
+        counts = batch.request_counts
+        return BatchStatus(
+            provider_batch_id=provider_batch_id,
+            ended=batch.processing_status == "ended",
+            processing=int(counts.processing),
+            succeeded=int(counts.succeeded),
+            errored=int(counts.errored),
+            canceled=int(counts.canceled),
+            expired=int(counts.expired),
+        )
+
+    def batch_results[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], provider_batch_id: str, inputs: Sequence[InputT]
+    ) -> Iterator[TaskResult[OutputT] | ProviderCallError]:
+        """Result of each request of an ended batch; a request that errored, was
+        canceled or expired gives the error of its call, with no model and no cost."""
+        self._check(task)
+        by_id = {item.item_id: item for item in inputs}
+        try:
+            entries = list(self._batches(beta=False).results(provider_batch_id))
+        except anthropic.APIError as error:
+            raise BatchError(_api_error_message(error)) from error
+        for entry in entries:
+            item = by_id.get(entry.custom_id)
+            if item is None:
+                continue  # not asked in this batch: nothing to record
+            prompt = self._render(task, item)
+            outcome = entry.result
+            if outcome.type == "succeeded":
+                yield self._outcome(
+                    task,
+                    item,
+                    prompt,
+                    outcome.message,
+                    started=self._clock(),
+                    latency_ms=0,
+                    batch_id=provider_batch_id,
+                )
+                continue
+            code = f"batch_{outcome.type}"
+            if outcome.type == "errored":
+                code = f"batch_{getattr(getattr(outcome, 'error', None), 'type', 'errored')}"
+            call = self._record(
+                prompt,
+                task,
+                started=self._clock(),
+                latency_ms=0,
+                error_code=code,
+                batch_id=provider_batch_id,
+            )
+            yield ProviderCallError(
+                _batch_failure_message(outcome.type), item_id=item.item_id, call=call
+            )
 
 
 def _priced_model(prices: PriceTable, returned: str, requested: str) -> str:
@@ -339,6 +469,15 @@ def _failure_message(code: str) -> str:
         "invalid_output": _("The answer of the model does not match the expected format."),
     }
     return messages[code]
+
+
+def _batch_failure_message(kind: str) -> str:
+    messages = {
+        "errored": _("The request of the batch failed at the provider."),
+        "canceled": _("The request of the batch was canceled."),
+        "expired": _("The request of the batch expired before being processed (24 h)."),
+    }
+    return messages.get(kind, messages["errored"])
 
 
 def _api_error_message(error: anthropic.APIError) -> str:

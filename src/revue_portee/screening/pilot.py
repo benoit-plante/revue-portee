@@ -63,6 +63,7 @@ __all__ = [
     "PilotState",
     "UnknownCriterionError",
     "UnknownRoundError",
+    "active_criteria",
     "criteria_of",
     "fit_round_calibration",
     "get_round",
@@ -70,6 +71,7 @@ __all__ = [
     "list_rounds",
     "pilot_state",
     "record_human_decision",
+    "screenable_references",
     "start_pilot",
 ]
 
@@ -112,7 +114,7 @@ class NothingToCalibrateError(ValueError):
 # --- Starting a pilot ---------------------------------------------------------------
 
 
-def _active_criteria(folder: ProjectFolder) -> CriteriaVersion:
+def active_criteria(folder: ProjectFolder) -> CriteriaVersion:
     with folder.engine.connect() as connection:
         version = criteria_repo.get_active_version(connection)
     if version is None:
@@ -120,7 +122,7 @@ def _active_criteria(folder: ProjectFolder) -> CriteriaVersion:
     return version
 
 
-def _screenable(folder: ProjectFolder) -> list[str]:
+def screenable_references(folder: ProjectFolder) -> list[str]:
     """References after deduplication: duplicates grouped under another are left out."""
     state = dedup_state(folder)
     duplicates = {ref_id for group in state.groups for ref_id in group.duplicates}
@@ -137,8 +139,8 @@ def start_pilot(
 ) -> PilotRound:
     """Draw a pilot sample (EF-SEL-01); ``size`` defaults to the project setting and is
     reduced to the number of references when there are fewer."""
-    version = _active_criteria(folder)
-    population = _screenable(folder)
+    version = active_criteria(folder)
+    population = screenable_references(folder)
     if not population:
         raise NoReferencesError
     wanted = size or folder.ai_settings().supervision.pilot_sample_size

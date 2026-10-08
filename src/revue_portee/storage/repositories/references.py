@@ -31,6 +31,7 @@ __all__ = [
     "count_by_source",
     "count_enrichment_candidates",
     "count_references",
+    "enrichments_of",
     "find_by_source_id",
     "get_import_by_sha256",
     "get_reference",
@@ -329,6 +330,21 @@ def insert_enrichment(connection: Connection, value: Enrichment, *, journal_entr
             journal_entry_id=journal_entry_id,
         )
     )
+
+
+def enrichments_of(connection: Connection, reference_id: str) -> list[Enrichment]:
+    """Enrichments of one reference, oldest first."""
+    rows = connection.execute(
+        select(enrichment)
+        .where(enrichment.c.reference_id == reference_id)
+        .order_by(enrichment.c.created_at, enrichment.c.id)
+    ).mappings()
+    found = []
+    for row in rows:
+        data = _plain(row)
+        data["fields"] = json.loads(data.pop("fields_json"))
+        found.append(Enrichment.model_validate(data))
+    return found
 
 
 def list_enrichments(connection: Connection) -> dict[str, list[Enrichment]]:

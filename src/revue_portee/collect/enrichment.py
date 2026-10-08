@@ -30,6 +30,7 @@ __all__ = [
     "EnrichmentSummary",
     "WorkSource",
     "enrich_references",
+    "enriched_reference",
     "enrichment_candidates",
     "references_with_enrichment",
 ]
@@ -158,6 +159,15 @@ def enrich_references(
     finally:
         close_source(crossref)
     return total
+
+
+def enriched_reference(folder: ProjectFolder, reference_id: str) -> Reference | None:
+    """One reference, its missing fields filled by Crossref when found."""
+    with folder.engine.connect() as connection:
+        found = references_repo.get_reference(connection, reference_id)
+        if found is None:
+            return None
+        return merged(found, references_repo.enrichments_of(connection, reference_id))
 
 
 def references_with_enrichment(folder: ProjectFolder) -> list[Reference]:

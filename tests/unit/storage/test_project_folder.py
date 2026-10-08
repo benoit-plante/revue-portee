@@ -281,6 +281,10 @@ def test_project_of_tranche_1_1_is_migrated_after_a_backup(tmp_path: Path) -> No
     folder = new_project(tmp_path)
     folder.close()
     new_tables = (
+        # tranche 1.7 (0007), dependent tables first
+        "impact_assessment",
+        "ai_batch_end",
+        "ai_batch",
         # tranche 1.6 (0006), dependent tables first
         "budget_setting",
         "threshold_setting",

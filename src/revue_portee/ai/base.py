@@ -15,6 +15,9 @@ from revue_portee.i18n import gettext as _
 
 __all__ = [
     "AICallRecord",
+    "BatchError",
+    "BatchProvider",
+    "BatchStatus",
     "CallStatus",
     "CostEstimate",
     "ModelProvider",
@@ -142,6 +145,10 @@ class ProviderCallError(RuntimeError):
         super().__init__(message)
 
 
+class BatchError(RuntimeError):
+    """A batch could not be submitted or followed (French message); no call was made."""
+
+
 class CostEstimate(BaseModel):
     """Cost estimated before running a batch (ENF-COU-01)."""
 
@@ -182,3 +189,38 @@ class ModelProvider(Protocol):
     def run[InputT: TaskInput, OutputT: TaskOutput](
         self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
     ) -> Iterator[TaskResult[OutputT]]: ...
+
+
+class BatchStatus(BaseModel):
+    """State of an asynchronous batch at the provider."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    provider_batch_id: str
+    ended: bool
+    processing: int = Field(default=0, ge=0)
+    succeeded: int = Field(default=0, ge=0)
+    errored: int = Field(default=0, ge=0)
+    canceled: int = Field(default=0, ge=0)
+    expired: int = Field(default=0, ge=0)
+
+
+@runtime_checkable
+class BatchProvider(ModelProvider, Protocol):
+    """A provider that can also run a task asynchronously on many inputs at once, at a
+    lower price (ENF-COU-04). Results come back in any order; each is a result or the
+    error of its own call, never an exception for the whole batch."""
+
+    def estimate_batch_cost[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> CostEstimate: ...
+
+    def submit_batch[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], inputs: Sequence[InputT]
+    ) -> str: ...
+
+    def batch_status(self, provider_batch_id: str) -> BatchStatus: ...
+
+    def batch_results[InputT: TaskInput, OutputT: TaskOutput](
+        self, task: TaskSpec[InputT, OutputT], provider_batch_id: str, inputs: Sequence[InputT]
+    ) -> Iterator[TaskResult[OutputT] | ProviderCallError]: ...
