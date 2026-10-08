@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 15:40-0400\n"
+"POT-Creation-Date: 2026-10-08 16:28-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -173,6 +173,9 @@ msgstr "Justification de l'IA"
 #, python-brace-format
 msgid "AI reviewer recorded: {name}"
 msgstr "Réviseur IA enregistré : {name}"
+
+msgid "AI reviewer under evaluation."
+msgstr "Réviseur IA en cours d'évaluation."
 
 msgid "AI screening"
 msgstr "Tri par l'IA"
@@ -1264,6 +1267,15 @@ msgstr "Sortie invalide pour la tâche « {task} »."
 #, python-brace-format
 msgid "Invalid term: {detail}"
 msgstr "Terme invalide : {detail}"
+
+msgid ""
+"It has only been tested on its development set (systematic reviews in psychology), not yet "
+"validated on held-out data nor on scoping reviews (RAISE 2). It never excludes a reference alone:"
+" the final decision is always yours."
+msgstr ""
+"Il n'a été testé que sur son ensemble de développement (revues systématiques en psychologie), et "
+"n'est pas encore validé sur des données mises de côté ni sur des revues de portée (RAISE 2). Il "
+"n'exclut jamais une référence seul : la décision finale vous revient toujours."
 
 msgid "Italian"
 msgstr "italien"
@@ -2535,6 +2547,16 @@ msgstr ""
 msgid "The AI provider “{provider}” cannot screen in batches."
 msgstr "Le fournisseur d'IA « {provider} » ne peut pas trier par lots."
 
+#, python-brace-format
+msgid ""
+"The AI reviewer has only been tested on its development set, made of systematic reviews in "
+"psychology: neither on held-out data nor on scoping reviews. On the smallest dataset, the "
+"sensitivity rests on {included} included references (95% CI {low} to {high})."
+msgstr ""
+"Le réviseur IA n'a été testé que sur son ensemble de développement, fait de revues systématiques "
+"en psychologie : ni sur des données mises de côté, ni sur des revues de portée. Sur le plus petit"
+" jeu, la sensibilité repose sur {included} références incluses (IC à 95 % de {low} à {high})."
+
 msgid "The AI screened titles and abstracts only; it did not assess full texts."
 msgstr "L'IA n'a trié que les titres et résumés ; elle n'a pas évalué les textes intégraux."
 
@@ -2800,23 +2822,23 @@ msgstr "Le titre de la revue est obligatoire."
 
 #, python-brace-format
 msgid ""
-"The tool was validated on systematic reviews in psychology, not on scoping reviews; on the "
+"The tool was evaluated on systematic reviews in psychology, not on scoping reviews; on the "
 "smallest dataset, the sensitivity rests on {included} included references (95% CI {low} to "
 "{high})."
 msgstr ""
-"L'outil a été validé sur des revues systématiques en psychologie, pas sur des revues de portée ; "
+"L'outil a été évalué sur des revues systématiques en psychologie, pas sur des revues de portée ; "
 "sur le plus petit jeu, la sensibilité repose sur {included} références incluses (IC à 95 % de "
 "{low} à {high})."
 
 #, python-brace-format
 msgid ""
-"The tool's developer evaluated the default configuration ({model}, prompt template version "
+"The tool's developer tested the default configuration ({model}, prompt template version "
 "{version}, thresholds {low} and {high}) on {count} systematic reviews of the SYNERGY dataset, "
 "against their full-text inclusions ({date}; {source}):"
 msgstr ""
-"Le développeur de l'outil a évalué la configuration par défaut ({model}, gabarit d'invite version"
-" {version}, seuils {low} et {high}) sur {count} revues systématiques du jeu SYNERGY, par rapport "
-"à leurs inclusions au texte intégral ({date} ; {source}) :"
+"Le développeur de l'outil a testé la configuration par défaut ({model}, gabarit d'invite version "
+"{version}, seuils {low} et {high}) sur {count} revues systématiques du jeu SYNERGY, par rapport à"
+" leurs inclusions au texte intégral ({date} ; {source}) :"
 
 msgid "The two references side by side"
 msgstr "Les deux références côte à côte"
@@ -2846,6 +2868,19 @@ msgstr "Il n'y a encore aucune référence à dédoublonner : collectez ou impo
 
 msgid "There is no reference to screen yet: collect or import first."
 msgstr "Aucune référence à trier pour l'instant : collectez ou importez d'abord."
+
+msgid ""
+"These reviews make up the tool's development set. In the terms of RAISE 2, these are development "
+"results, neither a test on held-out data nor a validation: the AI reviewer is still under "
+"evaluation, and a validation study on scoping reviews is planned."
+msgstr ""
+"Ces revues forment l'ensemble de développement de l'outil. Au sens de RAISE 2, ce sont des "
+"résultats de développement, ni un test sur des données mises de côté, ni une validation : le "
+"réviseur IA est encore en cours d'évaluation, et une étude de validation sur des revues de portée"
+" est prévue."
+
+msgid "These reviews were held out: they were not used to build the tool."
+msgstr "Ces revues ont été mises de côté : elles n'ont pas servi à construire l'outil."
 
 msgid "These two references are not a pair of the deduplication."
 msgstr "Ces deux références ne forment pas une paire du dédoublonnage."

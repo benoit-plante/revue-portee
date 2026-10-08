@@ -170,6 +170,9 @@ def test_english_draft_reports_every_part() -> None:
     assert "| Total of the screening | 1,122 | 0.3620 |" in text
     assert "Other uses of the AI in the project (framing, criteria, search): 3 calls" in text
     assert "rests on 20 included references (95% CI 76.4% to 99.1%)" in text
+    assert "tested on its development set" in text
+    assert "neither a test on held-out data nor a validation" in text
+    assert "validated" not in text
     assert "No reference was excluded by the AI alone." in text
     assert render_docx(document)[:2] == b"PK"
 
@@ -261,3 +264,11 @@ def test_missing_measures_and_thresholds_without_calibration() -> None:
     assert "when its probability of inclusion was below 0.10" in paragraphs
     assert "Target sensitivity" not in paragraphs
     assert "calibrated on the pilot" not in paragraphs
+
+
+def test_validation_on_held_out_data() -> None:
+    held_out = tool_validation().model_copy(update={"dataset_role": "test"})
+    text = text_of("en", validation=held_out)
+    assert "These reviews were held out: they were not used to build the tool." in text
+    assert "The tool was evaluated on systematic reviews in psychology" in text
+    assert "development set" not in text

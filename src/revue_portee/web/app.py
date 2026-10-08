@@ -63,7 +63,7 @@ from revue_portee.reporting.formats import separator
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
-from revue_portee.resources import flow_template, peters_checklist
+from revue_portee.resources import flow_template, peters_checklist, tool_validation
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
 from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
@@ -359,6 +359,7 @@ def create_app(
         NEW_BLOCK=NEW_BLOCK,
         modification_types=MODIFICATION_TYPES,
         PccElement=PccElement,
+        ai_reviewer_in_evaluation=tool_validation().dataset_role == "development",
         CriterionKind=CriterionKind,
     )
 

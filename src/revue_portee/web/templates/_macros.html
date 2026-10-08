@@ -90,3 +90,9 @@
   </form>
 </section>
 {% endmacro %}
+
+{% macro ai_under_evaluation() %}
+{% if ai_reviewer_in_evaluation %}
+<p class="message info" role="note"><strong>{{ _("AI reviewer under evaluation.") }}</strong> {{ _("It has only been tested on its development set (systematic reviews in psychology), not yet validated on held-out data nor on scoping reviews (RAISE 2). It never excludes a reference alone: the final decision is always yours.") }}</p>
+{% endif %}
+{% endmacro %}

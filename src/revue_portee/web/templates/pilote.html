@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf with context %}
+{% from "_macros.html" import ai_under_evaluation, csrf with context %}
 {% block title %}{{ _("Pilot") }}{% endblock %}
 {% block content %}
 <h1>{{ _("Pilot of the AI reviewer") }}</h1>
 <p>{{ _("Before screening, the AI reviewer is tried on a random sample of the references. You screen the sample without seeing the AI's decisions; they are shown once you have decided. The agreement, the sensitivity of the AI and the thresholds are then computed from both.") }}</p>
+{{ ai_under_evaluation() }}
 {% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
 
 <section aria-labelledby="budget-titre" id="budget">

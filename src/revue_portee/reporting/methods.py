@@ -13,6 +13,7 @@ produces French and English (ENF-LAN-04).
 import datetime as dt
 from collections.abc import Callable
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
@@ -76,6 +77,7 @@ class ToolValidation(BaseModel):
 
     date: dt.date
     source: str
+    dataset_role: Literal["development", "test"]
     configuration: ValidationConfiguration
     reference_standard: str
     datasets: tuple[ValidationDataset, ...]
@@ -310,7 +312,7 @@ def _tool_validation(_: Translate, data: MethodsData, language: str) -> list[Blo
     blocks: list[Block] = [
         Paragraph(
             text=_(
-                "The tool's developer evaluated the default configuration ({model}, prompt "
+                "The tool's developer tested the default configuration ({model}, prompt "
                 "template version {version}, thresholds {low} and {high}) on {count} "
                 "systematic reviews of the SYNERGY dataset, against their full-text inclusions "
                 "({date}; {source}):"
@@ -351,6 +353,21 @@ def _tool_validation(_: Translate, data: MethodsData, language: str) -> list[Blo
             ),
         ),
     ]
+    if validation.dataset_role == "development":
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "These reviews make up the tool's development set. In the terms of RAISE 2, "
+                    "these are development results, neither a test on held-out data nor a "
+                    "validation: the AI reviewer is still under evaluation, and a validation "
+                    "study on scoping reviews is planned."
+                )
+            )
+        )
+    else:
+        blocks.append(
+            Paragraph(text=_("These reviews were held out: they were not used to build the tool."))
+        )
     differences = _differences(_, data)
     if data.models and differences:
         blocks.append(
@@ -603,10 +620,19 @@ def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
         _("The AI screened titles and abstracts only; it did not assess full texts."),
-        _(
-            "The tool was validated on systematic reviews in psychology, not on scoping "
-            "reviews; on the smallest dataset, the sensitivity rests on {included} included "
-            "references (95% CI {low} to {high})."
+        (
+            _(
+                "The AI reviewer has only been tested on its development set, made of "
+                "systematic reviews in psychology: neither on held-out data nor on scoping "
+                "reviews. On the smallest dataset, the sensitivity rests on {included} included "
+                "references (95% CI {low} to {high})."
+            )
+            if data.validation.dataset_role == "development"
+            else _(
+                "The tool was evaluated on systematic reviews in psychology, not on scoping "
+                "reviews; on the smallest dataset, the sensitivity rests on {included} included "
+                "references (95% CI {low} to {high})."
+            )
         ).format(
             included=smallest.included,
             low=percent(float(smallest.sensitivity_low), language),

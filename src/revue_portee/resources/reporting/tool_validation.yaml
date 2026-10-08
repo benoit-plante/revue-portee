@@ -4,6 +4,11 @@
 # The model below is a record of the configuration that was measured, not a setting:
 # the configuration in use comes from resources/ai_defaults.yaml and projet.toml.
 date: 2026-10-08
+# Role of these datasets (RAISE 2, §1): "development" when they were used to build
+# or tune the tool (docs/05-plan-de-validation.md §5.3: the SYNERGY sets are the
+# development set), "test" for held-out data. Development results are neither a
+# test nor a validation: the AI reviewer is then shown as under evaluation.
+dataset_role: development
 source: https://github.com/benoit-plante/revue-portee/blob/main/docs/resultats/README.md
 configuration:
   task: screen_reference

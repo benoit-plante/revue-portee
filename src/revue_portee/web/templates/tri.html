@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import csrf with context %}
+{% from "_macros.html" import ai_under_evaluation, csrf with context %}
 {% block title %}{{ _("Screening") }}{% endblock %}
 {% block content %}
 <h1>{{ _("Title and abstract screening") }}</h1>
 <p>{{ _("You screen every reference; the AI screens them independently. You do not see its decision while you screen: the references where one of you keeps the reference and the other excludes it are then reconciled, with the AI's rationale in view. The final decision is always yours.") }}</p>
+{{ ai_under_evaluation() }}
 {% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
 
 {% if not main %}
