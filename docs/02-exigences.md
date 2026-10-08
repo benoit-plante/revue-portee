@@ -215,7 +215,7 @@
 
 | ID | Exigence |
 |---|---|
-| ENF-NOR-01 | **RAISE** : les recommandations de RAISE 2 (construction et évaluation des outils) doivent être transformées en une liste de vérification dans `docs/` et cochées à chaque version majeure. *(À rédiger après lecture intégrale de RAISE v4.)* |
+| ENF-NOR-01 | **RAISE** : les recommandations de RAISE 2 (construction et évaluation des outils) doivent être transformées en une liste de vérification dans `docs/` et cochées à chaque version majeure. Liste : [06-liste-raise2.md](06-liste-raise2.md) (RAISE 2 v4, cochée pour la V1 le 2026-10-08). |
 | ENF-NOR-02 | **Énoncé de position conjoint (2025)** : l'outil doit publier ses données de validation et ses limites connues (voir [05-plan-de-validation.md](05-plan-de-validation.md)). |
 | ENF-NOR-03 | **PRISMA-ScR, PRISMA 2020 (diagramme), PRISMA-S** : les listes et gabarits sont des fichiers de données versionnés avec leur source et leur date. |
 | ENF-NOR-04 | **JBI** : le vocabulaire et l'ordre des étapes suivent le chapitre 10 du manuel JBI (version 2026). |
