@@ -26,7 +26,7 @@ from revue_portee.ai.providers import ProviderFactory, UnknownProviderError
 from revue_portee.ai.providers.anthropic import UnsupportedParameterError
 from revue_portee.ai.settings import TaskNotAvailableError
 from revue_portee.clock import utc_now
-from revue_portee.collect import collection, enrichment, imports
+from revue_portee.collect import collection, deduplication, enrichment, imports
 from revue_portee.collect.collection import CollectorFactory
 from revue_portee.collect.enrichment import WorkSource
 from revue_portee.config.secrets import MissingSecretError
@@ -39,6 +39,7 @@ from revue_portee.domain.criteria import (
     VersionStatus,
     diff_versions,
 )
+from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
@@ -63,6 +64,7 @@ from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderErro
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.version import tool_version as current_tool_version
+from revue_portee.web import dedup_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -957,6 +959,103 @@ def create_app(
             ),
         )
         return see_other("/collecte#crossref")
+
+    # --- Duplicates -------------------------------------------------------------------
+
+    def dedup_page(
+        request: Request,
+        *,
+        page: int = 1,
+        error: str | None = None,
+        message: str | None = None,
+        settings: DedupSettings | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        state = deduplication.dedup_state(folder)
+        shown, pages = dedup_view.page_of(state.groups, page)
+        kept_apart = [d for d in state.decisions.values() if d.outcome is PairOutcome.NOT_DUPLICATE]
+        return render(
+            request,
+            "doublons.html",
+            {
+                "run": state.run,
+                "counts": state.counts,
+                "new_references": state.new_references,
+                "settings": settings or dedup_view.default_settings(state),
+                "pending": state.pending,
+                "pairs_shown": dedup_view.PAIRS_SHOWN,
+                "references": state.references,
+                "sources": state.sources,
+                "groups": shown,
+                "group_count": len(state.groups),
+                "pages": pages,
+                "page_number": min(max(1, page), pages),
+                "kept_apart": sorted(kept_apart, key=lambda d: d.created_at, reverse=True),
+                "rule_labels": dedup_view.rule_labels,
+                "reason_labels": dedup_view.reason_labels,
+                "pair_rows": dedup_view.pair_rows,
+                "group_links": lambda g: dedup_view.group_links(g, state),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/doublons", response_class=HTMLResponse)
+    def show_duplicates(request: Request, page: int = 1, fait: int = 0) -> HTMLResponse:
+        message = _("Deduplication done.") if fait else None
+        return dedup_page(request, page=page, message=message)
+
+    @app.post("/doublons/lancer")
+    def run_deduplication(
+        request: Request,
+        _csrf: Csrf,
+        review_from: Annotated[str, Form()] = "",
+        auto_from: Annotated[str, Form()] = "",
+    ) -> Response:
+        defaults = DedupSettings()
+        try:
+            settings = DedupSettings(
+                review_from=dedup_view.parse_threshold(review_from, defaults.review_from),
+                auto_from=dedup_view.parse_threshold(auto_from, defaults.auto_from),
+            )
+        except ValueError:
+            return dedup_page(
+                request,
+                error=_(
+                    "Thresholds must be numbers from 0 to 1, the first one not above the second."
+                ),
+                status_code=422,
+            )
+        try:
+            deduplication.run_deduplication(
+                folder, settings, now=now, tool_version=context.tool_version
+            )
+        except deduplication.NoReferencesError as error:
+            return dedup_page(request, error=str(error), settings=settings, status_code=422)
+        return see_other("/doublons?fait=1#paires")
+
+    @app.post("/doublons/paire")
+    def decide_duplicate_pair(
+        request: Request,
+        _csrf: Csrf,
+        reference_a: Annotated[str, Form()] = "",
+        reference_b: Annotated[str, Form()] = "",
+        outcome: Annotated[str, Form()] = "",
+        retour: Annotated[str, Form()] = "paires",
+    ) -> Response:
+        try:
+            chosen = PairOutcome(outcome)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=_("Unknown decision.")) from error
+        try:
+            deduplication.decide_pair(
+                folder, reference_a, reference_b, chosen, now=now, tool_version=context.tool_version
+            )
+        except deduplication.UnknownPairError as error:
+            return dedup_page(request, error=str(error), status_code=422)
+        anchor = retour if retour in ("paires", "groupes", "separees") else "paires"
+        return see_other(f"/doublons#{anchor}")
 
     # --- Protocol ---------------------------------------------------------------------
 

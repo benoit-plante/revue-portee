@@ -44,3 +44,9 @@ table.criteria th[scope="row"] { white-space: nowrap; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f4f4; border: 1px solid #ccc; border-radius: 4px; padding: .5rem .75rem; }
 input[type="text"][size="4"] { width: 6rem; }
 details > summary { cursor: pointer; }
+form.inline { display: inline-block; margin: 0 .25rem; }
+.pair { border: 1px solid #ccc; padding: .75rem 1rem; margin: 1rem 0; }
+table.pair-table td { width: 42%; }
+tr.differs th, tr.differs td { background: #fff4e0; }
+tr.differs th { border-left: 4px solid #8a5a00; }
+details.group { border-bottom: 1px solid #ddd; padding: .4rem 0; }

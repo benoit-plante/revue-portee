@@ -29,6 +29,7 @@ from sqlalchemy import (
     Table,
     Text,
     TypeDecorator,
+    UniqueConstraint,
     create_engine,
     event,
     text,
@@ -49,13 +50,16 @@ __all__ = [
     "criterion",
     "criterion_change",
     "criterion_code",
+    "dedup_run",
     "descriptor_check",
+    "duplicate_pair",
     "enrichment",
     "framing_version",
     "import_file",
     "journal_entry",
     "key_article_set_version",
     "metadata",
+    "pair_decision",
     "project",
     "protocol_registration",
     "protocol_text_version",
@@ -602,6 +606,50 @@ enrichment = Table(
     Column("created_at", UTCDateTime, nullable=False),
     Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
     Index("ix_enrichment_reference", "reference_id"),
+)
+
+dedup_run = Table(
+    "dedup_run",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("settings_json", Text, nullable=False),
+    Column("reference_count", Integer, nullable=False),
+    Column("automatic_pairs", Integer, nullable=False),
+    Column("review_pairs", Integer, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+)
+
+duplicate_pair = Table(
+    "duplicate_pair",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("run_id", String(26), ForeignKey("dedup_run.id"), nullable=False),
+    Column("reference_a_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("reference_b_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("kind", String(16), nullable=False),
+    Column("rule", String(32), nullable=False),
+    Column("score", Float, nullable=False),
+    Column("proposal", String(16), nullable=False),
+    Column("details_json", Text, nullable=False),
+    UniqueConstraint("run_id", "reference_a_id", "reference_b_id", name="uq_pair_run"),
+    Index("ix_duplicate_pair_run", "run_id"),
+)
+
+pair_decision = Table(
+    "pair_decision",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_a_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("reference_b_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("pair_id", String(26), ForeignKey("duplicate_pair.id"), nullable=True),
+    Column("outcome", String(16), nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("note", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=False),
+    Index("ix_pair_decision_pair", "reference_a_id", "reference_b_id"),
 )
 
 
