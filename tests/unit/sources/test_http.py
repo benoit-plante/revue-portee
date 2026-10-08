@@ -6,6 +6,7 @@ from pydantic import SecretStr
 
 from revue_portee.domain.search import KeyArticle, KeyArticleKind
 from revue_portee.sources import close_source
+from revue_portee.sources.crossref import Crossref
 from revue_portee.sources.http import (
     RateLimiter,
     SourceAccessError,
@@ -14,8 +15,8 @@ from revue_portee.sources.http import (
     get_json,
     make_client,
 )
-from revue_portee.sources.openalex import OpenAlex
-from revue_portee.sources.pubmed import PubMed
+from revue_portee.sources.openalex import OpenAlex, OpenAlexKeyError
+from revue_portee.sources.pubmed import PubMed, TooManyRecordsError
 
 URL = "https://api.example.test/works"
 
@@ -224,3 +225,114 @@ def test_connectors_close_only_the_clients_they_own() -> None:
     assert owned.is_closed
     assert not lent.is_closed
     close_source(object())  # connectors without client: nothing to do
+
+
+def test_refused_openalex_key_names_the_variable() -> None:
+    client, _ = _client(httpx2.Response(403))
+    with pytest.raises(OpenAlexKeyError, match="OPENALEX_API_KEY"):
+        OpenAlex(client, limiter=_no_wait()).fetch("type:review", None)
+    client, _ = _client(httpx2.Response(404))
+    with pytest.raises(SourceAccessError):
+        OpenAlex(client, limiter=_no_wait()).count("type:review")
+
+
+def test_openalex_last_page_has_no_cursor() -> None:
+    client, seen = _client(
+        httpx2.Response(200, json={"meta": {"count": 0, "next_cursor": "abc"}, "results": []})
+    )
+    page = OpenAlex(client, limiter=_no_wait()).fetch("type:review", None)
+    assert (page.records, page.next_cursor, page.announced) == ((), None, 0)
+    assert seen[0].url.params["cursor"] == "*"
+
+
+HISTORY = {"esearchresult": {"count": "250", "webenv": "ENV1", "querykey": "1"}}
+ARTICLE = (
+    "<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>{}</PMID><Article>"
+    "<ArticleTitle>T</ArticleTitle></Article></MedlineCitation></PubmedArticle>"
+    "</PubmedArticleSet>"
+)
+
+
+def test_pubmed_pages_and_expired_session() -> None:
+    client, seen = _client(
+        httpx2.Response(200, json=HISTORY),
+        httpx2.Response(200, text=ARTICLE.format(1)),
+        # second page: the session has expired, the search is run again
+        httpx2.Response(
+            200, text="<eFetchResult><ERROR>Unable to obtain query #1</ERROR></eFetchResult>"
+        ),
+        httpx2.Response(
+            200, json=HISTORY | {"esearchresult": HISTORY["esearchresult"] | {"webenv": "ENV2"}}
+        ),
+        httpx2.Response(200, text=ARTICLE.format(2)),
+    )
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    first = pubmed.fetch("x[tiab]", None)
+    assert (first.announced, [r.original_id for r in first.records]) == (250, ["1"])
+    assert first.next_cursor is not None
+    second = pubmed.fetch("x[tiab]", first.next_cursor)
+    assert [r.original_id for r in second.records] == ["2"]
+    assert second.next_cursor is None  # 200 + 200 >= 250
+    assert seen[1].url.params["retstart"] == "0"
+    assert seen[4].url.params["retstart"] == "200"
+    assert seen[4].url.params["WebEnv"] == "ENV2"
+    assert seen[1].url.params["retmode"] == "xml"
+
+
+def test_pubmed_refuses_more_than_ten_thousand_records() -> None:
+    client, _ = _client(
+        httpx2.Response(
+            200, json={"esearchresult": {"count": "12000", "webenv": "E", "querykey": "1"}}
+        )
+    )
+    with pytest.raises(TooManyRecordsError, match="12000"):
+        PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait()).fetch("x", None)
+    client, _ = _client(httpx2.Response(200, json={"esearchresult": {"count": "3"}}))
+    with pytest.raises(SourceInvalidAnswerError):
+        PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait()).fetch("x", None)
+
+
+def test_crossref_unknown_doi_and_errors() -> None:
+    client, seen = _client(
+        httpx2.Response(404),
+        httpx2.Response(500),
+        httpx2.Response(500),
+        httpx2.Response(500),
+        httpx2.Response(500),
+    )
+    crossref = Crossref(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    assert crossref.work("10.1000/ABC") == (None, {"status": 404})
+    assert seen[0].url.path == "/works/10.1000/abc"
+    assert seen[0].url.params["mailto"] == "contact@example.org"
+    with pytest.raises(SourceAccessError):
+        get_json(
+            client,
+            "https://api.crossref.org/works/x",
+            {},
+            service="Crossref",
+            limiter=_no_wait(),
+            retries=3,
+            sleep=lambda _: None,
+        )
+
+
+def test_pubmed_error_answers_are_never_the_end_of_results() -> None:
+    error = "<eFetchResult><ERROR>Search Backend failed</ERROR></eFetchResult>"
+    client, _ = _client(httpx2.Response(200, json=HISTORY), httpx2.Response(200, text=error))
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # first page: no new search, an error
+        pubmed.fetch("x", None)
+    empty = "<PubmedArticleSet></PubmedArticleSet>"
+    client, _ = _client(httpx2.Response(200, json=HISTORY), httpx2.Response(200, text=empty))
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # empty page before the 250 announced
+        pubmed.fetch("x", None)
+    cursor = '{"webenv": "E", "query_key": "1", "count": 250, "retstart": 200}'
+    client, _ = _client(
+        httpx2.Response(200, text=error),
+        httpx2.Response(200, json=HISTORY),
+        httpx2.Response(200, text=error),
+    )
+    pubmed = PubMed(client, email=SecretStr("contact@example.org"), limiter=_no_wait())
+    with pytest.raises(SourceInvalidAnswerError):  # still an error after the new search
+        pubmed.fetch("x", cursor)

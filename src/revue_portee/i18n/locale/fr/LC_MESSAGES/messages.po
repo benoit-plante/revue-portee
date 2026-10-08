@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 23:30+0000\n"
+"POT-Creation-Date: 2026-10-08 00:45+0000\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -38,6 +38,21 @@ msgstr "(obligatoire)"
 #, python-format
 msgid "A MeSH descriptor: %(exploded)s (with narrower headings) or %(not_exploded)s."
 msgstr "Un descripteur MeSH : %(exploded)s (avec les descripteurs plus spécifiques) ou %(not_exploded)s."
+
+#, python-brace-format
+msgid ""
+"A collection in {database} is not finished: resume it (or wait for its end) before starting "
+"another one."
+msgstr ""
+"Une collecte dans {database} n'est pas terminée : reprenez-la (ou attendez sa fin) avant d'en "
+"lancer une autre."
+
+msgid ""
+"A collection runs in the background, page by page; if it is interrupted, it resumes after its "
+"last stored page."
+msgstr ""
+"Une collecte s'exécute en arrière-plan, page par page ; si elle est interrompue, elle reprend "
+"après sa dernière page enregistrée."
 
 msgid "A modified suggestion needs a text."
 msgstr "Une suggestion modifiée doit avoir un texte."
@@ -206,6 +221,9 @@ msgstr ""
 "L'intelligence artificielle (IA) est utilisée sous supervision humaine, conformément aux "
 "recommandations RAISE. L'équipe de revue demeure responsable de chaque décision."
 
+msgid "As named in the file"
+msgstr "Celle que nomme le fichier"
+
 msgid "Ask the AI (confirm the cost)"
 msgstr "Interroger l'IA (confirmer le coût)"
 
@@ -287,11 +305,43 @@ msgstr "Vérifier les descripteurs MeSH"
 msgid "Check the hash chain of the project journal."
 msgstr "Vérifier la chaîne d'empreintes du journal du projet."
 
+msgid "Choose a RIS file."
+msgstr "Choisissez un fichier RIS."
+
 msgid "Code"
 msgstr "Code"
 
+#, python-format
+msgid "Collect every record in %(database)s"
+msgstr "Collecter toutes les notices dans %(database)s"
+
+msgid "Collect with the APIs"
+msgstr "Collecte par les API"
+
+msgid "Collection"
+msgstr "Collecte"
+
+msgid "Collection of references"
+msgstr "Collecte des références"
+
+#, python-brace-format
+msgid "Collection started in {database}"
+msgstr "Collecte lancée dans {database}"
+
+msgid "Collections"
+msgstr "Collectes"
+
+msgid "Collections, most recent first"
+msgstr "Collectes, de la plus récente à la plus ancienne"
+
 msgid "Compare version"
 msgstr "Comparer la version"
+
+msgid "Complete with Crossref"
+msgstr "Compléter avec Crossref"
+
+msgid "Completion with Crossref"
+msgstr "Complément par Crossref"
 
 msgid "Concept"
 msgstr "Concept"
@@ -391,6 +441,10 @@ msgstr "Transversal"
 msgid "Cross-cutting (source type, language, period, design)"
 msgstr "Transversal (type de source, langue, période, devis)"
 
+#, python-brace-format
+msgid "Crossref: references completed: {enriched} of {checked} checked"
+msgstr "Crossref : références complétées : {enriched} sur {checked} vérifiées"
+
 msgid "DOI of the registration"
 msgstr "DOI de l'enregistrement"
 
@@ -399,6 +453,9 @@ msgstr "Analyse et présentation des données"
 
 msgid "Data extraction"
 msgstr "Extraction des données"
+
+msgid "Database"
+msgstr "Base"
 
 #, python-brace-format
 msgid "Decision thresholds favour sensitivity, with a target of at least {target}."
@@ -424,6 +481,9 @@ msgstr "Écart au protocole enregistré"
 
 msgid "Deviations from the protocol"
 msgstr "Écarts au protocole"
+
+msgid "Difference explained:"
+msgstr "Écart expliqué :"
 
 msgid "Differences"
 msgstr "Différences"
@@ -575,6 +635,19 @@ msgstr "Exclusion"
 msgid "Exclusion (removed with NOT)"
 msgstr "Exclusion (retiré par NOT)"
 
+msgid ""
+"Export the results of the database in RIS format, then choose the file. The file is kept as is in"
+" the project."
+msgstr ""
+"Exportez les résultats de la base au format RIS, puis choisissez le fichier. Le fichier est "
+"conservé tel quel dans le projet."
+
+msgid "File imported."
+msgstr "Fichier importé."
+
+msgid "Finished"
+msgstr "Terminée"
+
 msgid "Folder to create (.revue is added)."
 msgstr "Dossier à créer (l'extension .revue est ajoutée)."
 
@@ -633,8 +706,20 @@ msgstr "Historique"
 msgid "How to write the terms (one per line)"
 msgstr "Comment écrire les termes (un par ligne)"
 
+msgid "Import"
+msgstr "Importer"
+
+msgid "Import a RIS file"
+msgstr "Importer un fichier RIS"
+
+msgid "Imported files"
+msgstr "Fichiers importés"
+
 msgid "In force since"
 msgstr "En vigueur depuis"
+
+msgid "In progress…"
+msgstr "En cours…"
 
 msgid "Inclusion"
 msgstr "Inclusion"
@@ -644,6 +729,9 @@ msgstr "Inclusion (combiné par AND)"
 
 msgid "Information sources"
 msgstr "Sources d'information"
+
+msgid "Interrupted"
+msgstr "Interrompue"
 
 msgid "Introduction"
 msgstr "Introduction"
@@ -725,6 +813,10 @@ msgstr "Limites"
 msgid "Limits: {limits}."
 msgstr "Limites : {limits}."
 
+#, python-format
+msgid "Line %(line)s"
+msgstr "Ligne %(line)s"
+
 msgid "Local port."
 msgstr "Port local."
 
@@ -796,6 +888,9 @@ msgstr "Aucun descripteur MeSH pour l'instant."
 msgid "No change yet."
 msgstr "Aucun changement pour l'instant."
 
+msgid "No collection yet."
+msgstr "Aucune collecte pour l'instant."
+
 msgid "No criterion yet."
 msgstr "Aucun critère pour l'instant."
 
@@ -806,6 +901,9 @@ msgid ""
 msgstr ""
 "Aucun tarif n'est connu pour le modèle « {model} » de « {provider} » : ajoutez-le à "
 "resources/model_prices.yaml avant tout appel."
+
+msgid "No query yet: save the search strategy on the Search page."
+msgstr "Pas encore de requête : enregistrez la stratégie de recherche dans la page Recherche."
 
 msgid "No version of the criteria is in force yet."
 msgstr "Aucune version des critères n'est encore en vigueur."
@@ -850,6 +948,14 @@ msgstr ""
 msgid "OpenAlex filter of an exclusion block left out (a filter cannot be removed with NOT)"
 msgstr "filtre OpenAlex d'un bloc d'exclusion écarté (un filtre ne peut pas être retiré par NOT)"
 
+#, python-brace-format
+msgid ""
+"OpenAlex refused the request (HTTP error {status}): check the key OPENALEX_API_KEY (required by "
+"OpenAlex unless the network proxy adds it). The OpenAlex collection is stopped."
+msgstr ""
+"OpenAlex a refusé la requête (erreur HTTP {status}) : vérifiez la clé OPENALEX_API_KEY (exigée "
+"par OpenAlex, sauf si le mandataire réseau l'ajoute). La collecte OpenAlex est arrêtée."
+
 msgid "PCC element"
 msgstr "Élément PCC"
 
@@ -871,6 +977,13 @@ msgstr "Nombre préliminaire de notices retrouvées par les requêtes de l'annex
 
 msgid "Preliminary search for existing reviews"
 msgstr "Recherche préliminaire de revues existantes"
+
+#, python-format
+msgid "Problems found: %(count)s"
+msgstr "Problèmes trouvés : %(count)s"
+
+msgid "Progress"
+msgstr "Avancement"
 
 #, python-brace-format
 msgid "Project created: {folder}"
@@ -936,6 +1049,14 @@ msgstr ""
 "PsycINFO n'a pas d'API publique : exécutez cette requête dans EBSCOhost et notez le nombre de "
 "résultats dans le journal."
 
+#, python-brace-format
+msgid ""
+"PubMed announces {count} records, but gives at most 10,000 per query: split the search (for "
+"example by publication years) before collecting."
+msgstr ""
+"PubMed annonce {count} notices, mais en donne au plus 10 000 par requête : divisez la recherche "
+"(par exemple par années de publication) avant de collecter."
+
 msgid "Qualification of criteria changes (broadening, narrowing, clarification)"
 msgstr "Qualification des changements de critères (élargissement, restriction, clarification)"
 
@@ -948,6 +1069,16 @@ msgstr "Qualifier les changements"
 #, python-format
 msgid "Queries of version %(number)s"
 msgstr "Requêtes de la version %(number)s"
+
+msgid "RIS file"
+msgstr "Fichier RIS"
+
+#, python-brace-format
+msgid "RIS file imported ({database}), records: {count}"
+msgstr "Fichier RIS importé ({database}), notices : {count}"
+
+msgid "RIS imports"
+msgstr "Imports RIS"
 
 msgid "Rationale"
 msgstr "Justification"
@@ -973,6 +1104,32 @@ msgstr "Les notices qui répondent aux blocs suivants sont retirées par NOT : 
 
 msgid "References"
 msgstr "Références"
+
+msgid ""
+"References are collected with the queries of the current search strategy (PubMed and OpenAlex), "
+"or imported from RIS files exported from other databases. Each reference keeps the source, query,"
+" file and date it comes from."
+msgstr ""
+"Les références sont collectées avec les requêtes de la stratégie de recherche en vigueur (PubMed "
+"et OpenAlex), ou importées de fichiers RIS exportés d'autres bases. Chaque référence conserve sa "
+"source, sa requête, son fichier et sa date d'origine."
+
+#, python-format
+msgid "References stored: %(count)s"
+msgstr "Références enregistrées : %(count)s"
+
+#, python-format
+msgid "References to complete: %(count)s"
+msgstr "Notices à compléter : %(count)s"
+
+msgid ""
+"References with a DOI whose title, abstract, authors, year, journal, volume, issue or pages are "
+"missing are completed with Crossref (three requests at a time). A field given by the source is "
+"never replaced."
+msgstr ""
+"Les références qui ont un DOI, mais à qui il manque le titre, le résumé, les auteurs, l'année, la"
+" revue, le volume, le numéro ou les pages, sont complétées avec Crossref (trois requêtes à la "
+"fois). Un champ donné par la source n'est jamais remplacé."
 
 msgid "Reformulation of the question"
 msgstr "Reformulation de la question"
@@ -1012,6 +1169,9 @@ msgstr "Retiré : %(code)s"
 
 msgid "Results"
 msgstr "Résultats"
+
+msgid "Resume"
+msgstr "Reprendre"
 
 msgid "Review protocol"
 msgstr "Protocole de la revue"
@@ -1124,8 +1284,14 @@ msgstr "espagnol"
 msgid "Start the criteria"
 msgstr "Commencer les critères"
 
+msgid "Started on"
+msgstr "Lancée le"
+
 msgid "Status"
 msgstr "Statut"
+
+msgid "Stopped"
+msgstr "Arrêtée"
 
 msgid "Strategy saved."
 msgstr "Stratégie enregistrée."
@@ -1212,6 +1378,12 @@ msgstr "L'appel à l'API d'Anthropic a échoué ({error})."
 
 msgid "The draft has no modified criterion to qualify."
 msgstr "Le brouillon n'a aucun critère modifié à qualifier."
+
+msgid "The file holds no RIS record (no line starting with « TY  - »)."
+msgstr "Le fichier ne contient aucune notice RIS (aucune ligne ne commence par « TY  - »)."
+
+msgid "The file is not a text file (UTF-8 or Latin-1 expected)."
+msgstr "Le fichier n'est pas un fichier texte (UTF-8 ou Latin-1 attendu)."
 
 #, python-brace-format
 msgid "The file {file} is unreadable."
@@ -1325,6 +1497,17 @@ msgstr ""
 "Il n'y a pas encore de requête pour cette base : enregistrez une stratégie avec au moins un bloc "
 "d'inclusion qui a des termes pour elle."
 
+#, python-brace-format
+msgid "There is no query to collect in {database}: save the search strategy."
+msgstr "Il n'y a pas de requête à collecter dans {database} : enregistrez la stratégie de recherche."
+
+msgid "This collection is already finished."
+msgstr "Cette collecte est déjà terminée."
+
+#, python-brace-format
+msgid "This file was already imported on {date} (as « {name} »)."
+msgstr "Ce fichier a déjà été importé le {date} (sous le nom « {name} »)."
+
 msgid ""
 "This scoping review will be conducted in accordance with the JBI methodology for scoping reviews "
 "and reported following the PRISMA extension for scoping reviews (PRISMA-ScR). This protocol "
@@ -1397,6 +1580,9 @@ msgstr "Inchangés : %(codes)s"
 #, python-brace-format
 msgid "Unknown AI provider: {provider}."
 msgstr "Fournisseur d'IA inconnu : {provider}."
+
+msgid "Unknown collection."
+msgstr "Collecte inconnue."
 
 #, python-brace-format
 msgid "Unknown criteria version: {number}."
@@ -1525,6 +1711,9 @@ msgstr "ébauche de la grille d'extraction"
 msgid "eligibility criteria (Criteria page)"
 msgstr "critères d'admissibilité (page « Critères »)"
 
+msgid "empty record, not imported"
+msgstr "notice vide, non importée"
+
 msgid "empty term"
 msgstr "terme vide"
 
@@ -1571,6 +1760,9 @@ msgstr "langues : {languages}"
 msgid "limits (years, languages)"
 msgstr "limites (années, langues)"
 
+msgid "line outside any record"
+msgstr "ligne hors de toute notice"
+
 msgid "lost by:"
 msgstr "perdu par :"
 
@@ -1591,6 +1783,9 @@ msgstr "nouveau bloc"
 
 msgid "not checked yet"
 msgstr "pas encore vérifié"
+
+msgid "not started yet"
+msgstr "pas encore commencée"
 
 msgid "objective of the review"
 msgstr "objectif de la revue"
@@ -1631,6 +1826,25 @@ msgstr "guillemets, parenthèses et crochets sont interdits dans un terme"
 msgid "recall %(value)s"
 msgstr "rappel %(value)s"
 
+#, python-format
+msgid "record %(number)s"
+msgstr "notice %(number)s"
+
+msgid "record not closed by ER"
+msgstr "notice non fermée par ER"
+
+#, python-brace-format
+msgid "records given more than once by the API: {count}"
+msgstr "notices données plus d'une fois par l'API : {count}"
+
+#, python-format
+msgid "records: %(collected)s of %(announced)s (pages: %(pages)s)"
+msgstr "notices : %(collected)s sur %(announced)s (pages : %(pages)s)"
+
+#, python-format
+msgid "records: %(count)s"
+msgstr "notices : %(count)s"
+
 msgid "removed"
 msgstr "retrait"
 
@@ -1656,8 +1870,20 @@ msgstr "remplacée"
 msgid "the AI"
 msgstr "l'IA"
 
+#, python-brace-format
+msgid ""
+"the API gave {received} records for {announced} announced (records without identifier, or results"
+" changed during the collection)"
+msgstr ""
+"l'API a donné {received} notices pour {announced} annoncées (notices sans identifiant, ou "
+"résultats modifiés pendant la collecte)"
+
 msgid "the combination of blocks"
 msgstr "la combinaison des blocs"
+
+#, python-brace-format
+msgid "the results grew during the collection (records given: {received})"
+msgstr "les résultats ont augmenté pendant la collecte (notices données : {received})"
 
 msgid "the reviewer"
 msgstr "le réviseur"
@@ -1679,6 +1905,9 @@ msgstr "parenthèses ou guillemets non appariés"
 
 msgid "unexpected:"
 msgstr "inattendus :"
+
+msgid "unreadable line"
+msgstr "ligne illisible"
 
 msgid "where existing or ongoing reviews were searched for, and what was found"
 msgstr "où les revues existantes ou en cours ont été recherchées, et ce qui a été trouvé"
@@ -1715,6 +1944,18 @@ msgid "{database} has no API: run the query in its interface."
 msgstr "{database} n'a pas d'API : exécutez la requête dans son interface."
 
 #, python-brace-format
+msgid "{database}: collection stopped (records collected: {collected})"
+msgstr "{database} : collecte arrêtée (notices collectées : {collected})"
+
+#, python-brace-format
+msgid "{database}: page {number} stored (records: {count})"
+msgstr "{database} : page {number} enregistrée (notices : {count})"
+
+#, python-brace-format
+msgid "{database}: records collected: {collected} of {announced} announced"
+msgstr "{database} : notices collectées : {collected} sur {announced} annoncées"
+
+#, python-brace-format
 msgid "{file} and the database describe different projects."
 msgstr "{file} et la base de données décrivent des projets différents."
 
@@ -1735,8 +1976,8 @@ msgid "{service} refused the request (HTTP error {status})."
 msgstr "{service} a refusé la requête (erreur HTTP {status})."
 
 #, python-brace-format
-msgid "{service} sent an answer that cannot be read (not a JSON document)."
-msgstr "{service} a envoyé une réponse illisible (pas un document JSON)."
+msgid "{service} sent an answer that cannot be read."
+msgstr "{service} a envoyé une réponse illisible."
 
 #, python-brace-format
 msgid "{title}: a scoping review protocol"

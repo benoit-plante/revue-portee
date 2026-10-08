@@ -26,6 +26,9 @@ from revue_portee.ai.providers import ProviderFactory, UnknownProviderError
 from revue_portee.ai.providers.anthropic import UnsupportedParameterError
 from revue_portee.ai.settings import TaskNotAvailableError
 from revue_portee.clock import utc_now
+from revue_portee.collect import collection, enrichment, imports
+from revue_portee.collect.collection import CollectorFactory
+from revue_portee.collect.enrichment import WorkSource
 from revue_portee.config.secrets import MissingSecretError
 from revue_portee.domain.changes import MODIFICATION_TYPES, ChangeType
 from revue_portee.domain.criteria import (
@@ -44,6 +47,7 @@ from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.i18n import EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
+from revue_portee.jobs.runner import BackgroundJobs
 from revue_portee.protocol import criteria, framing, notes, qualification, registration, suggestions
 from revue_portee.protocol.ai_assist import AITaskError, CostPreview, default_provider_factory
 from revue_portee.protocol.document import protocol_document
@@ -57,6 +61,7 @@ from revue_portee.search.runs import DescriptorSource, default_descriptor_source
 from revue_portee.sources import SourceError, SourceFactory, default_source_factory
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import projects
+from revue_portee.storage.repositories import references as references_repo
 from revue_portee.version import tool_version as current_tool_version
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
@@ -265,6 +270,9 @@ def create_app(
     provider_factory: ProviderFactory = default_provider_factory,
     source_factory: SourceFactory = default_source_factory,
     descriptor_source: Callable[[], DescriptorSource] = default_descriptor_source,
+    collector_factory: CollectorFactory | None = None,
+    crossref_source: Callable[[], WorkSource] | None = None,
+    jobs: BackgroundJobs | None = None,
 ) -> FastAPI:
     """Application serving one open project folder."""
     context = AppContext(
@@ -272,6 +280,13 @@ def create_app(
         now=now,
         tool_version=tool_version or current_tool_version(),
         csrf_token=secrets.token_urlsafe(32),
+    )
+    background = jobs or BackgroundJobs()
+    collect_options: dict[str, Any] = (
+        {} if collector_factory is None else {"factory": collector_factory}
+    )
+    crossref_options: dict[str, Any] = (
+        {} if crossref_source is None else {"source": crossref_source}
     )
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.state.csrf_token = context.csrf_token
@@ -824,6 +839,124 @@ def create_app(
         ) as error:
             return search_page(request, error=str(error), status_code=422)
         return see_other(f"/recherche#suggestion-{suggestion_id}")
+
+    # --- Collection -------------------------------------------------------------------
+
+    def collection_context() -> dict[str, Any]:
+        states = list(collection.collection_states(folder).values())
+        with folder.engine.connect() as connection:
+            counts = references_repo.count_by_source(connection)
+            total = references_repo.count_references(connection)
+            candidates = references_repo.count_enrichment_candidates(connection)
+        return {
+            "states": list(reversed(states)),
+            "running": {s.run.id for s in states if background.running(s.run.id)},
+            "job_errors": {
+                s.run.id: error for s in states if (error := background.error(s.run.id))
+            },
+            "queries": strategies.current_queries(folder),
+            "counts": counts,
+            "total": total,
+            "imports": list(reversed(imports.imported_files(folder))),
+            "candidates": candidates,
+            "crossref_running": background.running("crossref"),
+            "crossref_error": background.error("crossref"),
+            "declared_databases": imports.DECLARED_DATABASES,
+        }
+
+    def collection_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        return render(
+            request,
+            "collecte.html",
+            collection_context() | {"error": error, "message": message},
+            status_code=status_code,
+        )
+
+    def _run_job(run_id: str) -> None:
+        collection.collect(
+            folder, run_id, now=now, tool_version=context.tool_version, **collect_options
+        )
+
+    @app.get("/collecte", response_class=HTMLResponse)
+    def show_collection(request: Request, importe: int = 0) -> HTMLResponse:
+        return collection_page(request, message=_("File imported.") if importe else None)
+
+    @app.get("/collecte/etat", response_class=HTMLResponse)
+    def collection_progress(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "_collecte_etat.html",
+            {"csrf_token": context.csrf_token} | collection_context(),
+        )
+
+    @app.post("/collecte/lancer/{database}")
+    def start_collection(request: Request, database: str, _csrf: Csrf) -> Response:
+        try:
+            chosen = Database(database)
+        except ValueError as error:
+            raise HTTPException(status_code=404, detail=_("Unknown database.")) from error
+        try:
+            run = collection.start_collection(
+                folder, chosen, now=now, tool_version=context.tool_version
+            )
+        except (collection.NoCollectableQueryError, collection.CollectionOpenError) as error:
+            return collection_page(request, error=str(error), status_code=422)
+        background.start(run.id, lambda: _run_job(run.id))
+        return see_other("/collecte#collectes")
+
+    @app.post("/collecte/reprendre/{run_id}")
+    def resume_collection(request: Request, run_id: str, _csrf: Csrf) -> Response:
+        state = collection.collection_states(folder).get(run_id)
+        if state is None:
+            raise HTTPException(status_code=404, detail=_("Unknown collection."))
+        if state.finished:
+            return collection_page(
+                request, error=str(collection.AlreadyEndedError()), status_code=422
+            )
+        background.start(run_id, lambda: _run_job(run_id))
+        return see_other("/collecte#collectes")
+
+    @app.post("/collecte/import")
+    async def import_file(request: Request, _csrf: Csrf) -> Response:
+        form = await request.form()
+        upload = form.get("fichier")
+        declared = form.get("base", "")
+        if upload is None or isinstance(upload, str) or not upload.filename:
+            return collection_page(request, error=_("Choose a RIS file."), status_code=422)
+        content = await upload.read()
+        try:
+            await run_in_threadpool(
+                imports.import_ris,
+                folder,
+                upload.filename,
+                content,
+                database=declared if isinstance(declared, str) else "",
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except (
+            imports.AlreadyImportedError,
+            imports.NothingToImportError,
+            imports.UnreadableFileError,
+        ) as error:
+            return collection_page(request, error=str(error), status_code=422)
+        return see_other("/collecte?importe=1#imports")
+
+    @app.post("/collecte/crossref")
+    def enrich_with_crossref(_csrf: Csrf) -> Response:
+        background.start(
+            "crossref",
+            lambda: enrichment.enrich_references(
+                folder, now=now, tool_version=context.tool_version, **crossref_options
+            ),
+        )
+        return see_other("/collecte#crossref")
 
     # --- Protocol ---------------------------------------------------------------------
 

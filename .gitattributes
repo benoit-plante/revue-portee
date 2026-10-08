@@ -1,1 +1,3 @@
 ﻿* text=auto eol=lf
+# Real exports keep their exact bytes (Windows line ends are a variant under test).
+tests/fixtures/ris/*.ris -text

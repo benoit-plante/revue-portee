@@ -5,6 +5,9 @@ is 3 requests per second. Raw answers are returned with the results, to be store
 the project (docs/03-architecture.md §8).
 """
 
+import json
+import re
+import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -12,16 +15,49 @@ from typing import Any
 import httpx2
 from pydantic import SecretStr
 
+from revue_portee.domain.references import clean_doi
 from revue_portee.domain.search import Database, KeyArticle, KeyArticleKind
-from revue_portee.sources.http import RateLimiter, SourceAnswer, chunks, get_json, merge_answers
+from revue_portee.i18n import gettext as _
+from revue_portee.sources.http import (
+    RateLimiter,
+    SourceAnswer,
+    SourceError,
+    SourceInvalidAnswerError,
+    chunks,
+    get_json,
+    get_text,
+    merge_answers,
+)
+from revue_portee.sources.records import FetchedPage, FetchedRecord
 
-__all__ = ["EUTILS", "MeshCheck", "PubMed"]
+__all__ = [
+    "EUTILS",
+    "MAX_RECORDS",
+    "PAGE_SIZE",
+    "MeshCheck",
+    "PubMed",
+    "TooManyRecordsError",
+    "parse_pubmed_xml",
+]
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 SERVICE = "PubMed (E-utilities)"
 TOOL = "revue-portee"
 # Identifiers per request, to keep the URL short (GET requests).
 MAX_UIDS = 200
+PAGE_SIZE = 200
+# PubMed gives at most 10,000 records of one search (E-utilities, since 2022).
+MAX_RECORDS = 10_000
+
+
+class TooManyRecordsError(SourceError):
+    def __init__(self, count: int) -> None:
+        super().__init__(
+            _(
+                "PubMed announces {count} records, but gives at most 10,000 per query: "
+                "split the search (for example by publication years) before collecting."
+            ).format(count=count)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,3 +163,189 @@ class PubMed:
                     raw=(search.raw, summary),
                 )
         return MeshCheck(found=False, heading=None, ui=None, raw=(search.raw, summary))
+
+    def _history(self, query: str) -> tuple[str, str, int]:
+        raw = get_json(
+            self._client,
+            EUTILS + "esearch.fcgi",
+            self._params(db="pubmed", term=query, retmax="0", usehistory="y"),
+            service=SERVICE,
+            limiter=self._limiter,
+        )
+        result = raw.get("esearchresult", {})
+        webenv, key = result.get("webenv"), result.get("querykey")
+        if not webenv or not key:
+            raise SourceInvalidAnswerError(SERVICE)
+        return str(webenv), str(key), int(result.get("count", 0))
+
+    def fetch(self, query: str, cursor: str | None) -> FetchedPage:
+        """One page of the records retrieved by ``query``; ``cursor`` None for the first.
+
+        The cursor holds the history server session (WebEnv) and the next position;
+        when the session has expired, the search is run again and the collection
+        continues at the same position."""
+        state = json.loads(cursor) if cursor else {}
+        retstart = int(state.get("retstart", 0))
+        if not state:
+            webenv, key, count = self._history(query)
+            if count > MAX_RECORDS:
+                raise TooManyRecordsError(count)
+        else:
+            webenv, key, count = state["webenv"], state["query_key"], int(state["count"])
+        params = self._params(
+            db="pubmed",
+            query_key=key,
+            WebEnv=webenv,
+            retstart=str(retstart),
+            retmax=str(PAGE_SIZE),
+            retmode="xml",
+        )
+        text = get_text(
+            self._client, EUTILS + "efetch.fcgi", params, service=SERVICE, limiter=self._limiter
+        )
+        if _is_error(text) and state:  # expired session: search again
+            webenv, key, count = self._history(query)
+            params.update(query_key=key, WebEnv=webenv)
+            text = get_text(
+                self._client,
+                EUTILS + "efetch.fcgi",
+                params,
+                service=SERVICE,
+                limiter=self._limiter,
+            )
+        if _is_error(text):  # never taken for the end of the results
+            raise SourceInvalidAnswerError(SERVICE)
+        records = parse_pubmed_xml(text)
+        following = retstart + PAGE_SIZE
+        if not records and retstart < count:  # an empty page before the end: an error
+            raise SourceInvalidAnswerError(SERVICE)
+        next_cursor = (
+            json.dumps({"webenv": webenv, "query_key": key, "count": count, "retstart": following})
+            if following < count
+            else None
+        )
+        return FetchedPage(records=records, announced=count, next_cursor=next_cursor, raw=text)
+
+
+def _is_error(text: str) -> bool:
+    return "<ERROR>" in text[:2000]
+
+
+def _text(element: ET.Element | None) -> str:
+    return "" if element is None else " ".join("".join(element.itertext()).split())
+
+
+def _authors(container: ET.Element | None) -> tuple[str, ...]:
+    names = []
+    for author in [] if container is None else container.findall("Author"):
+        collective = _text(author.find("CollectiveName"))
+        last, fore = _text(author.find("LastName")), _text(author.find("ForeName"))
+        name = collective or (f"{last}, {fore}" if last and fore else last)
+        if name:
+            names.append(name)
+    return tuple(names)
+
+
+def _abstract(container: ET.Element | None) -> str:
+    parts = []
+    for part in [] if container is None else container.findall("AbstractText"):
+        text, label = _text(part), part.get("Label")
+        if text:
+            parts.append(f"{label}: {text}" if label else text)
+    return "\n".join(parts)
+
+
+def _year(*elements: ET.Element | None) -> int | None:
+    for element in elements:
+        match = re.search(r"(1[0-9]{3}|20[0-9]{2})", _text(element))
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def parse_pubmed_xml(text: str) -> tuple[FetchedRecord, ...]:
+    """Records of an EFetch answer (journal articles and books)."""
+    try:
+        root = ET.fromstring(text)  # noqa: S314 - NCBI answer; expat guards entity expansion
+    except ET.ParseError as error:
+        raise SourceInvalidAnswerError(SERVICE) from error
+    records = []
+    for article in root.iter("PubmedArticle"):
+        citation = article.find("MedlineCitation")
+        if citation is None:
+            continue
+        body = citation.find("Article")
+        journal = None if body is None else body.find("Journal")
+        issue = None if journal is None else journal.find("JournalIssue")
+        date = None if issue is None else issue.find("PubDate")
+        pmid = _text(citation.find("PMID"))
+        doi = next(
+            (
+                _text(i)
+                for i in article.iterfind("PubmedData/ArticleIdList/ArticleId")
+                if i.get("IdType") == "doi"
+            ),
+            "",
+        )
+        if not doi and body is not None:
+            doi = next(
+                (_text(e) for e in body.iterfind("ELocationID") if e.get("EIdType") == "doi"), ""
+            )
+        records.append(
+            FetchedRecord(
+                original_id=pmid,
+                fields={
+                    "title": _text(None if body is None else body.find("ArticleTitle")),
+                    "abstract": _abstract(None if body is None else body.find("Abstract")),
+                    "authors": _authors(None if body is None else body.find("AuthorList")),
+                    "year": _year(
+                        None if date is None else date.find("Year"),
+                        None if date is None else date.find("MedlineDate"),
+                    ),
+                    "container_title": _text(None if journal is None else journal.find("Title")),
+                    "volume": _text(None if issue is None else issue.find("Volume")),
+                    "issue": _text(None if issue is None else issue.find("Issue")),
+                    "pages": _text(None if body is None else body.find("Pagination/MedlinePgn")),
+                    "doi": clean_doi(doi),
+                    "pmid": pmid,
+                    "language": _text(None if body is None else body.find("Language")),
+                    "doc_type": _text(
+                        None if body is None else body.find("PublicationTypeList/PublicationType")
+                    ),
+                },
+            )
+        )
+    for book in root.iter("PubmedBookArticle"):
+        document = book.find("BookDocument")
+        if document is None:
+            continue
+        pmid = _text(document.find("PMID"))
+        title = _text(document.find("ArticleTitle")) or _text(document.find("Book/BookTitle"))
+        doi = next(
+            (
+                _text(i)
+                for i in book.iterfind("PubmedBookData/ArticleIdList/ArticleId")
+                if i.get("IdType") == "doi"
+            ),
+            "",
+        )
+        records.append(
+            FetchedRecord(
+                original_id=pmid,
+                fields={
+                    "title": title,
+                    "abstract": _abstract(document.find("Abstract")),
+                    "authors": _authors(document.find("AuthorList"))
+                    or _authors(document.find("Book/AuthorList")),
+                    "year": _year(document.find("Book/PubDate/Year")),
+                    "container_title": _text(document.find("Book/BookTitle"))
+                    if document.find("ArticleTitle") is not None
+                    else "",
+                    "doi": clean_doi(doi),
+                    "pmid": pmid,
+                    "language": _text(document.find("Language")),
+                    "doc_type": "Book",
+                },
+            )
+        )
+    return tuple(r for r in records if r.original_id)

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Collection") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Collection of references") }}</h1>
+<p>{{ _("References are collected with the queries of the current search strategy (PubMed and OpenAlex), or imported from RIS files exported from other databases. Each reference keeps the source, query, file and date it comes from.") }}</p>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+
+<section aria-labelledby="api-titre">
+  <h2 id="api-titre">{{ _("Collect with the APIs") }}</h2>
+  {% for database in [Database.PUBMED, Database.OPENALEX] %}
+    {% set q = queries.get(database) %}
+    <article>
+      <h3>{{ database.display_name }}</h3>
+      {% if q and q.translation.text %}
+        <pre><code>{{ q.translation.text }}</code></pre>
+        <form method="post" action="/collecte/lancer/{{ database.value }}">
+          {{ csrf() }}
+          <button type="submit">{{ _("Collect every record in %(database)s", database=database.display_name) }}</button>
+        </form>
+      {% else %}
+        <p class="small">{{ _("No query yet: save the search strategy on the Search page.") }}</p>
+      {% endif %}
+    </article>
+  {% endfor %}
+  <p class="small">{{ _("A collection runs in the background, page by page; if it is interrupted, it resumes after its last stored page.") }}</p>
+</section>
+
+{% include "_collecte_etat.html" %}
+
+<section aria-labelledby="imports-titre" id="imports">
+  <h2 id="imports-titre">{{ _("Import a RIS file") }}</h2>
+  <p>{{ _("Export the results of the database in RIS format, then choose the file. The file is kept as is in the project.") }}</p>
+  <form method="post" action="/collecte/import" enctype="multipart/form-data" hx-boost="false">
+    {{ csrf() }}
+    <label for="fichier">{{ _("RIS file") }}</label>
+    <input type="file" id="fichier" name="fichier" accept=".ris,.txt" required>
+    <label for="base">{{ _("Database") }}</label>
+    <select id="base" name="base">
+      <option value="">{{ _("As named in the file") }}</option>
+      {% for name in declared_databases %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+    </select>
+    <button type="submit">{{ _("Import") }}</button>
+  </form>
+  {% if imports %}
+  {% set kinds = {"empty": _("empty record, not imported"), "no_type": _("line outside any record"), "unterminated": _("record not closed by ER"), "bad_line": _("unreadable line")} %}
+  <h3>{{ _("Imported files") }}</h3>
+  <ul>
+    {% for f in imports %}
+    <li>
+      <strong>{{ f.filename }}</strong> — {{ f.database_declared }} — {{ _("records: %(count)s", count=f.record_count) }} — {{ f.imported_at.strftime("%Y-%m-%d %H:%M") }} UTC
+      {% if f.issues %}
+      <details>
+        <summary>{{ _("Problems found: %(count)s", count=f.issues | length) }}</summary>
+        <ul class="small">
+          {% for i in f.issues %}<li>{{ _("Line %(line)s", line=i.line) }}{% if i.record %} ({{ _("record %(number)s", number=i.record) }}){% endif %}&nbsp;: {{ kinds[i.kind] }}{% if i.text %} — «&nbsp;{{ i.text }}&nbsp;»{% endif %}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

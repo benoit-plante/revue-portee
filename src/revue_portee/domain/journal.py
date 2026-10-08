@@ -53,6 +53,12 @@ class EntryType:
     SEARCH_DESCRIPTORS_CHECKED = "search.descriptors_checked"
     SEARCH_TERMS_SUGGESTED = "search.terms_suggested"
     SEARCH_TERM_SUGGESTION_REVIEWED = "search.term_suggestion_reviewed"
+    COLLECT_STARTED = "collect.started"
+    COLLECT_PAGE_STORED = "collect.page_stored"
+    COLLECT_COMPLETED = "collect.completed"
+    COLLECT_FAILED = "collect.failed"
+    IMPORT_COMPLETED = "import.completed"
+    ENRICH_COMPLETED = "enrich.completed"
 
 
 class JournalEntry(BaseModel):
