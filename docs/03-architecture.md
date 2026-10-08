@@ -47,7 +47,7 @@
 | Stockage | SQLite (module standard) via SQLAlchemy 2.0 Core; migrations Alembic | MIT | Un seul fichier par projet, transactions, rapide jusqu'à des centaines de milliers de lignes |
 | HTTP | httpx | BSD | Synchrone et asynchrone, facile à simuler |
 | Ligne de commande | Typer | MIT | |
-| RIS | rispy | MIT | Analyseur RIS maintenu; enveloppé pour tolérer les variantes |
+| RIS | Lecteur du projet (`sources/ris.py`, D-056) | — | Tolère les variantes des vrais exports et signale chaque enregistrement vide ou mal formé; rispy, envisagé au départ, n'est pas utilisé |
 | Appariement approximatif | RapidFuzz | MIT | Dédoublonnage |
 | Classificateur rapide | scikit-learn | BSD | TF-IDF + régression logistique, étalonnage |
 | Claude | SDK `anthropic` | MIT | Sorties structurées, mise en cache des invites, lots asynchrones |
@@ -74,7 +74,7 @@ revue-portee/
 ├── src/revue_portee/
 │   ├── domain/                   # aucun import externe hors pydantic
 │   │   ├── ids.py                # identifiants (ULID), codes de critères
-│   │   ├── references.py         # Reference, Provenance, normalisation DOI/titre
+│   │   ├── references.py         # Reference, Provenance, collectes, imports, Enrichment, merged (D-055)
 │   │   ├── criteria.py           # CriteriaVersion, Criterion, différentiel
 │   │   ├── changes.py            # ChangeType, CriterionChange, qualification (EF-VER-03)
 │   │   ├── suggestions.py        # suggestions de l'IA pour le cadrage et leur décision
@@ -97,9 +97,12 @@ revue-portee/
 │   ├── sources/
 │   │   ├── __init__.py           # interface SearchSource, fabrique des connecteurs
 │   │   ├── http.py               # client httpx2, limiteur de débit, reprise, erreurs en français
-│   │   ├── openalex.py, pubmed.py # comptes, appartenance, résolution d'articles; MeSH (PubMed)
-│   │   ├── crossref.py, unpaywall.py
-│   │   ├── ris.py                # import RIS
+│   │   ├── openalex.py, pubmed.py # comptes, appartenance, résolution d'articles, collecte paginée
+│   │   │                         # (fetch); MeSH et serveur d'historique (PubMed, D-054)
+│   │   ├── records.py            # FetchedRecord, FetchedPage : notices et pages renvoyées par fetch
+│   │   ├── crossref.py           # notice d'un DOI (enrichissement, D-055)
+│   │   ├── unpaywall.py          # (V2)
+│   │   ├── ris.py                # lecteur RIS tolérant, reconnaissance de la base (D-056)
 │   │   └── oai_pmh.py            # Érudit, HAL, dépôts (V2)
 │   ├── protocol/                 # cas d'usage de l'étape 1 : cadrage, critères, notes du journal,
 │   │                             # suggestions et qualification par l'IA (ai_assist.py), protocole
@@ -107,6 +110,8 @@ revue-portee/
 │   │                             # comptes, articles clés, sensibilité, descripteurs (runs.py),
 │   │                             # suggestions de termes (suggestions.py); traducteurs (translate.py)
 │   │                             # et comparateur d'équivalence syntaxique (equivalence.py)
+│   ├── collect/                  # cas d'usage de la collecte : collectes reprenables (collection.py,
+│   │                             # D-053), import RIS (imports.py), enrichissement Crossref (enrichment.py)
 │   ├── dedup/                    # dédoublonnage
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
 │   ├── ai/
@@ -124,7 +129,7 @@ revue-portee/
 │   ├── config/                   # paramètres, secrets (seul point d'accès aux variables d'env.)
 │   │   ├── secrets.py            # lecture des secrets (SecretStr), masquage des journaux
 │   │   └── secret_scan.py        # détection de secrets dans des fichiers (tests/, archive)
-│   ├── jobs/                     # tâches de fond persistantes
+│   ├── jobs/runner.py            # tâches de fond dans des fils du serveur (BackgroundJobs, D-059)
 │   ├── web/                      # FastAPI : routes (app.py), lecture du formulaire de stratégie
 │   │                             # (search_form.py), gabarits, statique (HTMX copié, D-033)
 │   ├── cli/                      # Typer : nouveau, serve, verifier-journal, protocole
@@ -140,8 +145,8 @@ revue-portee/
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
     ├── cassettes/                # réponses enregistrées, nettoyées
-    └── fixtures/                 # stratégies de référence publiées (search/), RIS réels anonymisés,
-                                  # petits jeux SYNERGY
+    └── fixtures/                 # stratégies de référence publiées (search/), extraits d'exports RIS
+                                  # réels nettoyés (ris/, D-057); plus tard petits jeux SYNERGY
 ```
 
 ## 4. Format du dossier de projet
@@ -155,8 +160,9 @@ ecoanxiete-enfants.revue/
 ├── brut/
 │   ├── ia/AAAA/MM/<ai_call_id>.json.gz       # réponses brutes des modèles (ENF-TRA-03)
 │   └── sources/<id>/page-0001.json.gz        # réponses brutes des API, une par requête : comptes et
-│                                             # tests de sensibilité (search_run.id), vérifications MeSH
-├── imports/<sha256>.ris  # copie exacte de chaque fichier importé
+│                                             # tests de sensibilité (search_run.id), vérifications MeSH,
+│                                             # pages d'une collecte (collection_run.id), lots Crossref
+├── imports/<sha256>.ris  # copie exacte de chaque fichier importé (D-056)
 ├── textes/               # PDF et texte extrait avec pages (V2)
 ├── etalonnage/           # modèles d'étalonnage sérialisés, par tour de pilote
 └── exports/              # fichiers générés (diagramme, protocole, méthode, CSV) — régénérables
@@ -183,7 +189,7 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 | `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `import.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
 
 ### 5.2 Critères versionnés
 
@@ -212,17 +218,21 @@ Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `fr
 | `descriptor_check` | id, created_at, vocabulary, heading, found, official_heading, descriptor_ui, raw_dir, reviewer_id, journal_entry_id | Vérification d'un descripteur MeSH par E-utilities (EF-REC-02) |
 | `term_suggestion` | id, ai_call_id, strategy_version_id, position, block_code, kind (`free_term` / `descriptor`), line, rationale, created_at | Termes proposés par l'IA (tâche `suggest_terms`), dans la syntaxe des termes (D-049) |
 | `term_suggestion_review` | id, suggestion_id (unique), outcome, final_line, reviewer_id, created_at, strategy_version_id, journal_entry_id | Décision humaine; `strategy_version_id` : version créée par l'ajout du terme (D-042) |
-| `import_file` | id, filename, sha256, format, database_declared, imported_at, record_count, warnings_json | Tranche 1.4 |
+| `collection_run` | id, query_id, database, query_text, started_at, reviewer_id, journal_entry_id | Collecte de tous les enregistrements d'une requête; au plus une ouverte par base (D-053) |
+| `collection_page` | run_id, number, announced, record_count, new_references, next_cursor, raw_path, created_at, journal_entry_id | Une page enregistrée avec ses références, dans une transaction : l'unité de reprise (D-053) |
+| `collection_end` | run_id (unique), status (`completed` / `failed`), announced, collected, discrepancy, error, ended_at, journal_entry_id | Fin d'une collecte : nombre collecté comparé au nombre annoncé, écart expliqué (EF-COL-01) |
+| `import_file` | id, filename, sha256 (unique), format, database_declared, imported_at, record_count, issues_json, reviewer_id, journal_entry_id | Fichier RIS importé une seule fois; enregistrements vides ou mal formés listés dans `issues_json` (D-056) |
 
-Toutes ces tables sont en ajout seulement (déclencheurs, migration 0003). La table `concept_block` envisagée au départ est remplacée par `strategy_json` (D-048).
+Toutes ces tables sont en ajout seulement (déclencheurs, migrations 0003 et 0004). La table `concept_block` envisagée au départ est remplacée par `strategy_json` (D-048). La collecte n'utilise pas `search_run`, réservé aux comptes et aux tests de sensibilité (écart, D-053).
 
 ### 5.4 Références, provenance, doublons
 
 | Table | Champs principaux | Notes |
 |---|---|---|
-| `reference` | id, title, abstract, authors_json, year, container_title, volume, issue, pages, doi, pmid, openalex_id, language, doc_type, url, oa_url | Champs normalisés |
-| `provenance` | id, reference_id, source (`openalex` / `pubmed` / `ris` / `oai` / `manual`), search_run_id, import_file_id, original_id, raw_pointer | EF-COL-05; plusieurs par référence |
-| `duplicate_link` | id, primary_reference_id, duplicate_reference_id, method (`doi` / `pmid` / `fuzzy` / `manual`), score, decided_by_reviewer_id, created_at, active | Réversible : désactiver un lien en crée un nouveau état (EF-COL-07) |
+| `reference` | id, title, abstract, authors_json, year, container_title, volume, issue, pages, doi, pmid, openalex_id, language, doc_type, url, created_at | Champs normalisés, enregistrés tels que reçus et jamais modifiés (D-055); `oa_url` viendra avec Unpaywall (V2) |
+| `provenance` | id, reference_id, source (`openalex` / `pubmed` / `ris`; plus tard `oai`, `manual`), original_id, collection_run_id, import_file_id, query_id, page, created_at | EF-COL-05; plusieurs par référence; `page` : page brute (collecte) ou position de l'enregistrement (import); un identifiant d'origine au plus une fois par collecte |
+| `enrichment` | id, reference_id, source (`crossref`), fields_json, raw_dir, created_at, journal_entry_id | Champs manquants trouvés par Crossref; vide si le DOI est inconnu; la référence fusionnée est calculée (D-055) |
+| `duplicate_link` | id, primary_reference_id, duplicate_reference_id, method (`doi` / `pmid` / `fuzzy` / `manual`), score, decided_by_reviewer_id, created_at, active | Réversible : désactiver un lien en crée un nouveau état (EF-COL-07); tranche 1.5 |
 
 ### 5.5 Sélection
 
@@ -341,11 +351,13 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 ## 8. Connecteurs de sources
 
 - Interface `SearchSource` (tranche 1.3) : `count(query)`, `among(query, ids)` (lesquels de ces identifiants la requête retrouve, par lots), `resolve(article)` (identifiant d'un article clé dans la base). Les services reçoivent une fabrique (`SourceFactory`); les tests y substituent des connecteurs qui rejouent des réponses enregistrées. Un connecteur ferme le client HTTP qu'il a créé.
-- À venir (tranche 1.4) : `fetch(query) -> Iterator[RawRecord]` (paginé, reprenable), `normalize(raw) -> Reference`.
+- Collecte (tranche 1.4, interface `Collector` de `collect/collection.py`) : `fetch(query, cursor) -> FetchedPage` donne une page de notices déjà normalisées (`FetchedRecord`), le nombre annoncé et le curseur de la page suivante (`None` à la fin); `cursor` vaut `None` pour la première page. OpenAlex : curseur de l'API, pages de 200. PubMed : serveur d'historique, pages de 200, au plus 10 000 notices par recherche (D-054). Le cas d'usage (`collect/collection.py`) enregistre chaque page avec son curseur, ce qui rend la collecte reprenable (D-053).
+- Crossref (`sources/crossref.py`) : `work(doi)` donne la notice d'un DOI (ou `None` s'il est inconnu) et la réponse brute; enrichissement par lots de 100, au plus trois requêtes simultanées (D-055).
 - **Limiteur de débit** par source, paramétré selon les conditions de 2026 (voir [01-etat-de-l-art.md §6](01-etat-de-l-art.md#6-sources-de-données-et-conditions-daccès-2026)) : OpenAlex (clé requise, suivi de l'allocation quotidienne), PubMed (3 ou 10 requêtes/s, `tool` et `email`), Crossref (pool « poli », concurrence ≤ 3), Unpaywall (`email`).
 - Nouvelle tentative avec attente exponentielle sur 429, 5xx, délais dépassés et connexions coupées en cours de réponse; arrêt propre et message clair en français si le **domaine est bloqué par la liste réseau** de l'environnement, si l'accès est refusé ou si la réponse est illisible (`SourceError`, `sources/http.py`).
 - PubMed : `tool=revue-portee` et `email` (adresse de contact lue par `config/secrets.py`); vérification des descripteurs par `esearch` puis `esummary` sur la base `mesh`. OpenAlex : filtres de l'API `works` (D-050). PsycINFO (EBSCOhost) n'a pas d'API publique : la requête est produite pour être exécutée dans l'interface.
 - Chaque page brute est conservée dans `brut/sources/`.
+- Bases sans API (PsycINFO EBSCOhost ou Ovid, CINAHL, ERIC, SocINDEX, Scopus, Web of Science, Érudit) : import de fichiers RIS (`sources/ris.py`, `collect/imports.py`, D-056).
 
 ## 9. Interface web
 
@@ -353,11 +365,12 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
 - Ajouts de la tranche 1.3 : page « Recherche » : blocs de concepts éditables et limites; requêtes de chaque base avec leurs avertissements; nombre de résultats au total et par bloc (PubMed, OpenAlex); vérification des descripteurs MeSH; articles clés et test de sensibilité; suggestions de termes par l'IA; historique des versions. Le protocole décrit la stratégie et donne les requêtes à l'annexe II.
+- Ajouts de la tranche 1.4 : page « Collecte » : collecte de chaque requête OpenAlex et PubMed, état mis à jour toutes les 2 secondes, reprise d'une collecte ouverte, écart entre nombre annoncé et collecté; import de fichiers RIS avec la base déclarée et la liste des enregistrements écartés; enrichissement par Crossref; nombre de références par source.
 - Ajouts de la tranche 1.2 : suggestions de l'IA sur « Cadrage » (accepter, modifier, refuser); qualification des changements sur « Critères », avec proposition facultative de l'IA; page « Protocole » (téléchargement Markdown et DOCX en français et en anglais, enregistrement OSF, état des éléments de Peters et al., texte libre). Tout appel à l'IA passe par une page d'estimation du coût, puis une confirmation (ENF-COU-01).
 - Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
 - Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
 - **Sécurité locale** (D-032) : chaque formulaire porte un jeton propre au processus du serveur; les en-têtes `Host` autres que `127.0.0.1` ou `localhost`, et les en-têtes `Origin` étrangers sur les écritures, sont refusés (requêtes intersites, DNS rebinding).
-- **Tâches de fond** (`jobs/`) : file persistée dans SQLite, exécutée par un fil de travail dans le processus du serveur; reprise au redémarrage (ENF-PER-04). Pas de Celery ni de Redis.
+- **Tâches de fond** (`jobs/runner.py`) : chaque tâche longue (collecte, enrichissement) s'exécute dans un fil du processus du serveur, au plus une par clé. Son état est ce qu'elle a enregistré dans le projet; une tâche arrêtée avec le serveur se reprend en la relançant (ENF-PER-04). Pas de file persistée ni de reprise automatique au redémarrage (écart, D-059). Pas de Celery ni de Redis.
 
 ## 10. Sécurité et secrets
 
@@ -382,7 +395,7 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 | Intégration réelle (API de sources, Claude) | `tests/integration/`, marqueur `integration` | **Oui** | `uv run pytest -m integration` — **volontairement seulement** |
 | Performance de tri sur SYNERGY (sous-ensemble) | `tests/benchmarks/` (V1, tranche 7) | Oui (modèle) | Manuel, résultats consignés |
 
-`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets. Les tests des connecteurs `httpx2` portent le marqueur `cassette` (D-047) : ils rejouent `tests/cassettes/<module>/<test>.json`; `uv run pytest <test> --record-mode=once` enregistre une cassette absente contre le vrai service, sur autorisation de Benoit.
+`pyproject.toml` configure `addopts` avec `-m "not integration"` et `--record-mode=none` (cassettes en lecture seule), et `tests/conftest.py` bloque le réseau pour tout test non marqué `integration` (D-016) : aucun test ordinaire ne peut atteindre le réseau. Pour enregistrer une cassette : `uv run pytest -m integration --record-mode=once`, puis nettoyage et vérification anti-secrets. Les tests des connecteurs `httpx2` portent le marqueur `cassette` (D-047) : ils rejouent `tests/cassettes/<module>/<test>.json`; `uv run pytest <test> --record-mode=once` enregistre une cassette absente contre le vrai service, sur autorisation de Benoit. Avant d'être écrites, les réponses sont réduites à ce dont les tests ont besoin (`trim_body` : résumés tronqués, courriels masqués, références citées retirées, D-058). Les exports RIS réels sont versionnés comme extraits nettoyés, octets conservés (D-057).
 
 **Couverture** (ENF-QUA-04, D-023) : chaque exécution de `pytest` mesure la couverture de `revue_portee`, branches comprises (pytest-cov). Le greffon `tests/_plugins/coverage_gate.py` fait échouer la suite si l'un des paquets `domain`, `dedup` ou `reporting` est sous 90 %, chacun séparément. Le seuil n'est vérifié que sur la suite complète, et se règle dans `pyproject.toml` (`coverage_gate_packages`, `coverage_gate_fail_under`).
 
