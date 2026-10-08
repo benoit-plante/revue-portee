@@ -973,3 +973,108 @@ Propositions de la tranche 1.4 (2026-10-08), mises en œuvre dans les demandes d
   - **Écart à 03-architecture.md §9** : pas de reprise automatique au redémarrage; la page « Collecte » propose de reprendre chaque collecte ouverte.
   - À revoir pour les lots de tri par l'IA (tranche 1.6), si une reprise automatique devient nécessaire.
 - **Renvois** : ENF-PER-04; demande de fusion benoit-plante/revue-portee#8.
+
+Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de fusion benoit-plante/revue-portee#11 :
+
+### D-060 — Jeu annoté du dédoublonnage
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Le jeu de test du critère « rappel ≥ 0,98 et précision ≥ 0,99 » (`tests/fixtures/dedup/`) réunit 4 486 notices :
+    - les exports réels LUDIQ de Benoit (4 209 notices de PubMed, PsycInfo EBSCOhost et Ovid, CINAHL, SocINDEX, Érudit et ERIC);
+    - des notices OpenAlex (CC0) : 23 vraies paires prépublication–article et des paires difficiles;
+    - 103 variantes construites à partir de notices OpenAlex (accents, majuscules, sous-titre, ponctuation, DOI absent, initiales, année de mise en ligne, balises HTML, faute de frappe).
+  - Les exports LUDIQ sont versionnés **sans résumés**, ni URL, ni numéros d'accès : seulement les métadonnées bibliographiques et le groupe annoté.
+  - Annotation : paires candidates produites indépendamment de l'outil, doublons évidents par identifiant et titre, revue manuelle des 87 paires limites. La méthode est décrite dans `tests/fixtures/dedup/README.md`.
+  - Règles d'annotation :
+    - la même notice dans plusieurs bases est un doublon;
+    - une thèse, une communication ou une prépublication et l'article, ou le même travail publié dans deux revues, sont des **versions**;
+    - les correctifs, rétractations, réponses et commentaires sont des notices distinctes.
+  - Un jeu de démonstration de 9 notices fictives (`demo-*.ris`) sert aux nombres calculés à la main.
+- **Contexte** : le critère demande au moins 1 000 références annotées avec des doublons connus; le dépôt est public (2026-10-07).
+- **Options envisagées** :
+  1. **Exports LUDIQ et compléments OpenAlex** : des doublons réels entre bases, et des cas rares ajoutés de façon contrôlée.
+  2. OpenAlex seulement : annotation certaine, mais doublons peu réalistes.
+  3. Jeu public de référence (par exemple ASySD) : un domaine à ajouter à la liste réseau et une licence à vérifier.
+- **Justification** : choix de Benoit (option 1, métadonnées sans résumés). La CI peut vérifier le critère à chaque demande de fusion.
+- **Conséquences** :
+  - **Écart à D-057**, qui ne versionne que des extraits d'exports : ici, les métadonnées des exports complets sont publiées, sans les résumés.
+  - L'annotation des doublons évidents s'appuie sur les identifiants, comme la première étape de l'outil. Une mesure sans aucun identifiant vérifie l'appariement approximatif seul : rappel 0,998, précision 1,000.
+  - Un échantillon des grappes et les paires revues à la main restent à vérifier par Benoit.
+- **Renvois** : EF-COL-06, ENF-QUA-01, D-057; demande de fusion benoit-plante/revue-portee#11.
+
+### D-061 — Exécutions, paires et décisions en ajout seulement
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Trois tables en ajout seulement :
+    - `dedup_run` : une exécution, avec ses seuils et la version des règles;
+    - `duplicate_pair` : les paires trouvées par une exécution, avec leur type, leur règle, leur score et leur proposition (regroupée ou à examiner);
+    - `pair_decision` : les décisions d'une personne.
+  - Un lien entre deux références est **en vigueur** si la dernière décision humaine sur la paire dit « doublons », ou, sans décision, si la dernière exécution l'a regroupée automatiquement. Les décisions sont ordonnées selon le journal, pas selon leur identifiant.
+  - Les groupes sont les références reliées entre elles. La **référence principale est calculée** : la notice la plus complète (DOI, résumé, PMID, champs remplis), puis la plus ancienne.
+  - Annuler un regroupement consigne la décision « pas des doublons »; regrouper de nouveau en consigne une autre. Une nouvelle exécution conserve les décisions prises.
+  - Une paire dont les deux références sont déjà dans le même groupe, par d'autres liens, n'est plus à examiner.
+  - Le dédoublonnage s'exécute en arrière-plan (`BackgroundJobs`, D-059), et chaque exécution est une seule transaction.
+- **Contexte** : EF-COL-07 exige un regroupement réversible, sans suppression, qui consigne la règle appliquée.
+- **Options envisagées** :
+  1. **Paires et décisions, liens calculés** : rien n'est modifié; l'état se recalcule à partir des lignes.
+  2. Table `duplicate_link` avec `primary_reference_id` et une colonne `active` (prévue dans 03-architecture.md §5.4) : une colonne `active` devrait être modifiée, et une référence principale stockée deviendrait fausse après une annulation.
+- **Justification** : l'option 1 respecte l'ajout seulement (ENF-TRA-02) sans exception.
+- **Conséquences** :
+  - **Écart à 03-architecture.md §5.4** : `duplicate_link` est remplacée.
+  - Le choix manuel de la référence principale n'est pas offert en V1.
+- **Renvois** : EF-COL-07, ENF-TRA-01, ENF-TRA-02, D-028, D-059; demande de fusion benoit-plante/revue-portee#11.
+
+### D-062 — Règles d'appariement
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** (version 1 des règles, consignée dans chaque exécution) :
+  - **Étape 1, identifiants.** Un même DOI normalisé, PMID ou identifiant OpenAlex donne un doublon. Si les titres divergent, ou si un autre identifiant diffère, la paire va à une personne.
+  - **Étape 2, appariement approximatif.**
+    - Blocage par cinq clés : début du titre, trois mots les plus longs, fin du titre, auteur et année et première page, revue et volume et première page.
+    - Score : moyenne pondérée des champs connus des deux notices : titre 0,55, premier auteur 0,15, année 0,10, revue 0,10, volume et première page 0,10.
+    - Normalisation : balises, accents, casse et ponctuation retirés; titre tronqué ou sans sous-titre compté à 0,95; nom de famille du premier auteur lu dans tous les formats usuels.
+  - **Jamais regroupées automatiquement** : DOI ou PMID différents, nombres différents dans les titres (« partie II » et « partie III »), années distantes de plus d'un an, premier auteur différent ou absent, premières pages différentes dans le même volume, titre traduit par PubMed (entre crochets).
+  - **Jamais appariées** : deux notices dont les titres n'ont pas les mêmes mots de correctif, de rétractation, de réponse, de commentaire ou de matériel supplémentaire.
+  - **Seuils réglables**, par défaut 0,75 (paire soumise à une personne) et 0,93 (paire regroupée automatiquement).
+- **Contexte** : EF-COL-06 demande un appariement avec score et des paires incertaines soumises à un humain; le principe n° 1 du projet exclut toute exclusion automatique non vérifiable.
+- **Options envisagées** :
+  1. **Règles explicables et score pondéré** : chaque paire donne sa règle et les raisons d'un examen humain.
+  2. Modèle appris (classificateur) : moins explicable, et il faudrait des données d'entraînement par revue.
+- **Justification** : sur le jeu annoté, l'option 1 atteint un rappel et une précision de 1,000, avec 59 paires soumises; les résultats tiennent pour les seuils 0,60/0,85 et 0,80/0,97.
+- **Conséquences** : toute modification des règles incrémente `ALGORITHM_VERSION` (`domain/dedup.py`), et le test sur le jeu annoté doit rester au-dessus des cibles.
+- **Renvois** : EF-COL-06, ENF-REP-01; demande de fusion benoit-plante/revue-portee#11.
+
+### D-063 — Versions d'un même travail
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** : une prépublication et l'article, une thèse ou une communication et l'article, ou le même travail publié dans deux revues (DOI différents, revues différentes) forment une paire de type `version`. Elle est toujours soumise à une personne, qui choisit de les regrouper ou non; sans décision, elles restent distinctes. Pour le préfixe DOI 10.1101/, seules les formes de bioRxiv et medRxiv comptent comme prépublications (le préfixe sert aussi à des revues de Cold Spring Harbor Laboratory Press).
+- **Contexte** : le critère d'acceptation demande que la paire prépublication–version publiée soit signalée.
+- **Options envisagées** :
+  1. **Lien distinct, décision humaine** : la personne décide selon le protocole de la revue.
+  2. Doublons ordinaires, regroupés au-dessus du seuil : une décision de méthode serait prise par l'outil.
+- **Justification** : choix de Benoit (option 1); inclure les deux versions ou une seule relève du protocole.
+- **Conséquences** : le rapport de recherche devra pouvoir mentionner les versions regroupées (tranche de la section méthode).
+- **Renvois** : EF-COL-06; demande de fusion benoit-plante/revue-portee#11.
+
+### D-064 — Nombres du diagramme de flux
+
+- **Date** : 2026-10-08
+- **Statut** : proposée
+- **Décision** :
+  - Références repérées par source : les références de chaque base, nommée par la collecte (base de la requête) ou par la base déclarée pour un fichier RIS (la première provenance d'une référence en a plusieurs).
+  - Doublons retirés : les références regroupées sous une référence principale.
+  - Références après dédoublonnage : les repérées moins les doublons retirés.
+  - Les paires encore à examiner comptent comme distinctes, et la page l'indique.
+- **Contexte** : EF-COL-08 demande des nombres calculés à partir des données, jamais saisis à la main.
+- **Options envisagées** :
+  1. **Comptes calculés à chaque affichage** (`dedup/counts.py`, fonction pure) : toujours cohérents avec les liens en vigueur.
+  2. Comptes enregistrés avec chaque exécution : faux dès la décision suivante.
+- **Justification** : les décisions humaines changent les nombres; seul un calcul à la demande reste exact.
+- **Conséquences** : le jeu de démonstration (9 notices fictives) vérifie les nombres calculés à la main : 9 repérées, 3 doublons retirés, 6 après dédoublonnage et 1 paire à examiner, puis 4 et 5 après la décision.
+- **Renvois** : EF-COL-08; demande de fusion benoit-plante/revue-portee#11.

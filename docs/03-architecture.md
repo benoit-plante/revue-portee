@@ -48,7 +48,7 @@
 | HTTP | httpx | BSD | Synchrone et asynchrone, facile à simuler |
 | Ligne de commande | Typer | MIT | |
 | RIS | Lecteur du projet (`sources/ris.py`, D-056) | — | Tolère les variantes des vrais exports et signale chaque enregistrement vide ou mal formé; rispy, envisagé au départ, n'est pas utilisé |
-| Appariement approximatif | RapidFuzz | MIT | Dédoublonnage |
+| Appariement approximatif | RapidFuzz | MIT | Dédoublonnage (D-062) |
 | Classificateur rapide | scikit-learn | BSD | TF-IDF + régression logistique, étalonnage |
 | Claude | SDK `anthropic` | MIT | Sorties structurées, mise en cache des invites, lots asynchrones |
 | PDF → texte avec pages (V2) | PyMuPDF par défaut (compatible avec l'AGPL, D-004); pypdf ou pdfplumber en solution de rechange — choix confirmé par un essai comparatif à la tranche 2.1 | AGPL / BSD / MIT | Fiabilité de l'extraction avec pages |
@@ -75,6 +75,7 @@ revue-portee/
 │   ├── domain/                   # aucun import externe hors pydantic
 │   │   ├── ids.py                # identifiants (ULID), codes de critères
 │   │   ├── references.py         # Reference, Provenance, collectes, imports, Enrichment, merged (D-055)
+│   │   ├── dedup.py              # DedupRun, DuplicatePair, PairDecision, DedupSettings (D-061)
 │   │   ├── criteria.py           # CriteriaVersion, Criterion, différentiel
 │   │   ├── changes.py            # ChangeType, CriterionChange, qualification (EF-VER-03)
 │   │   ├── suggestions.py        # suggestions de l'IA pour le cadrage et leur décision
@@ -111,8 +112,11 @@ revue-portee/
 │   │                             # suggestions de termes (suggestions.py); traducteurs (translate.py)
 │   │                             # et comparateur d'équivalence syntaxique (equivalence.py)
 │   ├── collect/                  # cas d'usage de la collecte : collectes reprenables (collection.py,
-│   │                             # D-053), import RIS (imports.py), enrichissement Crossref (enrichment.py)
-│   ├── dedup/                    # dédoublonnage
+│   │                             # D-053), import RIS (imports.py), enrichissement Crossref (enrichment.py),
+│   │                             # dédoublonnage (deduplication.py, D-061)
+│   ├── dedup/                    # dédoublonnage, fonctions pures : normalize, matching (D-062),
+│   │                             # groups (liens, groupes, référence principale), counts (D-064),
+│   │                             # evaluation (rappel et précision sur un jeu annoté)
 │   ├── screening/                # pilote, échantillonnage, réconciliation, seuils
 │   ├── ai/
 │   │   ├── base.py               # TaskSpec, TaskInput/TaskOutput, TaskResult, AICallRecord, ModelProvider
@@ -145,7 +149,8 @@ revue-portee/
     ├── unit/
     ├── integration/              # marqueur « integration », exclus par défaut
     ├── cassettes/                # réponses enregistrées, nettoyées
-    └── fixtures/                 # stratégies de référence publiées (search/), extraits d'exports RIS
+    └── fixtures/                 # stratégies de référence publiées (search/), jeu annoté du dédoublonnage
+                                  # (dedup/, D-060), extraits d'exports RIS
                                   # réels nettoyés (ris/, D-057); plus tard petits jeux SYNERGY
 ```
 
@@ -189,7 +194,7 @@ Les règles d'ajout seulement sont imposées par des **déclencheurs SQLite** da
 | `ai_config` | id, task, provider, model_requested, prompt_template_id, prompt_template_version, params_json, created_at | Configuration **demandée**, consignée à sa première utilisation (D-039); la version **effective** est dans `ai_call` |
 | `journal_entry` | id, position (0, 1, 2…), created_at, actor_reviewer_id, entry_type, subject_type, subject_id, payload_json, summary_fr, prev_hash, hash, tool_version | Ajout seulement; chaque entrée inclut l'empreinte de la précédente (chaîne vérifiable, format D-029); `position` donne l'ordre de la chaîne |
 
-Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
+Types d'entrées du journal (extrait) : `project.created`, `project.opened`, `framing.updated`, `framing.suggestions_received`, `framing.suggestion_reviewed`, `criteria.draft_started`, `criteria.draft_edited`, `criteria.draft_discarded`, `criteria.version_created`, `criteria.change_proposed`, `criteria.change_qualified`, `ai.config_recorded`, `ai.call_failed`, `ai.result_unusable`, `protocol.text_updated`, `impact.assessed`, `reassessment.completed`, `search.query_versioned`, `search.run_completed`, `search.key_articles_updated`, `search.sensitivity_checked`, `search.descriptors_checked`, `search.terms_suggested`, `search.term_suggestion_reviewed`, `collect.started`, `collect.page_stored`, `collect.completed`, `collect.failed`, `import.completed`, `enrich.completed`, `dedup.completed`, `dedup.pair_decided`, `pilot.round_completed`, `thresholds.set`, `ai_mode.enabled`, `protocol.registered`, `note.added`, `budget.reached`.
 
 ### 5.2 Critères versionnés
 
@@ -232,7 +237,11 @@ Toutes ces tables sont en ajout seulement (déclencheurs, migrations 0003 et 000
 | `reference` | id, title, abstract, authors_json, year, container_title, volume, issue, pages, doi, pmid, openalex_id, language, doc_type, url, created_at | Champs normalisés, enregistrés tels que reçus et jamais modifiés (D-055); `oa_url` viendra avec Unpaywall (V2) |
 | `provenance` | id, reference_id, source (`openalex` / `pubmed` / `ris`; plus tard `oai`, `manual`), original_id, collection_run_id, import_file_id, query_id, page, created_at | EF-COL-05; plusieurs par référence; `page` : page brute (collecte) ou position de l'enregistrement (import); un identifiant d'origine au plus une fois par collecte |
 | `enrichment` | id, reference_id, source (`crossref`), fields_json, raw_dir, created_at, journal_entry_id | Champs manquants trouvés par Crossref; vide si le DOI est inconnu; la référence fusionnée est calculée (D-055) |
-| `duplicate_link` | id, primary_reference_id, duplicate_reference_id, method (`doi` / `pmid` / `fuzzy` / `manual`), score, decided_by_reviewer_id, created_at, active | Réversible : désactiver un lien en crée un nouveau état (EF-COL-07); tranche 1.5 |
+| `dedup_run` | id, created_at, reviewer_id, settings_json (seuils, version des règles), reference_count, automatic_pairs, review_pairs, journal_entry_id | Une exécution du dédoublonnage (EF-COL-06, D-062) |
+| `duplicate_pair` | id, run_id, reference_a_id, reference_b_id (a < b), kind (`identifier` / `fuzzy` / `version`), rule, score, proposal (`duplicate` / `review`), details_json | Paires trouvées par une exécution, avec les raisons d'un examen humain (D-062, D-063) |
+| `pair_decision` | id, reference_a_id, reference_b_id, pair_id, outcome (`duplicate` / `not_duplicate`), reviewer_id, note, created_at, journal_entry_id | Décision d'une personne; la dernière compte, dans l'ordre du journal (EF-COL-07) |
+
+Toutes ces tables sont en ajout seulement (migrations 0004 et 0005). Les liens en vigueur, les groupes et la référence principale sont **calculés** à partir de la dernière exécution et des décisions; la table `duplicate_link` envisagée au départ est remplacée (écart, D-061).
 
 ### 5.5 Sélection
 
@@ -365,12 +374,13 @@ La réévaluation crée un `screening_round` de type `reassessment`; les nouvell
 - Pages V1 : tableau de bord du projet (étape courante, nombres, coûts), cadrage PCC et critères (avec historique et différentiel), stratégie de recherche et test de sensibilité, collecte et imports, doublons à confirmer, pilote (tri à l'aveugle puis tableau d'étalonnage), tri principal, réconciliation, analyse d'impact, journal, exports.
 - Pages livrées à la tranche 1.1 : « Cadrage », « Critères » (version en vigueur, brouillon, versions, différentiel) et « Journal » (entrées, notes, vérification de la chaîne).
 - Ajouts de la tranche 1.3 : page « Recherche » : blocs de concepts éditables et limites; requêtes de chaque base avec leurs avertissements; nombre de résultats au total et par bloc (PubMed, OpenAlex); vérification des descripteurs MeSH; articles clés et test de sensibilité; suggestions de termes par l'IA; historique des versions. Le protocole décrit la stratégie et donne les requêtes à l'annexe II.
+- Ajouts de la tranche 1.5 : page « Doublons » : nombres du diagramme par source (D-064); exécution en arrière-plan avec seuils réglables; paires à examiner côte à côte, différences signalées, raisons d'un examen humain; groupes de doublons avec leur référence principale et leurs liens, chacun annulable; paires gardées séparées, de nouveau regroupables.
 - Ajouts de la tranche 1.4 : page « Collecte » : collecte de chaque requête OpenAlex et PubMed, état mis à jour toutes les 2 secondes, reprise d'une collecte ouverte, écart entre nombre annoncé et collecté; import de fichiers RIS avec la base déclarée et la liste des enregistrements écartés; enrichissement par Crossref; nombre de références par source.
 - Ajouts de la tranche 1.2 : suggestions de l'IA sur « Cadrage » (accepter, modifier, refuser); qualification des changements sur « Critères », avec proposition facultative de l'IA; page « Protocole » (téléchargement Markdown et DOCX en français et en anglais, enregistrement OSF, état des éléments de Peters et al., texte libre). Tout appel à l'IA passe par une page d'estimation du coût, puis une confirmation (ENF-COU-01).
 - Navigation avec `hx-boost`; les réponses 4xx et 5xx sont affichées (configuration `htmx-config`), car l'application renvoie ses erreurs de formulaire comme des pages complètes (D-033). Les formulaires fonctionnent aussi sans JavaScript.
 - Chaînes d'interface dans le catalogue Babel de `i18n/` (D-031).
 - **Sécurité locale** (D-032) : chaque formulaire porte un jeton propre au processus du serveur; les en-têtes `Host` autres que `127.0.0.1` ou `localhost`, et les en-têtes `Origin` étrangers sur les écritures, sont refusés (requêtes intersites, DNS rebinding).
-- **Tâches de fond** (`jobs/runner.py`) : chaque tâche longue (collecte, enrichissement) s'exécute dans un fil du processus du serveur, au plus une par clé. Son état est ce qu'elle a enregistré dans le projet; une tâche arrêtée avec le serveur se reprend en la relançant (ENF-PER-04). Pas de file persistée ni de reprise automatique au redémarrage (écart, D-059). Pas de Celery ni de Redis.
+- **Tâches de fond** (`jobs/runner.py`) : chaque tâche longue (collecte, enrichissement, dédoublonnage) s'exécute dans un fil du processus du serveur, au plus une par clé. Son état est ce qu'elle a enregistré dans le projet; une tâche arrêtée avec le serveur se reprend en la relançant (ENF-PER-04). Pas de file persistée ni de reprise automatique au redémarrage (écart, D-059). Pas de Celery ni de Redis.
 
 ## 10. Sécurité et secrets
 
