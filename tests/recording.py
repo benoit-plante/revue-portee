@@ -10,9 +10,16 @@ cassette: a JSON file of request and response pairs, under ``tests/cassettes/``.
   which honours the environment proxy and certificates, sends the requests, and the
   answers are written with ``api_key``, ``email`` and ``mailto`` replaced by
   fictitious values; only the ``content-type`` header is kept.
+
+The repository is public: before they are written, answers are also trimmed of what
+the tests do not need and that is not ours to publish (:func:`trim_body`): abstracts
+cut to their beginning, e-mail addresses of authors masked, PubMed reference lists
+removed. The structure read by the connectors is kept.
 """
 
 import json
+import re
+import xml.etree.ElementTree as ET
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,6 +39,64 @@ def request_key(method: str, url: httpx2.URL) -> str:
         (k, _FILTERED.get(k, v)) for k, v in url.params.multi_items()
     )
     return f"{method} {url.copy_with(query=None)}?{httpx2.QueryParams(params)}"
+
+
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+MASKED_EMAIL = "masked@example.org"
+ABSTRACT_CHARS = 200
+_ABSTRACT_WORDS = 30
+
+
+def _trim_json(value: Any, key: str = "") -> Any:  # noqa: ANN401 - JSON value
+    if isinstance(value, dict):
+        if key == "abstract_inverted_index":  # OpenAlex: keep the first words
+            return {
+                word: kept
+                for word, positions in value.items()
+                if (kept := [p for p in positions if p < _ABSTRACT_WORDS])
+            }
+        return {k: _trim_json(v, k) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_trim_json(v, key) for v in value]
+    if isinstance(value, str):
+        text = _EMAIL.sub(MASKED_EMAIL, value)
+        return text[:ABSTRACT_CHARS] if key == "abstract" else text
+    return value
+
+
+def _trim_xml(body: str) -> str:
+    root = ET.fromstring(body)  # noqa: S314 - answers recorded by the test itself
+    for parent in root.iter():
+        for child in list(parent):
+            if child.tag == "ReferenceList":
+                parent.remove(child)
+    for abstract in root.iter("AbstractText"):
+        text = "".join(abstract.itertext())[:ABSTRACT_CHARS]
+        for child in list(abstract):
+            abstract.remove(child)
+        abstract.text = text
+    for element in root.iter():
+        for name in ("text", "tail"):
+            value = getattr(element, name)
+            if value:
+                setattr(element, name, _EMAIL.sub(MASKED_EMAIL, value))
+    return ET.tostring(root, encoding="unicode")
+
+
+def trim_body(content_type: str, body: str) -> str:
+    """What the cassette keeps of an answer (see the module documentation)."""
+    if "json" in content_type:
+        try:
+            document = json.loads(body)
+        except ValueError:
+            return _EMAIL.sub(MASKED_EMAIL, body)
+        return json.dumps(_trim_json(document), ensure_ascii=False)
+    if "xml" in content_type:
+        try:
+            return _trim_xml(body)
+        except ET.ParseError:
+            pass
+    return _EMAIL.sub(MASKED_EMAIL, body)
 
 
 class CassetteMissError(AssertionError):
@@ -95,7 +160,7 @@ def cassette_client(
                 "response": {
                     "status": response.status_code,
                     "content_type": response.headers.get("content-type", ""),
-                    "body": response.text,
+                    "body": trim_body(response.headers.get("content-type", ""), response.text),
                 },
             }
         )

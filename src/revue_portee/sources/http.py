@@ -86,11 +86,7 @@ class SourceAccessError(SourceError):
 
 class SourceInvalidAnswerError(SourceError):
     def __init__(self, service: str) -> None:
-        super().__init__(
-            _("{service} sent an answer that cannot be read (not a JSON document).").format(
-                service=service
-            )
-        )
+        super().__init__(_("{service} sent an answer that cannot be read.").format(service=service))
 
 
 @dataclass
