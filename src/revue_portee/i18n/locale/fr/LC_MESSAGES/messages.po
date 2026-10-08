@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 18:11-0400\n"
+"POT-Creation-Date: 2026-10-08 19:06-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -214,6 +214,9 @@ msgstr "Suggestion de terme de l'IA rejetée"
 msgid "AI term suggestions received: {count}"
 msgstr "Suggestions de termes reçues de l'IA : {count}"
 
+msgid "ASySD files *_duplicates_labelled.csv."
+msgstr "Fichiers ASySD *_duplicates_labelled.csv."
+
 msgid "Abstract"
 msgstr "Résumé"
 
@@ -316,6 +319,12 @@ msgstr ""
 #, python-format
 msgid "Analyse the impact of version %(number)s"
 msgstr "Analyser l'impact de la version %(number)s"
+
+msgid "Annotated groups"
+msgstr "Groupes annotés"
+
+msgid "Annotated pairs of duplicates"
+msgstr "Paires de doublons annotées"
 
 msgid "Anthropic API key, used by the AI reviewer"
 msgstr "clé d'API Anthropic, utilisée par le réviseur IA"
@@ -789,6 +798,10 @@ msgid "Deduplication running in the background: the page refreshes when it ends.
 msgstr "Dédoublonnage en cours en arrière-plan : la page s'actualise à la fin."
 
 #, python-brace-format
+msgid "Deduplication test: ASySD {dataset}"
+msgstr "Test du dédoublonnage : ASySD {dataset}"
+
+#, python-brace-format
 msgid ""
 "Deduplication: references compared: {references}; pairs grouped automatically: {automatic}; pairs"
 " to review: {review}"
@@ -1082,6 +1095,10 @@ msgstr "Champ"
 msgid "File imported."
 msgstr "Fichier importé."
 
+#, python-brace-format
+msgid "File not found: {path}"
+msgstr "Fichier introuvable : {path}"
+
 msgid "Final decision"
 msgstr "Décision finale"
 
@@ -1115,6 +1132,9 @@ msgstr "Diagramme de flux écrit : {path}"
 
 msgid "Folder of the Markdown report."
 msgstr "Dossier du rapport Markdown."
+
+msgid "Folder of the reports."
+msgstr "Dossier des rapports."
 
 msgid "Folder to create (.revue is added)."
 msgstr "Dossier à créer (l'extension .revue est ajoutée)."
@@ -1203,6 +1223,13 @@ msgstr "Consignes :"
 
 msgid "Gwet's AC1"
 msgstr "AC1 de Gwet"
+
+msgid ""
+"Held-out data: these records were never used to build or tune the rules, which were not changed "
+"after this run (RAISE 2)."
+msgstr ""
+"Données mises de côté : ces notices n'ont jamais servi à construire ni à ajuster les règles, qui "
+"n'ont pas été modifiées après cette exécution (RAISE 2)."
 
 msgid "History"
 msgstr "Historique"
@@ -1461,6 +1488,11 @@ msgstr "Mesure"
 msgid "Measure the AI screener on a labelled SYNERGY dataset (calls the model)."
 msgstr "Mesurer le tri par l'IA sur un jeu SYNERGY étiqueté (appelle le modèle)."
 
+msgid "Measure the deduplication on held-out annotated sets (ASySD CSV files); local, no model call."
+msgstr ""
+"Mesurer le dédoublonnage sur des jeux annotés mis de côté (fichiers CSV d'ASySD) ; en local, sans"
+" appel au modèle."
+
 msgid "Methodological framework"
 msgstr "Cadre méthodologique"
 
@@ -1648,6 +1680,12 @@ msgstr "Élément OSF"
 msgid "Objective"
 msgstr "Objectif"
 
+msgid "Of which correct"
+msgstr "Dont justes"
+
+msgid "Of which wrong"
+msgstr "Dont erronées"
+
 msgid "Only published literature was sent to the model; no participant data."
 msgstr "Seule de la littérature publiée a été transmise au modèle ; aucune donnée de participants."
 
@@ -1719,8 +1757,17 @@ msgstr "Paires regroupées automatiquement à partir de ce score (de 0 à 1)"
 msgid "Pairs from this score go to a person (0 to 1)"
 msgstr "Paires soumises à une personne à partir de ce score (de 0 à 1)"
 
+msgid "Pairs grouped at the end"
+msgstr "Paires regroupées à la fin"
+
+msgid "Pairs grouped automatically"
+msgstr "Paires regroupées automatiquement"
+
 msgid "Pairs kept apart"
 msgstr "Paires gardées séparées"
+
+msgid "Pairs left to a person"
+msgstr "Paires laissées à une personne"
 
 #, python-format
 msgid ""
@@ -1808,6 +1855,9 @@ msgstr "Population"
 
 msgid "Portuguese"
 msgstr "portugais"
+
+msgid "Precision"
+msgstr "Précision"
 
 msgid "Preliminary number of records retrieved by the queries of Appendix II:"
 msgstr "Nombre préliminaire de notices retrouvées par les requêtes de l'annexe II :"
@@ -2016,6 +2066,9 @@ msgstr "Réévaluations"
 msgid "Reassessments not completed: {count}."
 msgstr "Réévaluations non terminées : {count}."
 
+msgid "Recall"
+msgstr "Rappel"
+
 msgid "Reconcile the disagreements"
 msgstr "Réconcilier les désaccords"
 
@@ -2034,6 +2087,9 @@ msgstr "Consigner un nouvel enregistrement"
 
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
+
+msgid "Records"
+msgstr "Notices"
 
 msgid "Records after deduplication"
 msgstr "Références après dédoublonnage"
@@ -2397,6 +2453,10 @@ msgstr "Sélection des sources"
 msgid "Source of evidence selection (in addition to the generated text)"
 msgstr "Sélection des sources (en plus du texte produit)"
 
+#, python-brace-format
+msgid "Source: {source}"
+msgstr "Source : {source}"
+
 msgid "Spanish"
 msgstr "espagnol"
 
@@ -2481,6 +2541,10 @@ msgstr "Sensibilité visée (de 0 à 1)"
 #, python-brace-format
 msgid "Target sensitivity: {target}."
 msgstr "Sensibilité visée : {target}."
+
+#, python-brace-format
+msgid "Targets (recall at least {recall}, precision at least {precision}): {verdict}."
+msgstr "Cibles (rappel d'au moins {recall}, précision d'au moins {precision}) : {verdict}."
 
 #, python-brace-format
 msgid ""
@@ -2717,6 +2781,13 @@ msgstr "Le nom du réviseur est obligatoire."
 
 msgid "The next pairs appear as these are decided."
 msgstr "Les paires suivantes s'affichent à mesure que celles-ci sont décidées."
+
+msgid ""
+"The person's decisions on the pairs left to them are simulated by the annotation; the pairs are "
+"compared with the annotated groups."
+msgstr ""
+"Les décisions de la personne sur les paires qui lui sont laissées sont simulées par l'annotation "
+"; les paires sont comparées aux groupes annotés."
 
 #, python-brace-format
 msgid "The project has an unknown database schema ({revision}); a backup copy was made before any change."
@@ -3165,6 +3236,9 @@ msgstr "Version %(source)s à %(to)s : références touchées : %(touched)s"
 
 msgid "Version in force"
 msgstr "Version en vigueur"
+
+msgid "Version of the rules"
+msgstr "Version des règles"
 
 msgid "Versions"
 msgstr "Versions"
@@ -3617,6 +3691,10 @@ msgstr "critère retiré"
 msgid "repeated:"
 msgstr "en double :"
 
+#, python-brace-format
+msgid "review from {review}, automatic from {automatic}"
+msgstr "examen à partir de {review}, regroupement automatique à partir de {automatic}"
+
 msgid "same DOI"
 msgstr "même DOI"
 
@@ -3833,6 +3911,10 @@ msgstr "{label} : {count} références envoyées à l'IA dans un lot"
 #, python-brace-format
 msgid "{low} to {high}"
 msgstr "{low} à {high}"
+
+#, python-brace-format
+msgid "{name}: recall {recall}, precision {precision}; report: {path}"
+msgstr "{name} : rappel {recall}, précision {precision} ; rapport : {path}"
 
 #, python-brace-format
 msgid ""

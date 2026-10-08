@@ -389,6 +389,40 @@ def synergy_benchmark(
     typer.echo(_("Raw answers: {path}").format(path=raw_path))
 
 
+@app.command(
+    "banc-doublons",
+    help=_(
+        "Measure the deduplication on held-out annotated sets (ASySD CSV files); local, "
+        "no model call."
+    ),
+)
+def dedup_benchmark(
+    fichiers: Annotated[
+        list[Path], typer.Argument(help=_("ASySD files *_duplicates_labelled.csv."))
+    ],
+    sortie: Annotated[Path, typer.Option("--sortie", help=_("Folder of the reports."))] = Path(
+        "docs/resultats"
+    ),
+) -> None:
+    from revue_portee.collect import dedup_benchmark as bench
+
+    sortie.mkdir(parents=True, exist_ok=True)
+    for path in fichiers:
+        if not path.is_file():
+            raise _fail(_("File not found: {path}").format(path=path))
+        name = path.name.removesuffix(".csv").removesuffix("_duplicates_labelled")
+        records = bench.read_asysd(path, created_at=utc_now())
+        test = bench.run_test(name, records, now=utc_now())
+        report = sortie / f"dedoublonnage-asysd-{name}.md"
+        report.write_text(bench.report_markdown(test), encoding="utf-8")
+        e = test.evaluation
+        typer.echo(
+            _("{name}: recall {recall}, precision {precision}; report: {path}").format(
+                name=name, recall=f"{e.recall:.3f}", precision=f"{e.precision:.3f}", path=report
+            )
+        )
+
+
 @app.command("serve", help=_("Open the web interface of a project on 127.0.0.1."))
 def serve(
     dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
