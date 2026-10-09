@@ -144,3 +144,34 @@ def test_export_in_both_languages(tmp_path: Path) -> None:
     assert text.startswith("# Soutien à la parentalité et santé mentale des enfants : usage de")
     placeholders = [b for b in french.blocks if isinstance(b, Paragraph) and b.placeholder]
     assert len(placeholders) == 3  # rationale, limitations of the review, funding
+
+
+def test_extraction_counted_by_hand(tmp_path: Path) -> None:
+    from decimal import Decimal
+
+    from revue_portee.extraction import prefill, validation
+    from unit.extraction.test_prefill import _with_grid, answer, factory
+
+    demo = _with_grid(tmp_path)
+    ref = demo.ids()["loneliness"]
+    kwargs = {"now": demo.clock, "tool_version": TOOL_VERSION}
+    try:
+        assert methods_data(demo.folder, **kwargs).extraction is None  # no value yet
+        prefill.run_ai(demo.folder, batch_limit=Decimal(1), factory=factory(answer), **kwargs)
+        validation.validate_value(demo.folder, ref, "D2", **kwargs)
+        validation.record_value(
+            demo.folder, ref, "D3", reported=True, value="Quantitatif", **kwargs
+        )
+        summary = methods_data(demo.folder, **kwargs).extraction
+    finally:
+        demo.folder.close()
+    assert summary is not None
+    # D1 proposed, not checked; D2 validated; D3 corrected. D2's quote is on page 2, not 3.
+    assert (summary.grid_version, summary.fields, summary.studies) == (1, 3, 1)
+    assert (summary.ai_studies, summary.template_version) == (1, "1")
+    assert (summary.validated, summary.corrected, summary.rejected) == (1, 1, 0)
+    assert (summary.extracted, summary.pending) == (0, 1)
+    assert (summary.quotes_at_page, summary.quotes_other_page, summary.quotes_not_found) == (
+        1, 1, 0,
+    )  # fmt: skip
+    assert summary.pilot_studies == 0

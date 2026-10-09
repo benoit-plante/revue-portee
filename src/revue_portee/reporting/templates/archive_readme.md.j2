@@ -26,6 +26,12 @@ Cette archive accompagne une revue de portée menée avec revue-portee, logiciel
 | `donnees/etat-texte-integral.csv` | Pour chaque texte du tri du texte intégral : la décision en vigueur, celle de l'IA, le motif principal d'une exclusion, désaccord et réconciliation |
 | `donnees/etudes.csv`, `donnees/liens-etudes.csv` | Pour chaque rapport inclus, l'étude dont il fait partie (désignée par son rapport principal); les décisions de la personne sur les paires de rapports (« same » : une même étude) |
 | `donnees/textes.csv` | Pour chaque rapport recherché : statut du texte intégral (`obtained`, `not_found`, `not_retrievable`, `not_sought`), origine (libre accès ou téléversement), licence déclarée, nombre de pages, empreinte SHA-256 du PDF et raison d'un texte introuvable; jamais le PDF, son texte ni son adresse |
+| `donnees/grille.csv` | Toutes les versions de la grille d'extraction, champ par champ |
+| `donnees/valeurs-extraites.csv` | Chaque valeur extraite, de l'IA et de la personne, dans l'ordre du journal, sans citation ni note; une valeur qui en remplace une autre la nomme (`supersedes_id`) |
+| `donnees/donnees-extraites.csv` | Pour chaque étude et chaque champ de la grille en vigueur, la valeur décidée par une personne (vide si personne ne l'a encore fait; `to_review` : valeur donnée selon une définition antérieure du champ). Une valeur proposée par l'IA et non vérifiée n'y figure jamais |
+| `donnees/donnees-archivees.csv` | Valeurs des champs retirés de la grille, s'il y en a |
+| `donnees/pilotes-extraction.csv` | Pilotes d'extraction : graine et études tirées |
+| `donnees/commentaires-lacunes.csv` | Commentaires sur les lacunes des cartes; sur une cellule, le plus récent est en vigueur et un texte vide le retire |
 | `donnees/appels-ia.csv` | Chaque appel au modèle : fournisseur, modèle demandé, version exacte renvoyée, gabarit d'invite et sa version, jetons, coût estimé |
 | `donnees/criteres.csv` | Toutes les versions des critères |
 | `donnees/journal.jsonl` | Le journal du projet, une entrée par ligne, avec sa chaîne d'empreintes |
@@ -48,6 +54,10 @@ Cette archive accompagne une revue de portée menée avec revue-portee, logiciel
 - **Sources de données probantes incluses** : les valeurs distinctes de la colonne `study` de `etudes.csv` (les rapports joints par les décisions `same` de `liens-etudes.csv`).
 - Aux deux étapes, la décision en vigueur est la dernière décision **humaine de cette étape** (colonne `stage` de `decisions.csv` : `title_abstract` ou `full_text`).
 - **Réévaluations** : pour chaque ligne de `reevaluations.csv`, les références réévaluées sont les membres du tour (`membres-des-tours.csv`); une décision changée est une décision humaine du tour dont la valeur et celle de la décision remplacée (`supersedes_decision_id`) diffèrent au sens « conserver » (`include`, `uncertain`) ou « exclure ».
+
+### Recompter les tableaux de synthèse
+
+À partir de `donnees-extraites.csv` : pour un champ, chaque étude compte une fois dans chacune de ses valeurs (choix multiples séparés par « | »; une date compte pour son année). `reported` vaut `non` pour une valeur non rapportée; une ligne sans `reported` n'est pas encore extraite. Une cellule d'une carte compte les études qui ont à la fois la valeur de sa ligne et celle de sa colonne; elle est vide sans étude et peu peuplée avec au plus le seuil choisi (1 par défaut).
 
 ### Vérifier le journal
 
@@ -77,6 +87,10 @@ This archive comes with a scoping review conducted with revue-portee, free softw
 - **Sources of evidence included**: the distinct values of the `study` column of `etudes.csv` (reports joined by the `same` decisions of `liens-etudes.csv`).
 - At both stages, the decision in force is the latest **human decision of that stage** (column `stage` of `decisions.csv`: `title_abstract` or `full_text`).
 - **Reassessments**: for each row of `reevaluations.csv`, the records reassessed are the members of its round (`membres-des-tours.csv`); a changed decision is a human decision of the round whose value and that of the decision it supersedes (`supersedes_decision_id`) differ as keep (`include`, `uncertain`) or exclude.
+
+### Recounting the synthesis tables
+
+From `donnees-extraites.csv`: for a field, each study counts once in each of its values (multiple choices separated by « | »; a date counts for its year). `reported` is `non` for a value not reported; a row without `reported` is not extracted yet. A cell of a map counts the studies that have both the value of its row and that of its column; it is empty with no study and sparse with at most the chosen threshold (1 by default).
 
 ### Checking the journal
 

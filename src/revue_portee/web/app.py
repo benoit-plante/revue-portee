@@ -14,12 +14,13 @@ from datetime import date, datetime
 from decimal import Decimal
 from importlib.resources import files
 from typing import Annotated, Any
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from pydantic import JsonValue, ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -80,6 +81,9 @@ from revue_portee.reporting.formats import separator
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
+from revue_portee.reporting.synthesis import frequency_table as synthesis_frequency
+from revue_portee.reporting.synthesis import gaps as synthesis_gaps
+from revue_portee.reporting.synthesis_export import MapContext, map_svg
 from revue_portee.resources import (
     flow_template,
     grid_template,
@@ -107,6 +111,7 @@ from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
+from revue_portee.synthesis import maps as synthesis_maps
 from revue_portee.version import tool_version as current_tool_version
 from revue_portee.web import dedup_view, fulltext_view, grid_view, pilot_view, screening_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
@@ -2323,6 +2328,119 @@ def create_app(
             "path": path.relative_to(folder.path).as_posix(),
         }
         return extraction_page(request, message=message)
+
+    # --- Synthesis ------------------------------------------------------------------
+
+    def synthesis_page(
+        request: Request,
+        *,
+        rows: str = "",
+        columns: str = "",
+        sparse: int = synthesis_maps.SPARSE_MAX,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        try:
+            grid, studies = synthesis_maps.study_data(folder)
+        except prefill.NoGridError:
+            return render(request, "synthese.html", {"grid": None}, status_code=status_code)
+        labels = synthesis_maps.category_labels("fr")
+        tables = [synthesis_frequency(f, studies, labels) for f in grid.sorted_fields()]
+        crossed, found, svg, comments = None, [], "", {}
+        if rows and columns and rows != columns:
+            try:
+                crossed, _studies = synthesis_maps.cross(folder, rows, columns)
+            except synthesis_maps.UnknownFieldError as unknown:
+                raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+            found = list(synthesis_gaps(crossed, sparse_max=sparse))
+            context_map = MapContext(
+                project_title=project.title, language="fr",
+                tool_version=context.tool_version, generated_at=now(),
+            )  # fmt: skip
+            svg = map_svg(crossed, found, context_map)
+            comments = synthesis_maps.comments(folder, rows, columns)
+        return render(
+            request,
+            "synthese.html",
+            {
+                "grid": grid,
+                "studies": studies,
+                "tables": tables,
+                "rows": rows,
+                "columns": columns,
+                "sparse": sparse,
+                "crossed": crossed,
+                "gaps": found,
+                "svg": Markup(svg),  # noqa: S704 - built here, every text escaped
+                "comments": comments,
+                "labels": {s.id: s.label for s in studies},
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/synthese", response_class=HTMLResponse)
+    def show_synthesis(
+        request: Request, lignes: str = "", colonnes: str = "", seuil: str = ""
+    ) -> HTMLResponse:
+        sparse = int(seuil) if seuil.isdigit() else synthesis_maps.SPARSE_MAX
+        error = None
+        if lignes and lignes == colonnes:
+            error = _("Choose two different fields.")
+        return synthesis_page(
+            request, rows=lignes, columns=colonnes, sparse=sparse, error=error,
+            status_code=422 if error else 200,
+        )  # fmt: skip
+
+    @app.post("/synthese/lacune")
+    def comment_gap(
+        request: Request,
+        _csrf: Csrf,
+        lignes: Annotated[str, Form()],
+        colonnes: Annotated[str, Form()],
+        ligne: Annotated[str, Form()],
+        colonne: Annotated[str, Form()],
+        commentaire: Annotated[str, Form()] = "",
+        seuil: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            synthesis_maps.comment_gap(
+                folder, lignes, colonnes, ligne, colonne, commentaire, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except (synthesis_maps.UnknownFieldError, prefill.NoGridError) as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        query = urlencode({"lignes": lignes, "colonnes": colonnes, "seuil": seuil})
+        return see_other(f"/synthese?{query}#lacunes")
+
+    @app.post("/synthese/export")
+    def export_synthesis(
+        request: Request,
+        _csrf: Csrf,
+        lignes: Annotated[str, Form()] = "",
+        colonnes: Annotated[str, Form()] = "",
+        seuil: Annotated[str, Form()] = "",
+    ) -> Response:
+        sparse = int(seuil) if seuil.isdigit() else synthesis_maps.SPARSE_MAX
+        crossing = [(lignes, colonnes)] if lignes and colonnes and lignes != colonnes else []
+        try:
+            written = synthesis_maps.export_tables(folder, language="fr", crosses=crossing, now=now)
+            for rows, columns in crossing:
+                written += synthesis_maps.export_map(
+                    folder, rows, columns, language="fr", sparse_max=sparse, now=now,
+                    tool_version=context.tool_version,
+                )  # fmt: skip
+        except (synthesis_maps.UnknownFieldError, prefill.NoGridError) as error:
+            return synthesis_page(request, error=str(error), status_code=422)
+        message = _("Files written in %(path)s: %(count)s.") % {
+            "path": "exports/synthese",
+            "count": len(written),
+        }
+        return synthesis_page(
+            request, rows=lignes, columns=colonnes, sparse=sparse, message=message
+        )
 
     # --- Extraction grid --------------------------------------------------------------
 

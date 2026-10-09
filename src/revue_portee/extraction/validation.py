@@ -61,7 +61,10 @@ __all__ = [
     "blind",
     "confirm_value",
     "export_extraction",
+    "extraction_tables",
+    "history_table",
     "pilot_state",
+    "pilots_table",
     "record_value",
     "reject_value",
     "start_pilot",
@@ -489,13 +492,12 @@ def archived_values(folder: ProjectFolder) -> list[ArchivedValue]:
     return found
 
 
-def _write(path: Path, header: tuple[str, ...], rows: list[tuple[object, ...]]) -> None:
+def _csv(header: tuple[str, ...], rows: list[tuple[object, ...]]) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
     writer.writerow(header)
     writer.writerows(rows)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(buffer.getvalue(), encoding="utf-8")
+    return buffer.getvalue()
 
 
 def _cells(value: ExtractionValue | None) -> tuple[object, ...]:
@@ -509,27 +511,27 @@ def _cells(value: ExtractionValue | None) -> tuple[object, ...]:
     )
 
 
-def export_extraction(folder: ProjectFolder) -> tuple[Path, int]:
-    """Write ``exports/donnees-extraites.csv``: the values a person decided, one row per
-    study and field (empty when no one did yet), flagged when given under another
-    definition of the field; and, when fields were removed, their archived values in
-    ``exports/donnees-archivees.csv``. Returns the first file and the values written."""
+def extraction_tables(folder: ProjectFolder) -> tuple[dict[str, str], int]:
+    """``donnees-extraites.csv``: the values a person decided, one row per study and
+    field (empty when no one did yet), flagged when given under another definition of
+    the field; and, when fields were removed, their archived values in
+    ``donnees-archivees.csv``. No quote nor note. Returns the files by name and the
+    values of the first."""
     rows = synthesis_rows(folder)
-    target = folder.path / "exports" / "donnees-extraites.csv"
-    _write(
-        target,
-        ("study", "title", "year", "field", "label", "reported", "value", "page", "status",
-         "to_review"),
-        [
-            (r.study.primary.id, r.study.primary.title, r.study.primary.year or "", r.field.code,
-             r.field.label, *_cells(r.value), "oui" if r.to_review else "")
-            for r in rows
-        ],
-    )  # fmt: skip
+    files = {
+        "donnees-extraites.csv": _csv(
+            ("study", "title", "year", "field", "label", "reported", "value", "page", "status",
+             "to_review"),
+            [
+                (r.study.primary.id, r.study.primary.title, r.study.primary.year or "",
+                 r.field.code, r.field.label, *_cells(r.value), "oui" if r.to_review else "")
+                for r in rows
+            ],
+        )
+    }  # fmt: skip
     archived = archived_values(folder)
     if archived:
-        _write(
-            folder.path / "exports" / "donnees-archivees.csv",
+        files["donnees-archivees.csv"] = _csv(
             ("study", "title", "year", "field", "label", "reported", "value", "page", "status"),
             [
                 (a.study.primary.id, a.study.primary.title, a.study.primary.year or "",
@@ -537,4 +539,47 @@ def export_extraction(folder: ProjectFolder) -> tuple[Path, int]:
                 for a in archived
             ],
         )  # fmt: skip
-    return target, sum(1 for r in rows if r.value is not None)
+    return files, sum(1 for r in rows if r.value is not None)
+
+
+def history_table(folder: ProjectFolder) -> str:
+    """Every value, the AI's and the person's, in the order of the journal: what the
+    validation and the pilot are recounted from. No quote nor note (copyrighted text)."""
+    with folder.engine.connect() as connection:
+        values = extraction_repo.list_values(connection)
+    return _csv(
+        ("id", "reference_id", "field", "grid_version_id", "reported", "value", "page",
+         "model_page", "quote_check", "status", "reviewer_kind", "reviewer_id",
+         "supersedes_id", "ai_call_id", "created_at"),
+        [
+            (v.id, v.reference_id, v.field_code, v.grid_version_id, v.reported,
+             _shown(v.value), "" if v.page is None else v.page,
+             "" if v.model_page is None else v.model_page,
+             "" if v.quote_check is None else v.quote_check.value, v.status.value,
+             v.reviewer_kind.value, v.reviewer_id, v.supersedes_id or "", v.ai_call_id or "",
+             v.created_at.isoformat())
+            for v in values
+        ],
+    )  # fmt: skip
+
+
+def pilots_table(folder: ProjectFolder) -> str:
+    return _csv(
+        ("number", "seed", "grid_version_id", "reference_ids", "created_at"),
+        [
+            (p.number, p.seed, p.grid_version_id, " ".join(p.reference_ids),
+             p.created_at.isoformat())
+            for p in _pilots(folder)
+        ],
+    )  # fmt: skip
+
+
+def export_extraction(folder: ProjectFolder) -> tuple[Path, int]:
+    """Write the files of ``extraction_tables`` in ``exports/``. Returns the first file
+    and the values written."""
+    files, written = extraction_tables(folder)
+    target = folder.path / "exports"
+    target.mkdir(parents=True, exist_ok=True)
+    for name, text in files.items():
+        (target / name).write_text(text, encoding="utf-8")
+    return target / "donnees-extraites.csv", written

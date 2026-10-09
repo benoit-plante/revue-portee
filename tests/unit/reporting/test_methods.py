@@ -303,3 +303,32 @@ def test_environmental_impact_without_tokens() -> None:
     text = text_of("en", costs=costs)
     assert "(energy, water, emissions) was not measured." in text
     assert "tokens per reference" not in text
+
+
+def test_data_extraction() -> None:
+    from revue_portee.reporting.methods import ExtractionSummary, FieldAgreementLine
+
+    summary = ExtractionSummary(
+        grid_version=2, fields=3, studies=12, provider="anthropic", model="model-b",
+        template_version="1", ai_studies=11, validated=20, corrected=8, rejected=2,
+        extracted=4, pending=2, quotes_at_page=25, quotes_other_page=3, quotes_not_found=1,
+        pilot_studies=5, pilot_seed=42,
+        pilot_agreement=(
+            FieldAgreementLine(code="D1", label="Pays", compared=5, agreed=5),
+            FieldAgreementLine(code="D2", label="Devis", compared=5, agreed=3),
+            FieldAgreementLine(code="D3", label="n", compared=0, agreed=0),
+        ),
+    )  # fmt: skip
+    french = text_of("fr", extraction=summary)
+    assert "## Extraction des données" in french
+    assert "version 2 de la grille d'extraction (3 champs), pour 12 études incluses" in french
+    assert "a prérempli la grille pour 11 études" in french
+    assert "à la page indiquée, 25 ; à une autre page, 3 ; introuvable, 1." in french
+    assert "valeurs validées, 20 ; corrigées, 8 ; rejetées, 2 ;" in french
+    assert "pas encore vérifiées, 2." in french
+    assert "(graine 42)" in french
+    assert "par champ : D1 5 sur 5 ; D2 3 sur 5." in french
+    english = text_of("en", extraction=summary.model_copy(update={"ai_studies": 0}))
+    assert "## Data extraction" in english
+    assert "pre-filled" not in english  # the AI did not pre-fill
+    assert "Data extraction" not in text_of("en")

@@ -65,6 +65,7 @@ __all__ = [
     "extraction_value",
     "framing_version",
     "fulltext_document",
+    "gap_comment",
     "grid_field",
     "grid_field_code",
     "grid_version",
@@ -988,6 +989,20 @@ extraction_pilot = Table(
     Column("seed", Integer, nullable=False),
     Column("grid_version_id", String(26), ForeignKey("grid_version.id"), nullable=False),
     Column("reference_ids_json", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+gap_comment = Table(
+    "gap_comment",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("rows_field", String(16), nullable=False),
+    Column("columns_field", String(16), nullable=False),
+    Column("row", Text, nullable=False),
+    Column("column", Text, nullable=False),
+    Column("text", Text, nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
     _journal_column(),

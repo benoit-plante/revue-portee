@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 13:10-0400\n"
+"POT-Creation-Date: 2026-10-09 13:46-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -118,6 +118,9 @@ msgstr "intervalle à 95 %% : %(low)s à %(high)s"
 msgid "A MeSH descriptor: %(exploded)s (with narrower headings) or %(not_exploded)s."
 msgstr "Un descripteur MeSH : %(exploded)s (avec les descripteurs plus spécifiques) ou %(not_exploded)s."
 
+msgid "A cell is sparse with at most this many studies."
+msgstr "Une cellule est peu peuplée quand elle compte au plus ce nombre d'études."
+
 msgid ""
 "A choice field needs at least two distinct choices, one per line; other fields have no choices; a"
 " field needs a name."
@@ -177,6 +180,11 @@ msgstr ""
 #, python-brace-format
 msgid "A secret was found in the archive, which was not written: {findings}"
 msgstr "Un secret a été trouvé dans l'archive, qui n'a pas été écrite : {findings}"
+
+msgid "A study counts once in each of its categories; shares are of all included studies."
+msgstr ""
+"Une étude compte une fois dans chacune de ses catégories ; les parts sont calculées sur toutes "
+"les études incluses."
 
 msgid ""
 "A study may be reported in several included articles (main results, protocol, secondary "
@@ -687,6 +695,9 @@ msgstr "Annuler"
 msgid "Cannot read the file {path}."
 msgstr "Impossible de lire le fichier {path}."
 
+msgid "Category"
+msgstr "Catégorie"
+
 msgid "Ceiling in US dollars"
 msgstr "Plafond en dollars américains"
 
@@ -749,6 +760,12 @@ msgstr "Choisissez le type d'archive."
 msgid "Choose the mode of the screening."
 msgstr "Choisissez le mode du tri."
 
+msgid "Choose two different fields."
+msgstr "Choisissez deux champs différents."
+
+msgid "Circle area: number of studies. Shaded cell: no study. Red outline: few studies."
+msgstr "Aire du cercle : nombre d'études. Cellule teintée : aucune étude. Contour rouge : peu d'études."
+
 msgid "Cite at least one criterion to exclude a reference."
 msgstr "Citez au moins un critère pour exclure une référence."
 
@@ -783,6 +800,12 @@ msgstr "Collectes"
 
 msgid "Collections, most recent first"
 msgstr "Collectes, de la plus récente à la plus ancienne"
+
+msgid "Columns"
+msgstr "Colonnes"
+
+msgid "Comment"
+msgstr "Commentaire"
 
 msgid "Compare every reference"
 msgstr "Comparer toutes les références"
@@ -1015,6 +1038,14 @@ msgstr "Extraction des données"
 
 msgid "Data for the synthesis"
 msgstr "Données pour la synthèse"
+
+#, python-brace-format
+msgid ""
+"Data were charted with version {version} of the extraction grid ({fields} fields), for {studies} "
+"included studies, from the primary report of each."
+msgstr ""
+"Les données ont été extraites avec la version {version} de la grille d'extraction ({fields} "
+"champs), pour {studies} études incluses, à partir du rapport principal de chacune."
 
 msgid "Database"
 msgstr "Base"
@@ -1280,6 +1311,9 @@ msgstr "Élément"
 msgid "Eligibility criteria"
 msgstr "Critères d'admissibilité"
 
+msgid "Empty or sparse cells of the map, with your comments"
+msgstr "Cellules vides ou peu peuplées de la carte, avec vos commentaires"
+
 msgid "English"
 msgstr "anglais"
 
@@ -1414,6 +1448,13 @@ msgstr ""
 msgid "Every criteria version activated from now on is a deviation from the protocol, to be reported."
 msgstr "Toute version des critères activée à partir de maintenant est un écart au protocole, à déclarer."
 
+msgid "Evidence map"
+msgstr "Carte des données probantes"
+
+#, python-brace-format
+msgid "Evidence map {rows} by {columns}: gap commented"
+msgstr "Carte {rows} par {columns} : lacune commentée"
+
 msgid "Exact version returned"
 msgstr "Version exacte renvoyée"
 
@@ -1448,6 +1489,12 @@ msgid ""
 msgstr ""
 "Exportez les résultats de la base au format RIS, puis choisissez le fichier. Le fichier est "
 "conservé tel quel dans le projet."
+
+msgid "Export the tables"
+msgstr "Exporter les tableaux"
+
+msgid "Exports"
+msgstr "Exports"
 
 msgid "Extraction"
 msgstr "Extraction"
@@ -1502,6 +1549,9 @@ msgstr "Appels échoués non rattachés à un tour"
 msgid "Failures (unusable answers)"
 msgstr "Échecs (réponses inutilisables)"
 
+msgid "Few studies: at most"
+msgstr "Peu d'études : au plus"
+
 msgid "Field"
 msgstr "Champ"
 
@@ -1514,6 +1564,12 @@ msgstr "Champ ajouté au brouillon de la grille : {label}"
 
 msgid "Field modified in the draft."
 msgstr "Champ modifié dans le brouillon."
+
+msgid "Field of the columns of the map (D2…)."
+msgstr "Champ des colonnes de la carte (D2…)."
+
+msgid "Field of the rows of the map (D1…)."
+msgstr "Champ des lignes de la carte (D1…)."
 
 msgid "Field removed from the draft."
 msgstr "Champ retiré du brouillon."
@@ -1554,6 +1610,10 @@ msgstr "Fichier à remplir écrit : {path}"
 
 msgid "Files added"
 msgstr "Fichiers ajoutés"
+
+#, python-format
+msgid "Files written in %(path)s: %(count)s."
+msgstr "Fichiers écrits dans %(path)s : %(count)s."
 
 msgid "Final decision"
 msgstr "Décision finale"
@@ -1664,6 +1724,16 @@ msgstr "Français, SVG"
 msgid "French, Word (DOCX)"
 msgstr "Français, Word (DOCX)"
 
+msgid "Frequency tables"
+msgstr "Tableaux de fréquences"
+
+msgid ""
+"Frequency tables of every field in CSV, Markdown and XLSX; with a map shown, its cross table, its"
+" SVG image and its HTML page."
+msgstr ""
+"Tableaux de fréquences de tous les champs en CSV, Markdown et XLSX ; avec une carte affichée, son"
+" tableau croisé, son image SVG et sa page HTML."
+
 msgid "From the year"
 msgstr "À partir de l'année"
 
@@ -1767,6 +1837,12 @@ msgstr "Financement"
 msgid "Funding and conflicts of interest"
 msgstr "Financement et conflits d'intérêts"
 
+msgid "Gap"
+msgstr "Lacune"
+
+msgid "Gaps"
+msgstr "Lacunes"
+
 #, python-brace-format
 msgid "Generated by revue-portee {version} on {date}"
 msgstr "Produit par revue-portee {version} le {date}"
@@ -1782,6 +1858,9 @@ msgstr "Donnez la raison pour laquelle le texte intégral ne peut pas être obte
 
 msgid "Give the value"
 msgstr "Donner la valeur"
+
+msgid "Give two different fields, one for the rows and one for the columns."
+msgstr "Donnez deux champs différents, l'un pour les lignes et l'autre pour les colonnes."
 
 msgid "Grid"
 msgstr "Grille"
@@ -1873,6 +1952,18 @@ msgstr "Fichiers importés"
 msgid "In agreement"
 msgstr "Concordantes"
 
+#, python-brace-format
+msgid ""
+"In an extraction pilot of {studies} studies drawn at random (seed {seed}), the person extracted "
+"every field without seeing the AI; the AI's values agreed with the person's, by field: "
+"{agreement}. Agreement is automatic for texts (one contains the other or they share at least half"
+" of their words)."
+msgstr ""
+"Lors d'un pilote d'extraction de {studies} études tirées au hasard (graine {seed}), la personne a"
+" extrait chaque champ sans voir l'IA ; les valeurs de l'IA concordaient avec les siennes, par "
+"champ : {agreement}. La concordance est automatique pour les textes (l'un contient l'autre ou ils"
+" partagent au moins la moitié de leurs mots)."
+
 msgid "In assisted screening, a text waits until the AI has screened it."
 msgstr "En tri assisté, un texte attend que l'IA l'ait trié."
 
@@ -1888,8 +1979,15 @@ msgstr "Inclure"
 msgid "Included"
 msgstr "Incluses"
 
+msgid "Included studies"
+msgstr "Études incluses"
+
 msgid "Included studies and their extraction"
 msgstr "Études incluses et leur extraction"
+
+#, python-format
+msgid "Included studies: %(count)s."
+msgstr "Études incluses : %(count)s."
 
 msgid "Inclusion"
 msgstr "Inclusion"
@@ -2033,6 +2131,9 @@ msgstr "Type d'archive"
 
 msgid "Label"
 msgstr "Libellé"
+
+msgid "Language of the exports (fr or en)."
+msgstr "Langue des exports (fr ou en)."
 
 msgid "Language of the protocol: fr or en."
 msgstr "Langue du protocole : fr ou en."
@@ -2321,6 +2422,9 @@ msgstr ""
 "Aucun brouillon : le premier changement ci-dessous en commence un à partir de la version en "
 "vigueur."
 
+msgid "No empty or sparse cell."
+msgstr "Aucune cellule vide ou peu peuplée."
+
 msgid "No full text for this reference."
 msgstr "Aucun texte intégral pour cette référence."
 
@@ -2402,6 +2506,9 @@ msgstr "Aucune version de la grille n'est encore en vigueur."
 msgid "Not duplicates"
 msgstr "Pas des doublons"
 
+msgid "Not extracted yet"
+msgstr "Pas encore extrait"
+
 #, python-format
 msgid "Not found in %(database)s (left out of the recall):"
 msgstr "Introuvables dans %(database)s (exclus du rappel) :"
@@ -2417,6 +2524,9 @@ msgstr "Pas encore cherchés"
 
 msgid "Not pre-filled yet."
 msgstr "Pas encore pré-remplie."
+
+msgid "Not reported"
+msgstr "Non rapporté"
 
 msgid "Note (for example, minutes of a team meeting)"
 msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
@@ -2945,6 +3055,9 @@ msgstr "Réconciliation"
 msgid "Record a new registration"
 msgstr "Consigner un nouvel enregistrement"
 
+msgid "Record the comment"
+msgstr "Enregistrer le commentaire"
+
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
 
@@ -3244,6 +3357,13 @@ msgstr "Rôle du jeu : développement ou test."
 msgid "Round %(number)s"
 msgstr "Tour %(number)s"
 
+msgid "Rows"
+msgstr "Lignes"
+
+#, python-brace-format
+msgid "Rows: {rows}; columns: {columns}"
+msgstr "Lignes : {rows}; colonnes : {columns}"
+
 msgid "Run"
 msgstr "Exécution"
 
@@ -3416,6 +3536,9 @@ msgstr "Fixer le budget"
 msgid "Share"
 msgstr "Proportion"
 
+msgid "Share of the included studies"
+msgstr "Part des études incluses"
+
 msgid "Shared authors at least."
 msgstr "Auteurs en commun, au moins."
 
@@ -3434,6 +3557,9 @@ msgstr "Courte description."
 
 msgid "Show the differences"
 msgstr "Afficher les différences"
+
+msgid "Show the map"
+msgstr "Afficher la carte"
 
 msgid "Show the version and exit."
 msgstr "Afficher la version et quitter."
@@ -3530,6 +3656,9 @@ msgstr "Études"
 msgid "Studies and their reports"
 msgstr "Études et rapports"
 
+msgid "Studies by cell"
+msgstr "Études par cellule"
+
 #, python-brace-format
 msgid "Studies compared: {studies}; values in agreement: {accuracy}; report: {path}"
 msgstr "Études comparées : {studies} ; valeurs concordantes : {accuracy} ; rapport : {path}"
@@ -3541,6 +3670,10 @@ msgstr "Études incluses : %(studies)s, à partir de %(reports)s rapports"
 msgid "Studies of the pilot drawn: extract them without the AI."
 msgstr "Études du pilote tirées : extrayez-les sans l'IA."
 
+#, python-brace-format
+msgid "Studies placed: {placed}; without a value on either field: {unplaced}."
+msgstr "Études placées : {placed}; sans valeur sur l'un des deux champs : {unplaced}."
+
 #, python-format
 msgid "Studies to pre-fill: %(count)s."
 msgstr "Études à pré-remplir : %(count)s."
@@ -3550,6 +3683,14 @@ msgstr "Études touchées"
 
 msgid "Studies touched by each change and what remains"
 msgstr "Études touchées par chaque changement et ce qui reste"
+
+#, python-format
+msgid "Studies without a value on either field: %(count)s."
+msgstr "Études sans valeur sur l'un des deux champs : %(count)s."
+
+#, python-brace-format
+msgid "Studies without a value on either field: {count}."
+msgstr "Études sans valeur sur l'un des deux champs : {count}."
 
 msgid "Study (primary report)"
 msgstr "Étude (rapport principal)"
@@ -3588,6 +3729,21 @@ msgstr ""
 "décision de l'IA ; l'IA a trié chaque référence de façon indépendante. Quand l'une conservait une"
 " référence (inclure ou incertain) et l'autre l'excluait, la personne a pris la décision finale en"
 " voyant la justification de l'IA."
+
+msgid "Synthesis"
+msgstr "Synthèse"
+
+msgid "Synthesis tables"
+msgstr "Tableaux de synthèse"
+
+msgid ""
+"Tables and maps are built from the values you decided only (validated, corrected or extracted); a"
+" value proposed by the AI that you have not checked never counts. A study counts once in each of "
+"its categories."
+msgstr ""
+"Les tableaux et les cartes ne reposent que sur les valeurs que vous avez décidées (validées, "
+"corrigées ou extraites) ; une valeur proposée par l'IA que vous n'avez pas vérifiée ne compte "
+"jamais. Une étude compte une fois dans chacune de ses catégories."
 
 msgid "Target sensitivity (0 to 1)"
 msgstr "Sensibilité visée (de 0 à 1)"
@@ -3697,6 +3853,22 @@ msgstr "Textes sans texte lisible (numérisés), à lire sans l'outil : {count}
 #, python-format
 msgid "Texts: %(count)s; decided by you: %(human)s; screened by the AI: %(ai)s."
 msgstr "Textes : %(count)s ; décidés par vous : %(human)s ; triés par l'IA : %(ai)s."
+
+#, python-brace-format
+msgid ""
+"The AI ({provider}, model {model}, prompt template extract_fields version {version}) pre-filled "
+"the grid for {ai_studies} studies from the text of their primary report, giving for each value "
+"the exact quote it rests on and its page, or that the report does not give it. The tool checked "
+"each value against the type of its field and looked for each quote in the text: at the page "
+"given, {at_page}; at another page, {other_page}; not found, {not_found}. A quote is always shown "
+"at the page where it is."
+msgstr ""
+"L'IA ({provider}, modèle {model}, gabarit d'invite extract_fields version {version}) a prérempli "
+"la grille pour {ai_studies} études à partir du texte de leur rapport principal, en donnant pour "
+"chaque valeur la citation exacte sur laquelle elle repose et sa page, ou en indiquant que le "
+"rapport ne la donne pas. L'outil a vérifié chaque valeur selon le type de son champ et cherché "
+"chaque citation dans le texte : à la page indiquée, {at_page} ; à une autre page, {other_page} ; "
+"introuvable, {not_found}. Une citation est toujours affichée à la page où elle se trouve."
 
 msgid "The AI against you on the pilot (keep against exclude)"
 msgstr "L'IA comparée à vous sur le pilote (conserver contre exclure)"
@@ -4043,6 +4215,18 @@ msgstr ""
 "Les numéros de page sont ceux du PDF ; le numéro imprimé sur la page est indiqué quand il diffère"
 " et a pu être lu. La bibliographie, quand elle a été repérée, est signalée : elle n'est pas "
 "envoyée au modèle."
+
+#, python-brace-format
+msgid ""
+"The person validated, corrected or rejected every value of the AI and gave the values it did not:"
+" values validated, {validated}; corrected, {corrected}; rejected, {rejected}; extracted by the "
+"person, {extracted}; values of the AI not checked yet, {pending}. Only the values decided by the "
+"person enter the synthesis."
+msgstr ""
+"La personne a validé, corrigé ou rejeté chaque valeur de l'IA et donné celles que l'IA n'avait "
+"pas données : valeurs validées, {validated} ; corrigées, {corrected} ; rejetées, {rejected} ; "
+"extraites par la personne, {extracted} ; valeurs de l'IA pas encore vérifiées, {pending}. Seules "
+"les valeurs décidées par la personne entrent dans la synthèse."
 
 msgid ""
 "The person's decisions on the pairs left to them are simulated by the annotation; the pairs are "
@@ -4660,6 +4844,13 @@ msgstr "Écrire le fichier à remplir pour les études incluses."
 msgid "Write the flow diagram of the screening (SVG, French and English) in the exports folder."
 msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) dans le dossier des exports."
 
+msgid ""
+"Write the frequency tables (CSV, Markdown, XLSX) and, with two fields, the evidence map (SVG, "
+"HTML) in the exports folder."
+msgstr ""
+"Écrire les tableaux de fréquences (CSV, Markdown, XLSX) et, avec deux champs, la carte des "
+"données probantes (SVG, HTML) dans le dossier des exports."
+
 msgid "Write the list of the references still without a full text (CSV) in the exports folder."
 msgstr "Écrire la liste des références encore sans texte intégral (CSV) dans le dossier des exports."
 
@@ -4772,6 +4963,9 @@ msgstr "ajouté le %(date)s"
 #, python-brace-format
 msgid "all included records and excluded ones drawn with the seed {seed}"
 msgstr "toutes les références incluses et des exclues tirées avec la graine {seed}"
+
+msgid "and the map"
+msgstr "et la carte"
 
 msgid "as given by the AI (no calibration yet)"
 msgstr "telles que données par l'IA (pas encore d'étalonnage)"
@@ -4954,6 +5148,9 @@ msgstr "extraite"
 msgid "extracted by the person"
 msgstr "extraite par la personne"
 
+msgid "few studies"
+msgstr "peu d'études"
+
 msgid "field added: studies to complete"
 msgstr "champ ajouté : études à compléter"
 
@@ -5086,6 +5283,9 @@ msgstr "aucun PDF en libre accès n'a pu être téléchargé ({count} essayés)"
 
 msgid "no readable text (scanned PDF): read it without the tool"
 msgstr "aucun texte lisible (PDF numérisé) : le lire sans l'outil"
+
+msgid "no study"
+msgstr "aucune étude"
 
 msgid "not checked yet"
 msgstr "pas encore vérifié"
@@ -5473,6 +5673,10 @@ msgid "{code} ({kind}): {text}"
 msgstr "{code} ({kind}) : {text}"
 
 #, python-brace-format
+msgid "{code} {part} of {whole}"
+msgstr "{code} {part} sur {whole}"
+
+#, python-brace-format
 msgid "{code}: {change}"
 msgstr "{code} : {change}"
 
@@ -5610,6 +5814,12 @@ msgstr ""
 
 #~ msgid "95 % interval: %(low)s to %(high)s"
 #~ msgstr ""
+
+#~ msgid "Circle area: number of studies. Dashed cell: no study. Red outline: few studies."
+#~ msgstr ""
+#~ "Aire du cercle : nombre d'études. Cellule en "
+#~ "pointillé : aucune étude. Contour rouge : peu "
+#~ "d'études."
 
 #~ msgid "Fields reported: %(reported)s of %(fields)s."
 #~ msgstr "Champs rapportés : %(reported)s sur %(fields)s."

@@ -11,6 +11,9 @@ refuses the first link, and the third, found nowhere, is declared not retrievabl
 The two texts are screened in a blind full-text round, after a pilot of both: the
 housing study turns out to be about adolescents (excluded for P1), the loneliness study
 is included. Every number of the diagram is counted by hand in the README.
+
+``build_extracted`` goes on to the extraction: a grid of three fields, the included
+study extracted by the person, for the synthesis tables and the evidence map.
 """
 
 from collections.abc import Callable, Sequence
@@ -19,6 +22,8 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+
+from pydantic import JsonValue
 
 from revue_portee.ai.base import ModelProvider, TaskInput
 from revue_portee.ai.providers.fake import FakeBatches, FakeProvider
@@ -30,8 +35,11 @@ from revue_portee.collect.enrichment import enriched_reference
 from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
+from revue_portee.domain.grid import FieldType
 from revue_portee.domain.references import Reference
 from revue_portee.domain.screening import DecisionValue, ScreeningMode, Thresholds
+from revue_portee.extraction import grid as extraction_grid
+from revue_portee.extraction import validation
 from revue_portee.fulltext import retrieval
 from revue_portee.protocol import criteria
 from revue_portee.screening import (
@@ -429,4 +437,37 @@ def build(tmp_path: Path) -> Demo:
     broaden_and_reassess(demo)
     retrieve_texts(demo)
     screen_texts(demo)
+    return demo
+
+
+def extract(demo: Demo) -> None:
+    """A grid of three fields, then the included study extracted by the person (no AI):
+    the synthesis counts only what a person decided."""
+    folder, clock = demo.folder, demo.clock
+    for label, kind, choices in (
+        ("Devis", FieldType.SINGLE_CHOICE, ("Qualitatif", "Quantitatif", "Mixte")),
+        ("Milieu", FieldType.MULTIPLE_CHOICE, ("Domicile", "Résidence", "Hôpital")),
+        ("Pays", FieldType.TEXT, ()),
+    ):
+        extraction_grid.add_field(
+            folder, label=label, type=kind, choices=choices, now=clock, tool_version=TOOL_VERSION
+        )
+    extraction_grid.activate_draft(folder, rationale="", now=clock, tool_version=TOOL_VERSION)
+    study = demo.ids()["loneliness"]
+    extracted: tuple[tuple[str, bool, JsonValue], ...] = (
+        ("D1", True, "Qualitatif"),
+        ("D2", True, ["Résidence"]),
+        ("D3", False, None),
+    )
+    for code, reported, value in extracted:
+        validation.record_value(
+            folder, study, code, reported=reported, value=value, now=clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+
+
+def build_extracted(tmp_path: Path) -> Demo:
+    """The demonstration up to the extraction of the included study."""
+    demo = build(tmp_path)
+    extract(demo)
     return demo

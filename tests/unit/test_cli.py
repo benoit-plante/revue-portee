@@ -170,3 +170,22 @@ def test_extracted_values_export(tmp_path: Path) -> None:
     assert written == "study,title,year,field,label,reported,value,page,status,to_review\n"
     missing = runner.invoke(app, ["donnees-extraites", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_synthesis_export(tmp_path: Path) -> None:
+    from demo import build_extracted
+
+    demo = build_extracted(tmp_path)
+    folder = demo.folder.path
+    demo.folder.close()
+    result = runner.invoke(app, ["synthese", str(folder), "--lignes", "D1", "--colonnes", "D2"])
+    assert result.exit_code == 0, result.output
+    assert len(result.output.splitlines()) == 9
+    assert (folder / "exports" / "synthese" / "carte-D1-D2-fr.svg").is_file()
+    english = runner.invoke(app, ["synthese", str(folder), "--langue", "en"])
+    assert english.exit_code == 0, english.output
+    assert (folder / "exports" / "synthese" / "tableaux-en.xlsx").is_file()
+    for wrong in (["--lignes", "D1"], ["--lignes", "D1", "--colonnes", "D1"],
+                  ["--langue", "de"], ["--lignes", "D1", "--colonnes", "D9"]):  # fmt: skip
+        assert runner.invoke(app, ["synthese", str(folder), *wrong]).exit_code == 1
+    assert runner.invoke(app, ["synthese", str(tmp_path / "absent")]).exit_code == 1

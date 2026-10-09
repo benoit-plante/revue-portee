@@ -97,6 +97,7 @@ class EntryType:
     EXTRACTION_AI_FAILED = "extraction.ai_failed"
     EXTRACTION_VALUE_DECIDED = "extraction.value_decided"
     EXTRACTION_PILOT_STARTED = "extraction.pilot_started"
+    SYNTHESIS_GAP_COMMENTED = "synthesis.gap_commented"
 
 
 class JournalEntry(BaseModel):

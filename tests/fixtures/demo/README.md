@@ -66,3 +66,17 @@ Pilote : 2 textes, accord 100 %. Citations du tour principal : **5** vérifiées
 | Rapports exclus (avec motifs) | 1 (P1 : 1) |
 | Sources de données probantes incluses | 1 |
 | Désaccords | 1, réconcilié |
+
+## Extraction et synthèse (`build_extracted`, tranche 3.5)
+
+Grille, version 1 : D1 Devis (choix unique : Qualitatif, Quantitatif, Mixte), D2 Milieu (choix multiple : Domicile, Résidence, Hôpital), D3 Pays (texte). La personne extrait seule la seule étude incluse (Solitude des aînés) : D1 Qualitatif, D2 Résidence, D3 non rapporté.
+
+**Tableaux de fréquences** (1 étude incluse)
+
+| Champ | Catégories |
+|---|---|
+| D1 Devis | Qualitatif 1 (100,0 %), Quantitatif 0, Mixte 0 |
+| D2 Milieu | Domicile 0, Résidence 1 (100,0 %), Hôpital 0 |
+| D3 Pays | aucune catégorie; non rapporté 1 |
+
+**Carte D1 × D2** : 3 lignes × 3 colonnes = 9 cellules; une seule occupée (Qualitatif × Résidence, 1 étude), donc **1 cellule peu peuplée** (au plus 1 étude) et **8 cellules vides**. Études placées : 1; sans valeur sur l'un des deux champs : 0.
