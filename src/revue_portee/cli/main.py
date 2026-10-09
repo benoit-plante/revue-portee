@@ -305,6 +305,51 @@ def export_extracted(
     typer.echo(_("%(count)s values written to %(path)s.") % {"count": written, "path": path})
 
 
+@app.command(
+    "synthese",
+    help=_(
+        "Write the frequency tables (CSV, Markdown, XLSX) and, with two fields, the evidence "
+        "map (SVG, HTML) in the exports folder."
+    ),
+)
+def export_synthesis(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    lignes: Annotated[str, typer.Option(help=_("Field of the rows of the map (D1…)."))] = "",
+    colonnes: Annotated[str, typer.Option(help=_("Field of the columns of the map (D2…)."))] = "",
+    seuil: Annotated[
+        int, typer.Option(min=0, help=_("A cell is sparse with at most this many studies."))
+    ] = 1,
+    langue: Annotated[str, typer.Option(help=_("Language of the exports (fr or en)."))] = "fr",
+) -> None:
+    from revue_portee.extraction.prefill import NoGridError
+    from revue_portee.synthesis import maps
+
+    if bool(lignes) != bool(colonnes) or (lignes and lignes == colonnes):
+        raise _fail(_("Give two different fields, one for the rows and one for the columns."))
+    if langue not in ("fr", "en"):
+        raise _fail(_("Unsupported language: {language} (fr or en).").format(language=langue))
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    crossing = [(lignes, colonnes)] if lignes else []
+    try:
+        written = maps.export_tables(folder, language=langue, crosses=crossing, now=utc_now)
+        for rows, columns in crossing:
+            written += maps.export_map(
+                folder, rows, columns, language=langue, sparse_max=seuil, now=utc_now,
+                tool_version=tool_version(),
+            )  # fmt: skip
+    except (NoGridError, maps.UnknownFieldError) as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    for path in written:
+        typer.echo(str(path))
+
+
 def _counts_line(folder: ProjectFolder) -> str:
     from revue_portee.fulltext.retrieval import retrieval_report
     from revue_portee.reporting.formats import percent

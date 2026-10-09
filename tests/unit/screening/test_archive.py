@@ -311,3 +311,74 @@ def test_a_secret_stops_the_export(tmp_path: Path) -> None:
     assert "donnees/criteres.csv" in message
     assert leaked not in message
     assert not list((demo.folder.path / "exports").glob("archive-*.zip"))
+
+
+def test_synthesis_tables_recounted_from_the_archive(tmp_path: Path) -> None:
+    """The frequency tables and the map cells, recounted from donnees-extraites.csv
+    following LISEZMOI.md, match the count made by hand (« Extraction et synthèse »)."""
+    from demo import build_extracted
+    from revue_portee.synthesis import maps
+
+    demo = build_extracted(tmp_path)
+    try:
+        maps.comment_gap(
+            demo.folder, "D1", "D2", "Mixte", "Hôpital", "Aucune étude mixte", now=demo.clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        result = export_archive(demo.folder, now=make_clock(), tool_version=TOOL_VERSION)
+    finally:
+        demo.folder.close()
+    archive = Archive(result.path)
+    rows = archive.rows("donnees/donnees-extraites.csv")
+    counts: dict[str, Counter[str]] = {}
+    not_reported: Counter[str] = Counter()
+    for row in rows:
+        if row["reported"] == "non":
+            not_reported[row["field"]] += 1
+        elif row["reported"] == "oui":
+            for value in row["value"].split(" | "):
+                counts.setdefault(row["field"], Counter())[value] += 1
+    assert counts == {"D1": Counter({"Qualitatif": 1}), "D2": Counter({"Résidence": 1})}
+    assert not_reported == Counter({"D3": 1})
+    by_study: dict[str, dict[str, list[str]]] = {}
+    for row in rows:
+        if row["reported"] == "oui":
+            by_study.setdefault(row["study"], {})[row["field"]] = row["value"].split(" | ")
+    cells = Counter(
+        (r, c) for values in by_study.values() for r in values["D1"] for c in values["D2"]
+    )
+    assert cells == Counter({("Qualitatif", "Résidence"): 1})
+    grid = archive.rows("donnees/grille.csv")
+    assert [(g["version"], g["code"], g["choices"]) for g in grid][:1] == [
+        ("1", "D1", "Qualitatif | Quantitatif | Mixte")
+    ]
+    history = archive.rows("donnees/valeurs-extraites.csv")
+    assert [(h["field"], h["status"], h["reviewer_kind"]) for h in history] == [
+        ("D1", "extracted", "human"), ("D2", "extracted", "human"), ("D3", "extracted", "human"),
+    ]  # fmt: skip
+    assert archive.rows("donnees/commentaires-lacunes.csv")[0]["text"] == "Aucune étude mixte"
+    assert "donnees/pilotes-extraction.csv" in archive.names()
+
+
+def test_no_quote_of_the_ai_in_the_public_archive(tmp_path: Path) -> None:
+    from decimal import Decimal
+
+    from revue_portee.extraction import prefill
+    from unit.extraction.test_prefill import _with_grid, answer, factory
+
+    demo = _with_grid(tmp_path)
+    try:
+        prefill.run_ai(
+            demo.folder, batch_limit=Decimal(1), factory=factory(answer), now=demo.clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        files = archive_files(
+            demo.folder, ArchiveKind.PUBLIC, now=make_clock(), tool_version=TOOL_VERSION
+        )
+    finally:
+        demo.folder.close()
+    history = files["donnees/valeurs-extraites.csv"].decode()
+    assert history.count(",proposed,ai,") == 3
+    for content in files.values():
+        assert b"We interviewed 24 older adults" not in content
+        assert b"living in three residences" not in content

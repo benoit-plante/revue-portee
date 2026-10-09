@@ -50,8 +50,10 @@ from revue_portee.storage.archive import (
 from revue_portee.storage.project_folder import DATABASE_FILE, PROJECT_FILE, ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import fulltext as fulltext_repo
+from revue_portee.storage.repositories import grid as grid_repo
 from revue_portee.storage.repositories import journal, projects
 from revue_portee.storage.repositories import screening as screening_repo
+from revue_portee.storage.repositories import synthesis as synthesis_repo
 
 __all__ = [
     "ArchiveKind",
@@ -230,6 +232,42 @@ def _study_files(folder: ProjectFolder) -> dict[str, str]:
     return {"etudes.csv": reports, "liens-etudes.csv": links}
 
 
+def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
+    """The grid, every extracted value (no quote nor note), the values kept for the
+    synthesis, the extraction pilots and the comments on the gaps (tranches 3.1 to 3.5)."""
+    # Imported here: the extraction reads the studies, which import the screening.
+    from revue_portee.extraction import validation
+
+    with folder.engine.connect() as connection:
+        versions = grid_repo.list_versions(connection)
+        comments = synthesis_repo.list_comments(connection)
+    grid = csv_text(
+        ("version", "version_id", "status", "activated_at", "code", "label", "type",
+         "definition", "guidance", "choices"),
+        (
+            (v.number, v.id, v.status.value,
+             "" if v.activated_at is None else v.activated_at.isoformat(), f.code, f.label,
+             f.type.value, f.definition, f.guidance, " | ".join(f.choices))
+            for v in versions
+            for f in v.sorted_fields()
+        ),
+    )  # fmt: skip
+    gap_comments = csv_text(
+        ("rows_field", "columns_field", "row", "column", "text", "created_at"),
+        (
+            (c.rows_field, c.columns_field, c.row, c.column, c.text, c.created_at.isoformat())
+            for c in comments
+        ),
+    )
+    kept, _count = validation.extraction_tables(folder)
+    return kept | {
+        "grille.csv": grid,
+        "valeurs-extraites.csv": validation.history_table(folder),
+        "pilotes-extraction.csv": validation.pilots_table(folder),
+        "commentaires-lacunes.csv": gap_comments,
+    }
+
+
 def _exports(folder: ProjectFolder, *, now: Clock, tool_version: str) -> dict[str, bytes]:
     report = flow_report(folder, now=now, tool_version=tool_version)
     data = methods_data(folder, now=now, tool_version=tool_version)
@@ -269,6 +307,7 @@ def archive_files(
         | _fulltext_files(folder)
         | _fulltext_screening_files(folder)
         | _study_files(folder)
+        | _extraction_files(folder)
     )
     files |= {f"donnees/{name}": text.encode() for name, text in tables.items()}
     files |= _exports(folder, now=lambda: moment, tool_version=tool_version)

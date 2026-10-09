@@ -35,6 +35,8 @@ from revue_portee.reporting.protocol import change_labels
 __all__ = [
     "ChangeSummary",
     "CostLine",
+    "ExtractionSummary",
+    "FieldAgreementLine",
     "MethodsData",
     "ModelUse",
     "PilotSummary",
@@ -193,6 +195,41 @@ class FulltextSummary(BaseModel):
     included_reports: int = 0
 
 
+class FieldAgreementLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: str
+    label: str
+    compared: int
+    agreed: int
+
+
+class ExtractionSummary(BaseModel):
+    """The data extraction (tranches 3.1 to 3.4), as the methods section reports it. The
+    counts are of the values in force, one per study and field."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    grid_version: int
+    fields: int
+    studies: int
+    provider: str = ""  # empty: the AI did not pre-fill
+    model: str = ""
+    template_version: str = ""
+    ai_studies: int = 0  # studies the AI pre-filled
+    validated: int = 0
+    corrected: int = 0
+    rejected: int = 0
+    extracted: int = 0  # by the person, without an AI value to check
+    pending: int = 0  # values of the AI not checked yet
+    quotes_at_page: int = 0
+    quotes_other_page: int = 0
+    quotes_not_found: int = 0
+    pilot_studies: int = 0
+    pilot_seed: int | None = None
+    pilot_agreement: tuple[FieldAgreementLine, ...] = ()
+
+
 class CostLine(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -229,6 +266,7 @@ class MethodsData(BaseModel):
     validation: ToolValidation
     retrieval: RetrievalCounts | None = None  # full texts of the reports sought
     full_text: FulltextSummary | None = None  # the full-text screening, once started
+    extraction: ExtractionSummary | None = None  # once a grid is in force and values exist
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -911,6 +949,92 @@ def _fulltext(_: Translate, data: MethodsData, language: str) -> list[Block]:
     return blocks
 
 
+def _extraction(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Data extraction (EF-EXT-03 to EF-EXT-05), once values exist."""
+    ex = data.extraction
+    if ex is None:
+        return []
+    blocks: list[Block] = [
+        Heading(level=2, text=_("Data extraction")),
+        Paragraph(
+            text=_(
+                "Data were charted with version {version} of the extraction grid ({fields} "
+                "fields), for {studies} included studies, from the primary report of each."
+            ).format(
+                version=ex.grid_version,
+                fields=integer(ex.fields, language),
+                studies=integer(ex.studies, language),
+            )
+        ),
+    ]
+    if ex.ai_studies:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "The AI ({provider}, model {model}, prompt template extract_fields version "
+                    "{version}) pre-filled the grid for {ai_studies} studies from the text of "
+                    "their primary report, giving for each value the exact quote it rests on "
+                    "and its page, or that the report does not give it. The tool checked "
+                    "each value against the type of its field and looked for each quote in "
+                    "the text: at the page "
+                    "given, {at_page}; at another page, {other_page}; not found, {not_found}. "
+                    "A quote is always shown at the page where it is."
+                ).format(
+                    provider=ex.provider,
+                    model=ex.model,
+                    version=ex.template_version,
+                    ai_studies=integer(ex.ai_studies, language),
+                    at_page=integer(ex.quotes_at_page, language),
+                    other_page=integer(ex.quotes_other_page, language),
+                    not_found=integer(ex.quotes_not_found, language),
+                )
+            )
+        )
+    blocks.append(
+        Paragraph(
+            text=_(
+                "The person validated, corrected or rejected every value of the AI and gave "
+                "the values it did not: values validated, {validated}; corrected, "
+                "{corrected}; rejected, {rejected}; extracted by the person, {extracted}; "
+                "values of the AI not checked yet, {pending}. Only the values decided by the "
+                "person enter the synthesis."
+            ).format(
+                validated=integer(ex.validated, language),
+                corrected=integer(ex.corrected, language),
+                rejected=integer(ex.rejected, language),
+                extracted=integer(ex.extracted, language),
+                pending=integer(ex.pending, language),
+            )
+        )
+    )
+    if ex.pilot_studies:
+        agreement = separator(language).join(
+            _("{code} {part} of {whole}").format(
+                code=line.code,
+                part=integer(line.agreed, language),
+                whole=integer(line.compared, language),
+            )
+            for line in ex.pilot_agreement
+            if line.compared
+        )
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "In an extraction pilot of {studies} studies drawn at random (seed "
+                    "{seed}), the person extracted every field without seeing the AI; the "
+                    "AI's values agreed with the person's, by field: {agreement}. Agreement is "
+                    "automatic for texts (one contains the other or they share at least half "
+                    "of their words)."
+                ).format(
+                    studies=integer(ex.pilot_studies, language),
+                    seed=ex.pilot_seed,
+                    agreement=agreement or "—",
+                )
+            )
+        )
+    return blocks
+
+
 def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
@@ -1002,6 +1126,7 @@ def build_methods(data: MethodsData, *, language: str) -> Document:
     blocks += _results(_, data, language)
     blocks += _retrieval(_, data, language)
     blocks += _fulltext(_, data, language)
+    blocks += _extraction(_, data, language)
     blocks += _limitations(_, data, language)
     blocks += _funding(_)
     blocks += [Heading(level=2, text=_("References")), BulletList(items=_REFERENCES)]

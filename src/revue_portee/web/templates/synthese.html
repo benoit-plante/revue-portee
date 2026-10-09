@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Synthesis") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Synthesis") }}</h1>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if not grid %}
+<p class="message info">{{ _("Activate a version of the extraction grid first.") }} <a href="/grille">{{ _("Extraction grid") }}</a></p>
+{% else %}
+<p>{{ _("Tables and maps are built from the values you decided only (validated, corrected or extracted); a value proposed by the AI that you have not checked never counts. A study counts once in each of its categories.") }}</p>
+<p>{{ _("Included studies: %(count)s.", count=studies | length) }}</p>
+
+<section aria-labelledby="carte-titre">
+  <h2 id="carte-titre">{{ _("Evidence map") }}</h2>
+  <form method="get" action="/synthese" class="inline-form">
+    <label for="lignes">{{ _("Rows") }}</label>
+    <select id="lignes" name="lignes" required><option value=""></option>{% for f in grid.sorted_fields() %}<option value="{{ f.code }}" {% if f.code == rows %}selected{% endif %}>{{ f.code }} — {{ f.label }}</option>{% endfor %}</select>
+    <label for="colonnes">{{ _("Columns") }}</label>
+    <select id="colonnes" name="colonnes" required><option value=""></option>{% for f in grid.sorted_fields() %}<option value="{{ f.code }}" {% if f.code == columns %}selected{% endif %}>{{ f.code }} — {{ f.label }}</option>{% endfor %}</select>
+    <label for="seuil">{{ _("Few studies: at most") }}</label>
+    <input type="text" inputmode="numeric" id="seuil" name="seuil" value="{{ sparse }}" size="2">
+    <button type="submit">{{ _("Show the map") }}</button>
+  </form>
+  {% if crossed %}
+  <div class="evidence-map" style="overflow-x:auto">{{ svg }}</div>
+  <section aria-labelledby="lacunes-titre" id="lacunes">
+    <h3 id="lacunes-titre">{{ _("Gaps") }}</h3>
+    {% if gaps %}
+    <table class="criteria">
+      <caption class="visually-hidden">{{ _("Empty or sparse cells of the map, with your comments") }}</caption>
+      <thead><tr><th scope="col">{{ crossed.rows_field.label }}</th><th scope="col">{{ crossed.columns_field.label }}</th><th scope="col">{{ _("Gap") }}</th><th scope="col">{{ _("Comment") }}</th></tr></thead>
+      <tbody>
+      {% for g in gaps %}
+        <tr>
+          <td>{{ g.row }}</td><td>{{ g.column }}</td>
+          <td>{% if g.kind == "empty" %}{{ _("no study") }}{% else %}{{ _("few studies") }} ({{ g.count }}){% endif %}</td>
+          <td>
+            <form method="post" action="/synthese/lacune">
+              {{ csrf() }}
+              <input type="hidden" name="lignes" value="{{ rows }}"><input type="hidden" name="colonnes" value="{{ columns }}"><input type="hidden" name="seuil" value="{{ sparse }}">
+              <input type="hidden" name="ligne" value="{{ g.row }}"><input type="hidden" name="colonne" value="{{ g.column }}">
+              <label class="visually-hidden" for="commentaire-{{ loop.index }}">{{ _("Comment") }}</label>
+              <textarea id="commentaire-{{ loop.index }}" name="commentaire" rows="2">{{ comments.get((g.row, g.column), "") }}</textarea>
+              <button type="submit" class="secondary">{{ _("Record the comment") }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>{{ _("No empty or sparse cell.") }}</p>
+    {% endif %}
+  </section>
+  <details>
+    <summary>{{ _("Studies by cell") }}</summary>
+    <ul>
+    {% for r in crossed.rows %}{% for c in crossed.columns %}{% set ids = crossed.studies(r, c) %}{% if ids %}
+      <li>{{ r }} / {{ c }} ({{ ids | length }})&nbsp;: {% for i in ids %}<a href="/extraction/{{ i }}">{{ labels[i] }}</a>{% if not loop.last %}; {% endif %}{% endfor %}</li>
+    {% endif %}{% endfor %}{% endfor %}
+    </ul>
+    <p class="small">{{ _("Studies without a value on either field: %(count)s.", count=crossed.unplaced | length) }}</p>
+  </details>
+  {% endif %}
+</section>
+
+<section aria-labelledby="export-titre">
+  <h2 id="export-titre">{{ _("Exports") }}</h2>
+  <p>{{ _("Frequency tables of every field in CSV, Markdown and XLSX; with a map shown, its cross table, its SVG image and its HTML page.") }}</p>
+  <form method="post" action="/synthese/export">
+    {{ csrf() }}
+    <input type="hidden" name="lignes" value="{{ rows }}"><input type="hidden" name="colonnes" value="{{ columns }}"><input type="hidden" name="seuil" value="{{ sparse }}">
+    <button type="submit" class="secondary">{{ _("Export the tables") }}{% if crossed %} {{ _("and the map") }}{% endif %}</button>
+  </form>
+</section>
+
+<section aria-labelledby="frequences-titre">
+  <h2 id="frequences-titre">{{ _("Frequency tables") }}</h2>
+  {% for t in tables %}
+  <table class="criteria">
+    <caption>{{ t.field.code }} — {{ t.field.label }}</caption>
+    <thead><tr><th scope="col">{{ _("Category") }}</th><th scope="col">{{ _("Studies") }}</th><th scope="col">{{ _("Share") }}</th></tr></thead>
+    <tbody>
+    {% for r in t.rows %}
+      <tr><th scope="row">{{ r.category }}</th><td>{{ r.count }}</td><td>{% set s = t.share(r) %}{% if s is none %}—{% else %}{{ decimal_fr(s * 100, 1) }}&nbsp;%{% endif %}</td></tr>
+    {% endfor %}
+      <tr><th scope="row"><em>{{ _("Not reported") }}</em></th><td>{{ t.not_reported | length }}</td><td></td></tr>
+      <tr><th scope="row"><em>{{ _("Not extracted yet") }}</em></th><td>{{ t.not_extracted | length }}</td><td></td></tr>
+    </tbody>
+  </table>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

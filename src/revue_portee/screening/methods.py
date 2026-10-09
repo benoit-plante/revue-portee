@@ -23,6 +23,8 @@ from revue_portee.reporting.document import Document, render_docx, render_markdo
 from revue_portee.reporting.methods import (
     ChangeSummary,
     CostLine,
+    ExtractionSummary,
+    FieldAgreementLine,
     FulltextSummary,
     MethodsData,
     ModelUse,
@@ -279,6 +281,61 @@ def _screening(state: main.MainState) -> ScreeningSummary:
     )
 
 
+def _extraction(folder: ProjectFolder, calls: list[StoredCall]) -> ExtractionSummary | None:
+    """The data extraction, once a grid is in force and values exist."""
+    # Imported here: the extraction reads the studies, which import the screening.
+    from revue_portee.ai.tasks.extraction import EXTRACT_FIELDS
+    from revue_portee.domain.extraction import ValueStatus, current_values, quote_summary
+    from revue_portee.extraction import prefill, validation
+    from revue_portee.storage.repositories import extraction as extraction_repo
+
+    state = prefill.extraction_state(folder)
+    with folder.engine.connect() as connection:
+        values = extraction_repo.list_values(connection)
+    if state.grid is None or not values:
+        return None
+    studies_ids = {s.primary.id for s in state.studies}
+    codes = {f.code for f in state.grid.fields}
+    in_force = [
+        v
+        for (ref, code), v in current_values(values).items()
+        if ref in studies_ids and code in codes
+    ]
+    statuses = Counter(v.status for v in in_force)
+    ai_values = [v for v in values if v.reviewer_kind is PersonKind.AI]
+    checks = quote_summary(current_values(ai_values).values())
+    config = folder.ai_settings().tasks.get(EXTRACT_FIELDS.name)
+    versions = sorted(
+        {c.record.prompt_template_version for c in calls if c.task == EXTRACT_FIELDS.name}
+    )
+    pilot_state = validation.pilot_state(folder)
+    return ExtractionSummary(
+        grid_version=state.grid.number,
+        fields=len(state.grid.fields),
+        studies=len(state.studies),
+        provider="" if config is None or not ai_values else str(config.provider or ""),
+        model="" if config is None or not ai_values else str(config.model or ""),
+        template_version=", ".join(versions),
+        ai_studies=len({v.reference_id for v in ai_values if v.reference_id in studies_ids}),
+        validated=statuses[ValueStatus.VALIDATED],
+        corrected=statuses[ValueStatus.CORRECTED],
+        rejected=statuses[ValueStatus.REJECTED],
+        extracted=statuses[ValueStatus.EXTRACTED],
+        pending=statuses[ValueStatus.PROPOSED],
+        quotes_at_page=checks[QuoteCheck.AT_PAGE],
+        quotes_other_page=checks[QuoteCheck.OTHER_PAGE],
+        quotes_not_found=checks[QuoteCheck.NOT_FOUND],
+        pilot_studies=0 if pilot_state is None else len(pilot_state.pilot.reference_ids),
+        pilot_seed=None if pilot_state is None else pilot_state.pilot.seed,
+        pilot_agreement=()
+        if pilot_state is None
+        else tuple(
+            FieldAgreementLine(code=a.code, label=a.label, compared=a.compared, agreed=a.agreed)
+            for a in pilot_state.agreement
+        ),
+    )
+
+
 def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> MethodsData:
     report = flow_report(folder, now=now, tool_version=tool_version)
     config = folder.ai_settings().tasks.get(TASK)
@@ -328,6 +385,7 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         changes=changes,
         costs=_costs(folder, screening_calls),
         full_text=_fulltext(folder, every_call),
+        extraction=_extraction(folder, every_call),
         other_costs=CostLine(
             phase="other",
             calls=len(others),
