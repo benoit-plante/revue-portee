@@ -537,10 +537,14 @@ def study_benchmark(
     auteurs: Annotated[int, typer.Option("--auteurs", help=_("Shared authors at least."))] = 2,
     mots: Annotated[
         float, typer.Option("--mots", help=_("Shared words at least (0 to 1)."))
-    ] = 0.15,
+    ] = 0.03,
+    mots_un_auteur: Annotated[
+        float,
+        typer.Option("--mots-un-auteur", help=_("Shared words at least with one author (0 to 1).")),
+    ] = 0.12,
     titre: Annotated[
         float, typer.Option("--titre", help=_("Title similarity at least (0 to 1)."))
-    ] = 0.6,
+    ] = 0.85,
     sortie: Annotated[Path, typer.Option("--sortie", help=_("Folder of the reports."))] = Path(
         "docs/resultats"
     ),
@@ -551,7 +555,10 @@ def study_benchmark(
     if not fichier.is_file():
         raise _fail(_("File not found: {path}").format(path=fichier))
     settings = ReportLinkSettings(
-        min_shared_authors=auteurs, min_text_overlap=mots, min_title_similarity=titre
+        min_shared_authors=auteurs,
+        min_text_overlap=mots,
+        single_author_overlap=mots_un_auteur,
+        min_title_similarity=titre,
     )
     name = fichier.stem
     test = bench.run_test(name, bench.read_set(fichier), now=utc_now(), settings=settings)

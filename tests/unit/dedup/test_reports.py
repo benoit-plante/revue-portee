@@ -48,7 +48,7 @@ def test_candidates_counted_by_hand() -> None:
     vdb = ("van den Bosch, L", "Verheul R")
     reports = [
         # a and b: the same registration number (in the text of b only)
-        features(_ref("a", dbt, ("Verheul, R",), "NCT01234567")),
+        features(_ref("a", dbt, ("Linehan, M",), "NCT01234567")),
         features(_ref("b", "Long-term follow-up of a trial", ("Smith J",)), text="NCT01234567"),
         # c and d: two shared authors and many shared words
         features(_ref("c", "Main results in Amsterdam", vdb, ABSTRACT)),
@@ -69,7 +69,9 @@ def test_candidates_counted_by_hand() -> None:
     assert found["c", "d"].rule == LinkRule.AUTHORS
     assert found["c", "d"].shared_authors == ("bosch", "verheul")
     assert found["e", "f"].rule == LinkRule.TITLE
-    stricter = ReportLinkSettings(min_shared_authors=3, min_title_similarity=0.99)
+    stricter = ReportLinkSettings(
+        min_shared_authors=3, single_author_overlap=1.0, min_title_similarity=0.99
+    )
     assert {(c.reference_a_id, c.reference_b_id) for c in candidate_pairs(reports, stricter)} == {
         ("a", "b")
     }

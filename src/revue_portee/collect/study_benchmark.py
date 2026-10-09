@@ -197,8 +197,9 @@ def report_markdown(test: StudyTest, *, role: str) -> str:
         f"- Date : {test.generated_at:%Y-%m-%d}; rôle du jeu : **{role}**",
         f"- Notices : {test.records}; études (numéros ClinicalTrials.gov) : {test.studies}, "
         f"dont {test.studies_with_several} avec plusieurs rapports",
-        f"- Réglages : auteurs en commun ≥ {test.settings.min_shared_authors}, mots communs "
-        f"≥ {test.settings.min_text_overlap:.2f}, similarité des titres ≥ "
+        f"- Réglages : auteurs en commun ≥ {test.settings.min_shared_authors} et mots communs "
+        f"≥ {test.settings.min_text_overlap:.2f}, ou 1 auteur et mots communs ≥ "
+        f"{test.settings.single_author_overlap:.2f}; similarité des titres ≥ "
         f"{test.settings.min_title_similarity:.2f}",
         "",
         "| Mesure | Valeur |",

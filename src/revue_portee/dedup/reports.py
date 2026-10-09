@@ -5,9 +5,14 @@ Two included reports are proposed as reports of one study when:
 - they cite the same trial registration number (ClinicalTrials.gov, ISRCTN, ANZCTR,
   ChiCTR, DRKS, Netherlands Trial Register, UMIN, IRCT, CTRI, PACTR, EudraCT); two
   reports citing only different numbers are never proposed;
-- or they share at least ``min_shared_authors`` author surnames and their titles and
-  abstracts share enough words (``min_text_overlap``);
+- or they share at least ``min_shared_authors`` author surnames and a few words of their
+  titles and abstracts (``min_text_overlap``), or one surname and many words
+  (``single_author_overlap``);
 - or their titles are close (``min_title_similarity``).
+
+The default settings were chosen on a development set (PubMed records of psychotherapy
+trials, 2015 to 2019, labelled by their ClinicalTrials.gov number): recall of the true
+pairs 0.969 (docs/resultats/). They are tested once on a held-out set.
 
 The rules are generous on purpose: they propose, the AI examines each pair in the texts
 and a person decides (``screening.studies``). A study is a group of reports joined by
@@ -76,8 +81,9 @@ class ReportLinkSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     min_shared_authors: int = Field(default=2, ge=1)
-    min_text_overlap: float = Field(default=0.15, ge=0, le=1)  # Jaccard of the words
-    min_title_similarity: float = Field(default=0.6, ge=0, le=1)
+    min_text_overlap: float = Field(default=0.03, ge=0, le=1)  # Jaccard of the words
+    single_author_overlap: float = Field(default=0.12, ge=0, le=1)  # with one author only
+    min_title_similarity: float = Field(default=0.85, ge=0, le=1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,7 +147,7 @@ def _candidate(
         rule = LinkRule.REGISTRATION
     elif (
         len(shared_authors) >= settings.min_shared_authors and overlap >= settings.min_text_overlap
-    ):
+    ) or (shared_authors and overlap >= settings.single_author_overlap):
         rule = LinkRule.AUTHORS
     elif similarity >= settings.min_title_similarity:
         rule = LinkRule.TITLE
