@@ -4,8 +4,9 @@ Every change is made to a draft, started from the version in force when needed, 
 recorded in the journal with the field before and after. Activating the draft makes it
 the version in force (a rationale is required from version 2 on); the previous version
 is superseded and stays readable. A field code is given once and never reused, even if
-its field only lived in a discarded draft. The qualification of the changes and their
-impact on the values already extracted come with tranche 3.4 (EF-VER-06).
+its field only lived in a discarded draft. Activating a new version records, in the same
+transaction, its impact on the values already extracted (EF-VER-06, tranche 3.4,
+``extraction.impact``).
 """
 
 from collections.abc import Callable, Iterable, Sequence
@@ -327,7 +328,16 @@ def discard_draft(folder: ProjectFolder, *, now: Clock, tool_version: str) -> No
 def activate_draft(
     folder: ProjectFolder, *, rationale: str, now: Clock, tool_version: str
 ) -> GridVersion:
-    """Make the draft the version in force; the previous version is superseded."""
+    """Make the draft the version in force; the previous version is superseded and the
+    impact of the changes on the values is recorded."""
+    # Imported here: the impact reads the extraction state, which reads the grid.
+    from revue_portee.extraction import impact
+
+    with folder.engine.connect() as connection:
+        before = repo.get_active_version(connection)
+        pending = repo.get_draft_version(connection)
+    touched = None if before is None or pending is None else impact.assess(folder, before, pending)
+    before_id = None if before is None else before.id
     with folder.write() as connection:
         moment = now()
         draft = repo.get_draft_version(connection)
@@ -357,4 +367,10 @@ def activate_draft(
             },
         )  # fmt: skip
         repo.update_version_status(connection, activated, journal_entry_id=entry_id)
+        if touched is not None and previous is not None and previous.id == before_id:
+            _journal(
+                connection, folder, moment, EntryType.GRID_IMPACT_ASSESSED,
+                impact.summary(activated, touched), activated, tool_version,
+                impact.payload(previous, activated, touched),
+            )  # fmt: skip
         return activated

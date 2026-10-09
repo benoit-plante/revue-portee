@@ -127,7 +127,7 @@ def test_values_checked_then_exported(tmp_path: Path) -> None:
     finally:
         demo.folder.close()
     written = (demo.folder.path / "exports" / "donnees-extraites.csv").read_text(encoding="utf-8")
-    assert ",D3,Devis,oui,Quantitatif,2,corrected" in written
+    assert ",D3,Devis,oui,Quantitatif,2,corrected," in written
     assert "Qualitatif" not in written
 
 
@@ -172,5 +172,34 @@ def test_pilot_pages(tmp_path: Path) -> None:
         study = text(client.get(url))
         assert "Cette étude fait partie du pilote" not in study
         assert "extraite par la personne" in study
+    finally:
+        demo.folder.close()
+
+
+def test_grid_change_followed(tmp_path: Path) -> None:
+    from unit.extraction.test_impact import _changed
+
+    demo = _changed(tmp_path)
+    loneliness = demo.ids()["loneliness"]
+    try:
+        app = create_app(demo.folder, now=demo.clock, tool_version=TOOL_VERSION)
+        client = TestClient(app, base_url=BASE, follow_redirects=False)
+        page = text(client.get("/extraction"))
+        assert "Changements de la grille depuis la version 1" in page
+        assert "<td>champ ajouté : études à compléter</td><td>1</td><td>1</td>" in page
+        assert "<td>champ retiré : valeurs archivées</td><td>1</td><td>—</td>" in page
+        assert "dans l'export) : 1." in page
+        assert "Champs vérifiés par vous : 0 sur 3. À revoir : 1." in page
+        url = f"/extraction/{loneliness}"
+        study = text(client.get(url))
+        assert "À revoir : donnée selon une définition antérieure du champ." in study
+        confirm = {"csrf_token": token(client), "action": "confirmer"}
+        assert client.post(f"{url}/D2", data=confirm).status_code == 303
+        again = client.post(f"{url}/D2", data=confirm)
+        assert again.status_code == 422
+        assert "Aucune valeur de votre part à confirmer pour ce champ." in text(again)
+        page = text(client.get("/extraction"))
+        assert "<td>champ modifié : valeurs à revoir</td><td>1</td><td>0</td>" in page
+        assert "Champs vérifiés par vous : 1 sur 3." in page
     finally:
         demo.folder.close()

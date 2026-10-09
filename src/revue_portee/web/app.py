@@ -64,6 +64,7 @@ from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.extraction import grid as extraction_grid
+from revue_portee.extraction import impact as extraction_impact
 from revue_portee.extraction import prefill, validation
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
@@ -2139,6 +2140,9 @@ def create_app(
             {
                 "state": state,
                 "pilot": validation.pilot_state(folder),
+                "impact": extraction_impact.impact_state(folder),
+                "archived": validation.archived_values(folder),
+                "change_labels": grid_view.change_kind_labels(),
                 "pilot_size": validation.PILOT_SIZE,
                 "running": background.running(EXTRACTION_JOB),
                 "job_error": background.error(EXTRACTION_JOB),
@@ -2253,6 +2257,10 @@ def create_app(
                 await run_in_threadpool(
                     validation.validate_value, folder, reference_id, code, **common
                 )
+            elif action == "confirmer":
+                await run_in_threadpool(
+                    validation.confirm_value, folder, reference_id, code, **common
+                )
             elif action == "rejeter":
                 await run_in_threadpool(
                     validation.reject_value, folder, reference_id, code, **common
@@ -2281,7 +2289,7 @@ def create_app(
                 )
         except (validation.NotAStudyError, prefill.NoGridError) as unknown:
             raise HTTPException(status_code=404, detail=str(unknown)) from unknown
-        except validation.NoAIValueError as error:
+        except (validation.NoAIValueError, validation.NothingToConfirmError) as error:
             return study_extraction_page(request, reference_id, error=str(error), status_code=422)
         except InvalidValueError:
             return study_extraction_page(

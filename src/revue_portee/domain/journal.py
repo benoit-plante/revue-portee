@@ -92,6 +92,7 @@ class EntryType:
     GRID_DRAFT_EDITED = "grid.draft_edited"
     GRID_DRAFT_DISCARDED = "grid.draft_discarded"
     GRID_VERSION_CREATED = "grid.version_created"
+    GRID_IMPACT_ASSESSED = "grid.impact_assessed"
     EXTRACTION_AI_PROPOSED = "extraction.ai_proposed"
     EXTRACTION_AI_FAILED = "extraction.ai_failed"
     EXTRACTION_VALUE_DECIDED = "extraction.value_decided"

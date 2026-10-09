@@ -37,6 +37,23 @@
     {% endif %}
   {% endif %}
 </section>
+{% if impact %}
+<section aria-labelledby="impact-titre">
+  <h2 id="impact-titre">{{ _("Changes of the grid since version %(number)s", number=impact.from_number) }}</h2>
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Studies touched by each change and what remains") }}</caption>
+    <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Change") }}</th><th scope="col">{{ _("Studies touched") }}</th><th scope="col">{{ _("Remaining") }}</th></tr></thead>
+    <tbody>
+    {% for c in impact.changes %}
+      <tr><th scope="row">{{ c.change.code }} — {{ c.change.label }}</th><td>{{ change_labels[c.change.kind] }}</td><td>{{ c.change.studies | length }}</td><td>{% if c.change.kind == "removed" %}—{% else %}{{ c.remaining | length }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if archived %}
+  <p>{{ _("Archived values (out of the synthesis, kept in the project and in the export): %(count)s.", count=archived | length) }}</p>
+  {% endif %}
+</section>
+{% endif %}
 <section aria-labelledby="pilote-titre">
   <h2 id="pilote-titre">{{ _("Extraction pilot") }}</h2>
   <p>{{ _("A few studies drawn at random, which you extract from the text without seeing the AI. Once you have given every field of a study, its AI values are shown and their agreement with yours is counted field by field.") }}</p>
@@ -79,8 +96,8 @@
     {% for s in state.studies %}
       <tr>
         <th scope="row"><a href="/extraction/{{ s.primary.id }}">{{ s.primary.title or _("(no title)") }}</a> <span class="small">{{ s.primary.year or "" }}{% if s.reports | length > 1 %} · {{ ngettext("%(num)s report", "%(num)s reports", s.reports | length) }}{% endif %}</span></th>
-        {% set checked = s.values.values() | selectattr("reviewer_kind", "equalto", "human") | list | length %}
-        <td>{% if pilot and s.primary.id in pilot.pilot.reference_ids and not pilot.complete(s.primary.id) %}{{ _("Pilot: extract it without the AI.") }}{% elif s.prefilled %}{{ _("Fields checked by you: %(checked)s of %(fields)s.", checked=checked, fields=state.grid.fields | length) }}{% elif not s.readable %}{{ _("No readable text: extract it from the PDF.") }}{% else %}{{ _("Not pre-filled yet.") }}{% endif %}</td>
+        {% set checked = s.checked(state.grid) %}
+        <td>{% if pilot and s.primary.id in pilot.pilot.reference_ids and not pilot.complete(s.primary.id) %}{{ _("Pilot: extract it without the AI.") }}{% elif s.prefilled %}{{ _("Fields checked by you: %(checked)s of %(fields)s.", checked=checked, fields=state.grid.fields | length) }}{% if s.to_review %} {{ _("To review: %(count)s.", count=s.to_review | length) }}{% endif %}{% elif not s.readable %}{{ _("No readable text: extract it from the PDF.") }}{% else %}{{ _("Not pre-filled yet.") }}{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 12:11-0400\n"
+"POT-Creation-Date: 2026-10-09 13:10-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -501,6 +501,10 @@ msgstr "Archive écrite : %(name)s."
 msgid "Archive written: {path} ({files} files, SHA-256 {digest})"
 msgstr "Archive écrite : {path} ({files} fichiers, SHA-256 {digest})"
 
+#, python-format
+msgid "Archived values (out of the synthesis, kept in the project and in the export): %(count)s."
+msgstr "Valeurs archivées (hors de la synthèse, conservées dans le projet et dans l'export) : %(count)s."
+
 msgid "Archives written"
 msgstr "Archives écrites"
 
@@ -710,6 +714,10 @@ msgstr "Modifier les critères (nouveau brouillon)"
 msgid "Changes compared with version %(number)s"
 msgstr "Changements par rapport à la version %(number)s"
 
+#, python-format
+msgid "Changes of the grid since version %(number)s"
+msgstr "Changements de la grille depuis la version %(number)s"
+
 msgid "Check the MeSH descriptors"
 msgstr "Vérifier les descripteurs MeSH"
 
@@ -829,6 +837,9 @@ msgid ""
 msgstr ""
 "Confirmez le type de changement (élargissement, restriction ou clarification) de chaque critère "
 "modifié avant l'activation : {codes}."
+
+msgid "Confirm under the field in force"
+msgstr "Confirmer selon le champ en vigueur"
 
 msgid "Conflicts of interest"
 msgstr "Conflits d'intérêts"
@@ -1444,6 +1455,10 @@ msgstr "Extraction"
 msgid "Extraction grid"
 msgstr "Grille d'extraction"
 
+#, python-brace-format
+msgid "Extraction grid version {number} ({date}): {rationale}"
+msgstr "Version {number} de la grille d'extraction ({date}) : {rationale}"
+
 msgid "Extraction pilot"
 msgstr "Pilote d'extraction"
 
@@ -1454,6 +1469,10 @@ msgstr "Pilote d'extraction {number} : études tirées : {size} sur {populatio
 #, python-brace-format
 msgid "Extraction: the AI could not pre-fill a study (attempts: {n})"
 msgstr "Extraction : l'IA n'a pas pu pré-remplir une étude (tentatives : {n})"
+
+#, python-brace-format
+msgid "Extraction: value of {field} confirmed under the field in force"
+msgstr "Extraction : valeur de {field} confirmée selon le champ en vigueur"
 
 #, python-brace-format
 msgid "Extraction: value of {field} corrected"
@@ -1833,6 +1852,14 @@ msgid ""
 msgstr ""
 "Impact de la version {to} des critères (depuis la version {source}) : références touchées : "
 "{touched} ; à réévaluer : {reassessed}"
+
+#, python-brace-format
+msgid ""
+"Impact of grid version {number}: studies to complete: {added}; values to review: {modified}; "
+"values archived: {removed}"
+msgstr ""
+"Impact de la version {number} de la grille : études à compléter : {added}; valeurs à revoir : "
+"{modified}; valeurs archivées : {removed}"
 
 msgid "Import"
 msgstr "Importer"
@@ -3104,6 +3131,9 @@ msgstr "Refuser"
 msgid "Rejected"
 msgstr "Refusée"
 
+msgid "Remaining"
+msgstr "Restantes"
+
 #, python-format
 msgid "Remove %(code)s"
 msgstr "Retirer %(code)s"
@@ -3514,6 +3544,12 @@ msgstr "Études du pilote tirées : extrayez-les sans l'IA."
 #, python-format
 msgid "Studies to pre-fill: %(count)s."
 msgstr "Études à pré-remplir : %(count)s."
+
+msgid "Studies touched"
+msgstr "Études touchées"
+
+msgid "Studies touched by each change and what remains"
+msgstr "Études touchées par chaque changement et ce qui reste"
 
 msgid "Study (primary report)"
 msgstr "Étude (rapport principal)"
@@ -4211,6 +4247,9 @@ msgstr "Aucune référence à trier pour l'instant : collectez ou importez d'ab
 msgid "There is no value of the AI to check on this field."
 msgstr "Aucune valeur de l'IA à vérifier pour ce champ."
 
+msgid "There is no value of yours to confirm on this field."
+msgstr "Aucune valeur de votre part à confirmer pour ce champ."
+
 msgid ""
 "These reviews make up the tool's development set. In the terms of RAISE 2, these are development "
 "results, neither a test on held-out data nor a validation: the AI reviewer is still under "
@@ -4362,6 +4401,13 @@ msgstr "À compléter : {hint}"
 #, python-format
 msgid "To decide: %(left)s of %(count)s."
 msgstr "À décider : %(left)s sur %(count)s."
+
+#, python-format
+msgid "To review: %(count)s."
+msgstr "À revoir : %(count)s."
+
+msgid "To review: given under a former definition of the field."
+msgstr "À revoir : donnée selon une définition antérieure du champ."
 
 msgid "To the year"
 msgstr "Jusqu'à l'année"
@@ -4908,8 +4954,17 @@ msgstr "extraite"
 msgid "extracted by the person"
 msgstr "extraite par la personne"
 
+msgid "field added: studies to complete"
+msgstr "champ ajouté : études à compléter"
+
+msgid "field modified: values to review"
+msgstr "champ modifié : valeurs à revoir"
+
 msgid "field not available: searched in title and abstract"
 msgstr "champ indisponible : cherché dans le titre et le résumé"
+
+msgid "field removed: values archived"
+msgstr "champ retiré : valeurs archivées"
 
 msgid "found at this page"
 msgstr "trouvée à cette page"
@@ -5003,6 +5058,9 @@ msgstr "manquants :"
 #, python-brace-format
 msgid "model {model}"
 msgstr "modèle {model}"
+
+msgid "modified"
+msgstr "modification"
 
 msgid "multiple choice"
 msgstr "choix multiple"

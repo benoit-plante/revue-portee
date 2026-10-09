@@ -2,7 +2,7 @@
 
 from revue_portee.i18n import gettext as _
 
-__all__ = ["changed_labels", "type_labels", "value_status_labels"]
+__all__ = ["change_kind_labels", "changed_labels", "type_labels", "value_status_labels"]
 
 
 def type_labels() -> dict[str, str]:
@@ -35,4 +35,12 @@ def changed_labels() -> dict[str, str]:
         "guidance": _("guidance"),
         "examples": _("examples"),
         "choices": _("choices"),
+    }
+
+
+def change_kind_labels() -> dict[str, str]:
+    return {
+        "added": _("field added: studies to complete"),
+        "modified": _("field modified: values to review"),
+        "removed": _("field removed: values archived"),
     }

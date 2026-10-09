@@ -35,6 +35,7 @@ __all__ = [
     "TemplateField",
     "activate",
     "diff_versions",
+    "field_changes",
     "field_sort_key",
     "first_draft",
     "new_draft_from",
@@ -213,6 +214,11 @@ class GridDiff(BaseModel):
         return not (self.added or self.removed or self.modified)
 
 
+def field_changes(before: GridField, after: GridField) -> tuple[str, ...]:
+    """The attributes of a field that differ between two versions (its code aside)."""
+    return tuple(name for name in _COMPARED if getattr(before, name) != getattr(after, name))
+
+
 def diff_versions(old: GridVersion, new: GridVersion) -> GridDiff:
     """Added, removed and modified fields from ``old`` to ``new``, matched by code."""
     before_by_code = {f.code: f for f in old.fields}
@@ -225,9 +231,7 @@ def diff_versions(old: GridVersion, new: GridVersion) -> GridDiff:
         elif after is None and before is not None:
             removed.append(before)
         elif before is not None and after is not None:
-            changed = tuple(
-                name for name in _COMPARED if getattr(before, name) != getattr(after, name)
-            )
+            changed = field_changes(before, after)
             if changed:
                 modified.append(
                     FieldModification(code=code, before=before, after=after, changed=changed)
