@@ -157,3 +157,16 @@ def test_retained_export(tmp_path: Path) -> None:
     assert (folder / "exports" / "references-retenues.csv").is_file()
     missing = runner.invoke(app, ["retenues", str(tmp_path / "absent")])
     assert missing.exit_code == 1
+
+
+def test_extracted_values_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["donnees-extraites", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert "Valeurs écrites dans" in result.output
+    assert result.output.rstrip().endswith(": 0.")
+    written = (folder / "exports" / "donnees-extraites.csv").read_text(encoding="utf-8")
+    assert written == "study,title,year,field,label,reported,value,page,status\n"
+    missing = runner.invoke(app, ["donnees-extraites", str(tmp_path / "absent")])
+    assert missing.exit_code == 1

@@ -37,6 +37,38 @@
     {% endif %}
   {% endif %}
 </section>
+<section aria-labelledby="pilote-titre">
+  <h2 id="pilote-titre">{{ _("Extraction pilot") }}</h2>
+  <p>{{ _("A few studies drawn at random, which you extract from the text without seeing the AI. Once you have given every field of a study, its AI values are shown and their agreement with yours is counted field by field.") }}</p>
+  {% if pilot %}
+  <p>{{ _("Pilot %(number)s (seed %(seed)s): %(done)s of %(size)s studies extracted.", number=pilot.pilot.number, seed=pilot.pilot.seed, done=pilot.done, size=pilot.pilot.reference_ids | length) }}</p>
+  <ul>
+    {% for ref_id in pilot.pilot.reference_ids %}{% set s = state.studies | selectattr("primary.id", "equalto", ref_id) | first %}
+    <li><a href="/extraction/{{ ref_id }}">{{ s.primary.title if s else ref_id }}</a> — {% if pilot.complete(ref_id) %}{{ _("extracted") }}{% else %}{{ _("to extract") }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% if pilot.done %}
+  <table class="criteria">
+    <caption>{{ _("Agreement of the AI with your extraction") }}</caption>
+    <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Values compared") }}</th><th scope="col">{{ _("In agreement") }}</th><th scope="col">{{ _("Share") }}</th></tr></thead>
+    <tbody>
+    {% for a in pilot.agreement %}
+      <tr><th scope="row">{{ a.code }} — {{ a.label }}</th><td>{{ a.compared }}</td><td>{{ a.agreed }}</td><td>{% if a.share is none %}—{% else %}{{ decimal_fr(a.share * 100, 0) }}&nbsp;%{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">{{ _("Automatic agreement: texts agree when one contains the other or they share at least half of their words; to read with your judgement.") }}</p>
+  {% endif %}
+  {% endif %}
+  {% if state.studies %}
+  <form method="post" action="/extraction/pilote" class="inline-form">
+    {{ csrf() }}
+    <label for="taille">{{ _("Number of studies") }}</label>
+    <input type="text" inputmode="numeric" id="taille" name="taille" value="{{ pilot_size }}" size="3" required>
+    <button type="submit" class="secondary">{{ _("Draw the studies of a new pilot") if pilot else _("Draw the studies of the pilot") }}</button>
+  </form>
+  {% endif %}
+</section>
 <section aria-labelledby="etudes-titre">
   <h2 id="etudes-titre">{{ _("Studies") }}</h2>
   {% if state.studies %}
@@ -47,7 +79,8 @@
     {% for s in state.studies %}
       <tr>
         <th scope="row"><a href="/extraction/{{ s.primary.id }}">{{ s.primary.title or _("(no title)") }}</a> <span class="small">{{ s.primary.year or "" }}{% if s.reports | length > 1 %} · {{ ngettext("%(num)s report", "%(num)s reports", s.reports | length) }}{% endif %}</span></th>
-        <td>{% if s.prefilled %}{{ _("Fields reported: %(reported)s of %(fields)s.", reported=s.values.values() | selectattr("reported") | list | length, fields=s.values | length) }}{% elif not s.readable %}{{ _("No readable text: extract it from the PDF.") }}{% else %}{{ _("Not pre-filled yet.") }}{% endif %}</td>
+        {% set checked = s.values.values() | selectattr("reviewer_kind", "equalto", "human") | list | length %}
+        <td>{% if pilot and s.primary.id in pilot.pilot.reference_ids and not pilot.complete(s.primary.id) %}{{ _("Pilot: extract it without the AI.") }}{% elif s.prefilled %}{{ _("Fields checked by you: %(checked)s of %(fields)s.", checked=checked, fields=state.grid.fields | length) }}{% elif not s.readable %}{{ _("No readable text: extract it from the PDF.") }}{% else %}{{ _("Not pre-filled yet.") }}{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>
@@ -55,6 +88,11 @@
   {% else %}
   <p>{{ _("No study is included yet.") }}</p>
   {% endif %}
+</section>
+<section aria-labelledby="export-titre">
+  <h2 id="export-titre">{{ _("Data for the synthesis") }}</h2>
+  <p>{{ _("Only the values you validated, corrected or extracted go into the synthesis; a value proposed by the AI that you have not checked never does.") }}</p>
+  <form method="post" action="/extraction/export">{{ csrf() }}<button type="submit" class="secondary">{{ _("Export the extracted data (CSV)") }}</button></form>
 </section>
 {% endif %}
 {% endblock %}

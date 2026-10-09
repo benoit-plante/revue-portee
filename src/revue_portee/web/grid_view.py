@@ -23,6 +23,7 @@ def value_status_labels() -> dict[str, str]:
         "validated": _("validated"),
         "corrected": _("corrected"),
         "rejected": _("rejected"),
+        "extracted": _("extracted by the person"),
     }
 
 

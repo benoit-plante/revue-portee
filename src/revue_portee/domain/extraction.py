@@ -19,18 +19,22 @@ from enum import StrEnum
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, JsonValue
 
-from revue_portee.domain.fulltext import QuoteCheck, TextPage, locate_quote
+from revue_portee.domain.fulltext import QuoteCheck, TextPage, canonical, locate_quote
 from revue_portee.domain.grid import FieldType, GridField
 from revue_portee.domain.project import ReviewerKind
 
 __all__ = [
+    "HUMAN_KEPT",
+    "ExtractionPilot",
     "ExtractionValue",
     "InvalidValueError",
     "ValueStatus",
     "current_values",
+    "for_synthesis",
     "parse_value",
     "place_quote",
     "quote_summary",
+    "same_value",
 ]
 
 
@@ -39,6 +43,11 @@ class ValueStatus(StrEnum):
     VALIDATED = "validated"  # the person keeps the AI's value
     CORRECTED = "corrected"  # the person gives another value
     REJECTED = "rejected"  # the person rejects the AI's value without giving one
+    EXTRACTED = "extracted"  # by the person without seeing the AI (pilot, or no AI value)
+
+
+# Values a person decided: only they may go into the synthesis (EF-EXT-04).
+HUMAN_KEPT = frozenset({ValueStatus.VALIDATED, ValueStatus.CORRECTED, ValueStatus.EXTRACTED})
 
 
 class InvalidValueError(ValueError):
@@ -153,3 +162,56 @@ def quote_summary(values: Iterable[ExtractionValue]) -> Mapping[QuoteCheck, int]
         if value.quote_check is not None:
             counts[value.quote_check] += 1
     return counts
+
+
+def for_synthesis(
+    values: Iterable[ExtractionValue],
+) -> dict[tuple[str, str], ExtractionValue]:
+    """The values that may go into the synthesis (EF-EXT-04): on each field of each
+    report, the latest value a person decided (validated, corrected or extracted). A
+    value proposed by the AI never goes in, nor a field whose latest human decision
+    rejected the AI's value without giving another."""
+    found: dict[tuple[str, str], ExtractionValue] = {}
+    for value in sorted(values, key=lambda v: (v.created_at, v.id)):
+        if value.reviewer_kind is not ReviewerKind.HUMAN:
+            continue
+        key = (value.reference_id, value.field_code)
+        if value.status in HUMAN_KEPT:
+            found[key] = value
+        elif value.status is ValueStatus.REJECTED:
+            found.pop(key, None)
+    return found
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in (canonical(part) for part in text.split()) if w}
+
+
+def same_value(field: GridField, a: ExtractionValue, b: ExtractionValue) -> bool:
+    """Whether two values of a field agree: both not reported, or equal values (the
+    same set for a multiple choice); texts agree when one contains the other or they
+    share at least half of their words (an automatic, generous measure)."""
+    if not a.reported or not b.reported:
+        return a.reported == b.reported
+    if field.type is FieldType.TEXT:
+        left, right = canonical(str(a.value)), canonical(str(b.value))
+        if left and right and (left in right or right in left):
+            return True
+        x, y = _words(str(a.value)), _words(str(b.value))
+        return bool(x and y) and len(x & y) / min(len(x), len(y)) >= 0.5
+    return a.value == b.value
+
+
+class ExtractionPilot(BaseModel):
+    """Studies drawn with a recorded seed, extracted by the person without seeing the
+    AI, to measure the AI field by field (EF-EXT-05; table ``extraction_pilot``)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    number: int
+    seed: int
+    grid_version_id: str
+    reference_ids: tuple[str, ...]
+    created_at: AwareDatetime
+    reviewer_id: str

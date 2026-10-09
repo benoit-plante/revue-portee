@@ -61,6 +61,7 @@ __all__ = [
     "descriptor_check",
     "duplicate_pair",
     "enrichment",
+    "extraction_pilot",
     "extraction_value",
     "framing_version",
     "fulltext_document",
@@ -977,6 +978,19 @@ extraction_value = Table(
         name="ck_extraction_ai_traceable",
     ),
     Index("ix_extraction_value_reference", "reference_id", "field_code"),
+)
+
+extraction_pilot = Table(
+    "extraction_pilot",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, nullable=False, unique=True),
+    Column("seed", Integer, nullable=False),
+    Column("grid_version_id", String(26), ForeignKey("grid_version.id"), nullable=False),
+    Column("reference_ids_json", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
 )
 
 Index(
