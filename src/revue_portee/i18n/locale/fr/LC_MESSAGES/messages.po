@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 16:31-0400\n"
+"POT-Creation-Date: 2026-10-09 16:48-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -378,6 +378,9 @@ msgstr "Ajouter un champ"
 msgid "Add a note"
 msgstr "Ajouter une note"
 
+msgid "Add a stakeholder"
+msgstr "Ajouter une partie prenante"
+
 msgid "Add at least one concept block before saving the strategy."
 msgstr "Ajoutez au moins un bloc de concepts avant d'enregistrer la stratégie."
 
@@ -578,6 +581,9 @@ msgstr ""
 "Concordance automatique : les textes concordent quand l'un contient l'autre ou qu'ils partagent "
 "au moins la moitié de leurs mots ; à lire avec votre jugement."
 
+msgid "Awaiting a response."
+msgstr "En attente d'une suite."
+
 msgid "Back"
 msgstr "Retour"
 
@@ -732,6 +738,9 @@ msgstr "Changement de {code} qualifié : {type}"
 msgid "Change the criteria (new draft)"
 msgstr "Modifier les critères (nouveau brouillon)"
 
+msgid "Change the response"
+msgstr "Modifier la suite donnée"
+
 msgid ""
 "Change, remove (empty the sentence) or add sentences; tick for each the included studies it rests"
 " on. Every sentence needs at least one."
@@ -769,6 +778,9 @@ msgstr "Choisissez un fichier RIS."
 msgid "Choose a decision."
 msgstr "Choisissez une décision."
 
+msgid "Choose a target and a date of reception."
+msgstr "Choisissez une cible et une date de réception."
+
 msgid "Choose one or more PDF files."
 msgstr "Choisissez un ou plusieurs fichiers PDF."
 
@@ -780,6 +792,9 @@ msgstr "Choisissez le mode du tri."
 
 msgid "Choose two different fields."
 msgstr "Choisissez deux champs différents."
+
+msgid "Choose what was done."
+msgstr "Choisissez la suite donnée."
 
 msgid "Circle area: number of studies. Shaded cell: no study. Red outline: few studies."
 msgstr "Aire du cercle : nombre d'études. Cellule teintée : aucune étude. Contour rouge : peu d'études."
@@ -824,6 +839,9 @@ msgstr "Colonnes"
 
 msgid "Comment"
 msgstr "Commentaire"
+
+msgid "Comment recorded."
+msgstr "Commentaire consigné."
 
 msgid "Compare every reference"
 msgstr "Comparer toutes les références"
@@ -893,6 +911,9 @@ msgstr "Matrice de confusion"
 
 msgid "Consultation"
 msgstr "Consultation"
+
+msgid "Consultation of stakeholders"
+msgstr "Consultation des parties prenantes"
 
 msgid "Context"
 msgstr "Contexte"
@@ -1162,6 +1183,9 @@ msgstr "Description"
 
 msgid "Description and rationale"
 msgstr "Description et justification"
+
+msgid "Detail (optional)"
+msgstr "Précision (facultative)"
 
 msgid "Deviation from the registered protocol"
 msgstr "Écart au protocole enregistré"
@@ -1519,6 +1543,9 @@ msgstr "Exclusion (retiré par NOT)"
 msgid "Export the extracted data (CSV)"
 msgstr "Exporter les données extraites (CSV)"
 
+msgid "Export the follow-up (CSV)"
+msgstr "Exporter le suivi (CSV)"
+
 msgid ""
 "Export the results of the database in RIS format, then choose the file. The file is kept as is in"
 " the project."
@@ -1711,6 +1738,13 @@ msgstr "Dossier à créer (l'extension .revue est ajoutée)."
 
 msgid "Follow the running batches"
 msgstr "Suivre les lots en cours"
+
+msgid "Follow-up of the comments"
+msgstr "Suivi des commentaires"
+
+#, python-format
+msgid "Follow-up written in %(path)s."
+msgstr "Suivi écrit dans %(path)s."
 
 msgid "Following the running batches."
 msgstr "Suivi des lots en cours."
@@ -1911,6 +1945,9 @@ msgstr ""
 
 msgid "German"
 msgstr "allemand"
+
+msgid "Give a name (or a pseudonym) and a role."
+msgstr "Donnez un nom (ou un pseudonyme) et un rôle."
 
 msgid "Give the justification of the thresholds."
 msgstr "Donnez la justification des seuils."
@@ -2433,6 +2470,9 @@ msgstr ""
 "La plupart des textes proviennent de versions en libre accès : les rapports accessibles seulement"
 " par abonnement peuvent être sous-représentés parmi ceux obtenus."
 
+msgid "Name"
+msgstr "Nom"
+
 msgid "Name of the dataset."
 msgstr "Nom du jeu de données."
 
@@ -2441,6 +2481,9 @@ msgstr "Nom du champ"
 
 msgid "Name of the human reviewer."
 msgstr "Nom du réviseur humain."
+
+msgid "Name or pseudonym"
+msgstr "Nom ou pseudonyme"
 
 msgid "Narrative synthesis"
 msgstr "Synthèse narrative"
@@ -2491,6 +2534,9 @@ msgstr "Aucun changement pour l'instant."
 
 msgid "No collection yet."
 msgstr "Aucune collecte pour l'instant."
+
+msgid "No comment yet."
+msgstr "Aucun commentaire pour l'instant."
 
 msgid "No criteria change since the screening started."
 msgstr "Aucun changement de critères depuis le début du tri."
@@ -2661,6 +2707,9 @@ msgstr "Dont justes"
 msgid "Of which wrong"
 msgstr "Dont erronées"
 
+msgid "On"
+msgstr "Sur"
+
 msgid "One study"
 msgstr "Une même étude"
 
@@ -2711,6 +2760,12 @@ msgstr ""
 #, python-format
 msgid "Order drawn with the seed %(seed)s on %(date)s."
 msgstr "Ordre tiré avec la graine %(seed)s le %(date)s."
+
+msgid "Organisation"
+msgstr "Organisation"
+
+msgid "Organisation (optional)"
+msgstr "Organisation (facultative)"
 
 #, python-brace-format
 msgid ""
@@ -3175,6 +3230,9 @@ msgstr "Réévaluations non terminées : {count}."
 msgid "Recall"
 msgstr "Rappel"
 
+msgid "Received on"
+msgstr "Reçu le"
+
 msgid "Reconcile"
 msgstr "Réconcilier"
 
@@ -3194,6 +3252,9 @@ msgstr "Réconciliés"
 msgid "Reconciliation"
 msgstr "Réconciliation"
 
+msgid "Record a comment"
+msgstr "Consigner un commentaire"
+
 msgid "Record a new registration"
 msgstr "Consigner un nouvel enregistrement"
 
@@ -3208,6 +3269,9 @@ msgstr "Enregistrer le commentaire"
 
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
+
+msgid "Record the response"
+msgstr "Enregistrer la suite donnée"
 
 msgid "Record the value"
 msgstr "Enregistrer la valeur"
@@ -3466,6 +3530,12 @@ msgstr ""
 "s'il y en a moins de 40), triés à l'aveugle par vous et par l'IA. Il mesure l'IA dans cette "
 "revue."
 
+msgid "Respond"
+msgstr "Donner une suite"
+
+msgid "Response recorded."
+msgstr "Suite donnée enregistrée."
+
 #, python-brace-format
 msgid "Response stability of the AI: {dataset}"
 msgstr "Stabilité des réponses de l'IA : {dataset}"
@@ -3591,6 +3661,9 @@ msgid "Saving will start a draft of the next version; the version in force stays
 msgstr ""
 "L'enregistrement commencera un brouillon de la prochaine version ; la version en vigueur reste "
 "inchangée."
+
+msgid "Say what was changed, or why not."
+msgstr "Dites ce qui a été modifié, ou pourquoi rien ne l'a été."
 
 #, python-format
 msgid "Scanned texts, left to you: %(count)s."
@@ -3760,6 +3833,36 @@ msgstr "Spécificité (références exclues exclues)"
 
 msgid "Specificity of the AI"
 msgstr "Spécificité de l'IA"
+
+msgid "Stakeholder"
+msgstr "Partie prenante"
+
+#, python-brace-format
+msgid "Stakeholder added ({role})"
+msgstr "Partie prenante ajoutée ({role})"
+
+msgid "Stakeholder added."
+msgstr "Partie prenante ajoutée."
+
+#, python-brace-format
+msgid "Stakeholder comment answered: {action}"
+msgstr "Suite donnée à un commentaire d'une partie prenante : {action}"
+
+#, python-brace-format
+msgid "Stakeholder comment recorded on {target}"
+msgstr "Commentaire d'une partie prenante consigné (cible : {target})"
+
+msgid "Stakeholders"
+msgstr "Parties prenantes"
+
+msgid "Stakeholders consulted"
+msgstr "Parties prenantes consultées"
+
+#, python-format
+msgid "Stakeholders: %(people)s; comments: %(comments)s; awaiting a response: %(pending)s."
+msgstr ""
+"Parties prenantes : %(people)s ; commentaires : %(comments)s ; en attente d'une suite : "
+"%(pending)s."
 
 msgid ""
 "Start from the fields recommended by JBI for scoping reviews (Pollock et al., 2023): country, "
@@ -4920,6 +5023,9 @@ msgstr "Fournisseur d'IA inconnu : {provider}."
 msgid "Unknown collection."
 msgstr "Collecte inconnue."
 
+msgid "Unknown comment."
+msgstr "Commentaire inconnu."
+
 #, python-brace-format
 msgid "Unknown criteria for this round: {codes}."
 msgstr "Critères inconnus pour ce tour : {codes}."
@@ -4964,6 +5070,9 @@ msgstr "Tour inconnu."
 
 msgid "Unknown source"
 msgstr "Source inconnue"
+
+msgid "Unknown stakeholder."
+msgstr "Partie prenante inconnue."
 
 msgid "Unknown study or field."
 msgstr "Étude ou champ inconnu."
@@ -5074,8 +5183,24 @@ msgstr "Versions"
 msgid "Volume (issue)"
 msgstr "Volume (numéro)"
 
+msgid "What was changed, or why not"
+msgstr "Ce qui a été modifié, ou pourquoi rien ne l'a été"
+
+msgid "What was done"
+msgstr "Suite donnée"
+
 msgid "Where things stand"
 msgstr "État"
+
+msgid ""
+"Who was consulted, on what, and what was done with each comment (Pollock et al., 2022). Only a "
+"name, a role and an organisation are kept about a person; a pseudonym may stand for the name. The"
+" journal and the public archive never hold the name nor the text of a comment."
+msgstr ""
+"Qui a été consulté, sur quoi, et quelle suite a été donnée à chaque commentaire (Pollock et al., "
+"2022). On ne conserve d'une personne que son nom, son rôle et son organisation ; un pseudonyme "
+"peut tenir lieu de nom. Le journal et l'archive publique ne contiennent jamais le nom ni le texte"
+" d'un commentaire."
 
 msgid "Why the text cannot be obtained."
 msgstr "Pourquoi le texte ne peut pas être obtenu."
@@ -5095,6 +5220,9 @@ msgstr "Écrire l'archive"
 msgid "Write the archive of the project (public by default) in the exports folder."
 msgstr "Écrire l'archive du projet (publique par défaut) dans le dossier des exports."
 
+msgid "Write the comment."
+msgstr "Écrivez le commentaire."
+
 msgid ""
 "Write the draft methods section on the AI in screening (Markdown and DOCX, French and English) in"
 " the exports folder."
@@ -5110,6 +5238,13 @@ msgstr "Écrire le fichier à remplir pour les études incluses."
 
 msgid "Write the flow diagram of the screening (SVG, French and English) in the exports folder."
 msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) dans le dossier des exports."
+
+msgid ""
+"Write the follow-up of the stakeholders' comments (CSV) in the exports folder; stakeholders by "
+"code and role, not by name."
+msgstr ""
+"Écrire le suivi des commentaires des parties prenantes (CSV) dans le dossier des exports ; "
+"parties prenantes désignées par un code et un rôle, non par leur nom."
 
 msgid ""
 "Write the frequency tables (CSV, Markdown, XLSX) and, with two fields, the evidence map (SVG, "
@@ -5407,6 +5542,9 @@ msgstr "ébauche de l'IA, à réviser"
 msgid "easy"
 msgstr "facile"
 
+msgid "eligibility criteria"
+msgstr "critères d'admissibilité"
+
 msgid "eligibility criteria (Criteria page)"
 msgstr "critères d'admissibilité (page « Critères »)"
 
@@ -5447,6 +5585,9 @@ msgstr "extraite"
 msgid "extracted by the person"
 msgstr "extraite par la personne"
 
+msgid "extraction grid"
+msgstr "grille d'extraction"
+
 msgid "fairly difficult"
 msgstr "assez difficile"
 
@@ -5455,6 +5596,9 @@ msgstr "assez facile"
 
 msgid "few studies"
 msgstr "peu d'études"
+
+msgid "field D3, criteria version 2…"
+msgstr "champ D3, critères version 2…"
 
 msgid "field added: studies to complete"
 msgstr "champ ajouté : études à compléter"
@@ -5538,6 +5682,9 @@ msgstr "gardées séparées le %(date)s"
 msgid "languages: {languages}"
 msgstr "langues : {languages}"
 
+msgid "left for later"
+msgstr "reporté"
+
 #, python-format
 msgid "licence: %(licence)s"
 msgstr "licence : %(licence)s"
@@ -5579,6 +5726,9 @@ msgstr "nom"
 msgid "names of the review team"
 msgstr "noms des membres de l'équipe de revue"
 
+msgid "narrative synthesis"
+msgstr "synthèse narrative"
+
 msgid "narrowing"
 msgstr "restriction"
 
@@ -5600,6 +5750,9 @@ msgstr "aucune étude"
 
 msgid "not checked yet"
 msgstr "pas encore vérifié"
+
+msgid "not followed"
+msgstr "non retenu"
 
 msgid "not found in open access"
 msgstr "non trouvé en libre accès"
@@ -5665,6 +5818,9 @@ msgstr "libre accès (Unpaywall)"
 msgid "or"
 msgstr "ou"
 
+msgid "other"
+msgstr "autre"
+
 #, python-format
 msgid "page %(page)s"
 msgstr "page %(page)s"
@@ -5677,8 +5833,14 @@ msgstr "paires de doublons possibles à examiner : {count}"
 msgid "pairs of reports of a possible same study to decide: {count}"
 msgstr "paires de rapports d'une même étude possible à décider : {count}"
 
+msgid "patient partner, clinician, manager…"
+msgstr "patient partenaire, clinicien, gestionnaire…"
+
 msgid "people and organizations to thank"
 msgstr "personnes et organismes à remercier"
+
+msgid "plain-language summary"
+msgstr "synthèse vulgarisée"
 
 msgid "planned"
 msgstr "prévue"
@@ -5709,6 +5871,9 @@ msgstr "gabarit d'invite version {versions}"
 
 msgid "proposed by the AI, to check"
 msgstr "proposée par l'IA, à vérifier"
+
+msgid "protocol"
+msgstr "protocole"
 
 msgid "publication type left out"
 msgstr "type de publication écarté"
@@ -5780,6 +5945,9 @@ msgstr "critère retiré"
 msgid "repeated:"
 msgstr "en double :"
 
+msgid "results, tables and maps"
+msgstr "résultats, tableaux et cartes"
+
 #, python-brace-format
 msgid "review from {review}, automatic from {automatic}"
 msgstr "examen à partir de {review}, regroupement automatique à partir de {automatic}"
@@ -5824,6 +5992,9 @@ msgstr "même numéro d'enregistrement d'essai"
 msgid "score %(score)s"
 msgstr "score : %(score)s"
 
+msgid "search strategy"
+msgstr "stratégie de recherche"
+
 msgid "secret value"
 msgstr "valeur secrète"
 
@@ -5857,6 +6028,9 @@ msgstr "devis et sources retenus (études primaires, revues, littérature grise)
 
 msgid "superseded"
 msgstr "remplacée"
+
+msgid "taken into account without a change"
+msgstr "pris en compte sans modification"
 
 msgid "target not reached"
 msgstr "cible non atteinte"
@@ -5904,6 +6078,9 @@ msgstr "le tri principal n'a pas commencé"
 #, python-brace-format
 msgid "the results grew during the collection (records given: {received})"
 msgstr "les résultats ont augmenté pendant la collecte (notices données : {received})"
+
+msgid "the review was changed"
+msgstr "la revue a été modifiée"
 
 msgid "the reviewer"
 msgstr "le réviseur"

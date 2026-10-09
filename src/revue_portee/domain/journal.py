@@ -104,6 +104,9 @@ class EntryType:
     LAY_SUMMARY_PROPOSED = "lay_summary.proposed"
     LAY_SUMMARY_REVISED = "lay_summary.revised"
     LAY_SUMMARY_AI_FAILED = "lay_summary.ai_failed"
+    STAKEHOLDER_ADDED = "stakeholder.added"
+    STAKEHOLDER_COMMENT_RECORDED = "stakeholder.comment_recorded"
+    STAKEHOLDER_COMMENT_ANSWERED = "stakeholder.comment_answered"
 
 
 class JournalEntry(BaseModel):
