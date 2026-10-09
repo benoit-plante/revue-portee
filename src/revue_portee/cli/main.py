@@ -306,6 +306,42 @@ def export_extracted(
 
 
 @app.command(
+    "prisma-scr",
+    help=_(
+        "Write the reporting checklist (PRISMA-ScR) filled from the project data (Markdown "
+        "and Word) in the exports folder."
+    ),
+)
+def export_reporting_checklist(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    liste: Annotated[
+        str, typer.Option(help=_("Checklist (its id, for instance prisma-scr-2018)."))
+    ] = "prisma-scr-2018",
+    langue: Annotated[str, typer.Option(help=_("Language of the exports (fr or en)."))] = "fr",
+) -> None:
+    from revue_portee.declaration.checklist import UnknownChecklistError, export_checklist
+
+    if langue not in ("fr", "en"):
+        raise _fail(_("Unsupported language: {language} (fr or en).").format(language=langue))
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        written = export_checklist(
+            folder, checklist=liste, language=langue, now=utc_now, tool_version=tool_version()
+        )
+    except UnknownChecklistError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    for path in written:
+        typer.echo(str(path))
+
+
+@app.command(
     "commentaires",
     help=_(
         "Write the follow-up of the stakeholders' comments (CSV) in the exports folder; "

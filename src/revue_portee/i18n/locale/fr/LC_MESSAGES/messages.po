@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 16:48-0400\n"
+"POT-Creation-Date: 2026-10-09 17:06-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -84,6 +84,9 @@ msgstr "(sans titre)"
 
 msgid "(none)"
 msgstr "(aucun)"
+
+msgid "(optional)"
+msgstr "(facultatif)"
 
 msgid "(required)"
 msgstr "(obligatoire)"
@@ -245,6 +248,9 @@ msgstr "L'IA exclut"
 msgid "AI keeps"
 msgstr "L'IA conserve"
 
+msgid "AI pre-filling of the charting, checked by the person"
+msgstr "pré-remplissage de l'extraction par l'IA, vérifié par la personne"
+
 #, python-format
 msgid "AI proposal: %(type)s (confidence %(confidence)s)."
 msgstr "Proposition de l'IA : %(type)s (confiance %(confidence)s)."
@@ -303,6 +309,9 @@ msgstr "Suggestion de terme de l'IA rejetée"
 msgid "AI term suggestions received: {count}"
 msgstr "Suggestions de termes reçues de l'IA : {count}"
 
+msgid "AI used as a second reviewer (see its validation in the methods)"
+msgstr "IA utilisée comme second réviseur (voir sa validation dans la méthode)"
+
 #, python-format
 msgid "AI: %(verdict)s."
 msgstr "IA : %(verdict)s."
@@ -312,6 +321,14 @@ msgstr "Fichiers ASySD *_duplicates_labelled.csv."
 
 msgid "Abstract"
 msgstr "Résumé"
+
+#, python-brace-format
+msgid ""
+"Abstract of the report, to write; numbers to report: {identified} records identified, {included} "
+"sources of evidence included."
+msgstr ""
+"Résumé du rapport, à rédiger ; nombres à rapporter : {identified} références repérées, {included}"
+" sources de données probantes incluses."
 
 msgid "Accept"
 msgstr "Accepter"
@@ -404,6 +421,9 @@ msgstr "Ajouter la note"
 
 msgid "Add the references collected since"
 msgstr "Ajouter les références collectées depuis"
+
+msgid "Add « scoping review » to the title."
+msgstr "Ajoutez « revue de portée » au titre."
 
 msgid "Added and removed criteria are qualified automatically."
 msgstr "Les critères ajoutés et retirés sont qualifiés automatiquement."
@@ -748,6 +768,14 @@ msgstr ""
 "Modifiez, retirez (videz la phrase) ou ajoutez des phrases ; cochez pour chacune les études "
 "incluses sur lesquelles elle repose. Chaque phrase en demande au moins une."
 
+#, python-brace-format
+msgid ""
+"Changes after the protocol: {deviations} versions reported as deviations; {changes} criteria "
+"changes assessed for their impact during screening."
+msgstr ""
+"Changements après le protocole : {deviations} versions déclarées comme écarts ; {changes} "
+"changements de critères dont l'impact a été analysé pendant le tri."
+
 #, python-format
 msgid "Changes compared with version %(number)s"
 msgstr "Changements par rapport à la version %(number)s"
@@ -756,11 +784,21 @@ msgstr "Changements par rapport à la version %(number)s"
 msgid "Changes of the grid since version %(number)s"
 msgstr "Changements de la grille depuis la version %(number)s"
 
+#, python-brace-format
+msgid "Charting pilot on {studies} sources."
+msgstr "Pilote d'extraction sur {studies} sources."
+
 msgid "Check the MeSH descriptors"
 msgstr "Vérifier les descripteurs MeSH"
 
 msgid "Check the hash chain of the project journal."
 msgstr "Vérifier la chaîne d'empreintes du journal du projet."
+
+msgid "Checklist"
+msgstr "Liste"
+
+msgid "Checklist (its id, for instance prisma-scr-2018)."
+msgstr "Liste (son identifiant, par exemple prisma-scr-2018)."
 
 msgid ""
 "Choices (one per line; for a hierarchical category, write the path: « Intervention > "
@@ -1025,6 +1063,14 @@ msgstr ""
 "Version {number} des critères, en vigueur depuis le {date}. Chaque critère a un code stable ; "
 "l'annexe I donne les consignes, les exemples et les contre-exemples."
 
+#, python-brace-format
+msgid ""
+"Criteria version {number}: {inclusion} inclusion and {exclusion} exclusion criteria (Methods; the"
+" protocol gives each with its guidance)."
+msgstr ""
+"Critères, version {number} : {inclusion} critères d'inclusion et {exclusion} d'exclusion (Méthode"
+" ; le protocole donne chacun avec ses précisions)."
+
 #, python-format
 msgid "Criteria, version %(number)s"
 msgstr "Critères, version %(number)s"
@@ -1046,6 +1092,9 @@ msgstr "Critère {code} retiré du brouillon"
 
 msgid "Critical appraisal"
 msgstr "Évaluation critique"
+
+msgid "Critical appraisal: see the protocol (section « appraisal »)."
+msgstr "Évaluation critique : voir le protocole (section « appraisal »)."
 
 msgid "Cross-cutting"
 msgstr "Transversal"
@@ -1079,6 +1128,19 @@ msgid "Data for the synthesis"
 msgstr "Données pour la synthèse"
 
 #, python-brace-format
+msgid "Data items: {fields} (definitions: appendix of the protocol)."
+msgstr "Éléments de données : {fields} (définitions : annexe du protocole)."
+
+msgid "Data of each source relevant to the questions: exports/donnees-extraites.csv."
+msgstr "Données de chaque source pertinentes pour les questions : exports/donnees-extraites.csv."
+
+#, python-brace-format
+msgid "Data sources this version of the tool does not know (items left to the team): {sources}."
+msgstr ""
+"Sources de données que cette version de l'outil ne connaît pas (éléments laissés à l'équipe) : "
+"{sources}."
+
+#, python-brace-format
 msgid ""
 "Data were charted with version {version} of the extraction grid ({fields} fields), for {studies} "
 "included studies, from the primary report of each."
@@ -1088,6 +1150,16 @@ msgstr ""
 
 msgid "Database"
 msgstr "Base"
+
+#, python-brace-format
+msgid "Databases, by records imported: {databases}; give the date of each search."
+msgstr ""
+"Bases de données, selon les références importées : {databases} ; donnez la date de chaque "
+"recherche."
+
+#, python-brace-format
+msgid "Databases: {databases}."
+msgstr "Bases de données : {databases}."
 
 msgid "Dataset"
 msgstr "Jeu de données"
@@ -1186,6 +1258,10 @@ msgstr "Description et justification"
 
 msgid "Detail (optional)"
 msgstr "Précision (facultative)"
+
+#, python-brace-format
+msgid "Details: methods section (exports/methode-{language}.md)."
+msgstr "Détails : section méthode (exports/methode-{language}.md)."
 
 msgid "Deviation from the registered protocol"
 msgstr "Écart au protocole enregistré"
@@ -1540,6 +1616,12 @@ msgstr "Exclusion"
 msgid "Exclusion (removed with NOT)"
 msgstr "Exclusion (retiré par NOT)"
 
+msgid "Export in English (Markdown and Word)"
+msgstr "Exporter en anglais (Markdown et Word)"
+
+msgid "Export in French (Markdown and Word)"
+msgstr "Exporter en français (Markdown et Word)"
+
 msgid "Export the extracted data (CSV)"
 msgstr "Exporter les données extraites (CSV)"
 
@@ -1720,6 +1802,14 @@ msgstr "Fixer les seuils"
 msgid "Flow diagram (PRISMA 2020, adapted for scoping reviews)"
 msgstr "Diagramme de flux (PRISMA 2020, adapté aux revues de portée)"
 
+#, python-brace-format
+msgid ""
+"Flow diagram (exports/diagramme-{language}.svg): {identified} records identified, {duplicates} "
+"duplicates removed, {screened} screened, {excluded} excluded."
+msgstr ""
+"Diagramme de flux (exports/diagramme-{language}.svg) : {identified} références repérées, "
+"{duplicates} doublons retirés, {screened} triées, {excluded} exclues."
+
 msgid "Flow diagram of the screening, in French; its numbers are in the table above."
 msgstr "Diagramme de flux du tri, en français ; ses nombres sont dans le tableau ci-dessus."
 
@@ -1758,6 +1848,15 @@ msgstr ""
 " principal : une valeur, la citation exacte qui l'appuie et sa page, ou « non rapporté ». L'outil"
 " vérifie chaque valeur selon son champ et cherche chaque citation dans le texte. Vous vérifiez "
 "chaque valeur."
+
+msgid ""
+"For each item of the checklist, the tool proposes a text or a place in the report, from the "
+"project data; the team checks and completes it. The checklist is a data file: a new version is "
+"added without a change of the tool."
+msgstr ""
+"Pour chaque élément de la liste, l'outil propose un texte ou un emplacement dans le rapport, à "
+"partir des données du projet ; l'équipe le vérifie et le complète. La liste est un fichier de "
+"données : une nouvelle version s'ajoute sans modifier l'outil."
 
 msgid ""
 "For each reference not looked for yet, the tool asks OpenAlex, then Unpaywall (by DOI), for a "
@@ -1822,8 +1921,23 @@ msgstr ""
 "Tableaux de fréquences de tous les champs en CSV, Markdown et XLSX ; avec une carte affichée, son"
 " tableau croisé, son image SVG et sa page HTML."
 
+msgid ""
+"Frequency tables, cross tables and evidence maps of the charted fields (exports/synthese/), and a"
+" narrative synthesis by field."
+msgstr ""
+"Tableaux de fréquences, tableaux croisés et cartes des données probantes des champs extraits "
+"(exports/synthese/), et synthèse narrative par champ."
+
 msgid "From the year"
 msgstr "À partir de l'année"
+
+#, python-brace-format
+msgid ""
+"Full search strategies of the {count} databases, as run: appendix of the protocol "
+"(exports/protocole-{language}.md)."
+msgstr ""
+"Stratégies de recherche complètes des {count} bases de données, telles qu'exécutées : annexe du "
+"protocole (exports/protocole-{language}.md)."
 
 #, python-brace-format
 msgid "Full text converted again ({converter}): {pages} pages"
@@ -1853,6 +1967,10 @@ msgstr "Texte intégral : tri"
 msgid "Full texts"
 msgstr "Textes intégraux"
 
+#, python-brace-format
+msgid "Full texts assessed: {assessed}; excluded with reasons: {reasons}; included: {included}."
+msgstr "Textes intégraux évalués : {assessed} ; exclus avec motifs : {reasons} ; inclus : {included}."
+
 msgid "Full texts of the references sought"
 msgstr "Textes intégraux des références recherchées"
 
@@ -1865,6 +1983,10 @@ msgstr ""
 "Textes intégraux : {obtained} obtenus sur {sought} recherchés ({open_access} en libre accès, "
 "{share} ; {uploaded} ajoutés par l'équipe) ; non trouvés : {not_found} ; introuvables : "
 "{not_retrievable} ; jamais cherchés : {not_sought}."
+
+#, python-brace-format
+msgid "Full texts: {texts} assessed in {mode}."
+msgstr "Textes intégraux : {texts} évalués en {mode}."
 
 msgid "Full-text pilot"
 msgstr "Essai pilote au texte intégral"
@@ -1925,6 +2047,9 @@ msgstr "Financement"
 msgid "Funding and conflicts of interest"
 msgstr "Financement et conflits d'intérêts"
 
+msgid "Funding: see the protocol (section « funding »)."
+msgstr "Financement : voir le protocole (section « funding »)."
+
 msgid "Gap"
 msgstr "Lacune"
 
@@ -1934,6 +2059,16 @@ msgstr "Lacunes"
 #, python-brace-format
 msgid "Generated by revue-portee {version} on {date}"
 msgstr "Produit par revue-portee {version} le {date}"
+
+#, python-brace-format
+msgid ""
+"Generated by revue-portee {version} on {date} from the project data: for each item, a text or a "
+"place in the report proposed by the tool, to check and complete. Items with a proposal: {done} of"
+" {total}."
+msgstr ""
+"Produite par revue-portee {version} le {date} à partir des données du projet : pour chaque "
+"élément, un texte ou un emplacement dans le rapport proposé par l'outil, à vérifier et à "
+"compléter. Éléments avec une proposition : {done} sur {total}."
 
 #, python-brace-format
 msgid ""
@@ -1971,6 +2106,14 @@ msgstr "Grille, version %(number)s, %(fields)s champs."
 #, python-brace-format
 msgid "Grid version {number} in force"
 msgstr "Version {number} de la grille en vigueur"
+
+#, python-brace-format
+msgid ""
+"Grid version {version} ({fields} fields); every value checked by the person (validated "
+"{validated}, corrected {corrected}, rejected {rejected}, extracted {extracted})."
+msgstr ""
+"Grille, version {version} ({fields} champs) ; chaque valeur vérifiée par la personne (validées "
+"{validated}, corrigées {corrected}, rejetées {rejected}, extraites {extracted})."
 
 msgid "Group them"
 msgstr "Les regrouper"
@@ -2106,6 +2249,10 @@ msgstr "Interrompue"
 msgid "Introduction"
 msgstr "Introduction"
 
+#, python-brace-format
+msgid "Introduction; drawn from the protocol (section « {section} »)."
+msgstr "Introduction ; tirée du protocole (section « {section} »)."
+
 msgid "Invalid form token."
 msgstr "Jeton de formulaire invalide. Rechargez la page et recommencez."
 
@@ -2138,6 +2285,13 @@ msgstr "italien"
 
 msgid "Item"
 msgstr "Élément"
+
+msgid "Items of the checklist and the proposals of the tool"
+msgstr "Éléments de la liste et propositions de l'outil"
+
+#, python-format
+msgid "Items with a proposal: %(done)s of %(total)s."
+msgstr "Éléments avec une proposition : %(done)s sur %(total)s."
 
 msgid "JSON Lines file of the raw answers (outside the repository)."
 msgstr "Fichier JSON Lines des réponses brutes (hors du dépôt)."
@@ -2501,6 +2655,14 @@ msgid "Narrative synthesis of {field}: the AI gave no usable draft (attempts: {n
 msgstr "Synthèse narrative de {field} : l'IA n'a donné aucune ébauche utilisable (tentatives : {n})"
 
 #, python-brace-format
+msgid ""
+"Narrative synthesis revised for {fields} fields, each sentence citing its sources "
+"(exports/synthese/narratif-{language}.md); tables and maps in exports/synthese/."
+msgstr ""
+"Synthèse narrative révisée pour {fields} champs, chaque phrase citant ses sources "
+"(exports/synthese/narratif-{language}.md) ; tableaux et cartes dans exports/synthese/."
+
+#, python-brace-format
 msgid "Neither a DOI, a PMID nor a title (10 characters or more): {lines}"
 msgstr "Ni un DOI, ni un PMID, ni un titre (10 caractères ou plus) : {lines}"
 
@@ -2641,6 +2803,12 @@ msgstr "Aucune version des critères n'est encore en vigueur."
 
 msgid "No version of the grid is in force yet."
 msgstr "Aucune version de la grille n'est encore en vigueur."
+
+msgid "No."
+msgstr "N°"
+
+msgid "Not done: critical appraisal is optional in a scoping review; say so."
+msgstr "Non faite : l'évaluation critique est facultative dans une revue de portée ; dites-le."
 
 msgid "Not duplicates"
 msgstr "Pas des doublons"
@@ -2888,6 +3056,10 @@ msgstr "Essai pilote tiré."
 msgid "Pilot of the AI reviewer"
 msgstr "Pilote du réviseur IA"
 
+#, python-brace-format
+msgid "Pilot of {size} references before screening (seed {seed})."
+msgstr "Essai pilote de {size} références avant le tri (graine {seed})."
+
 #, python-format
 msgid "Pilot round %(number)s"
 msgstr "Tour pilote %(number)s"
@@ -2963,6 +3135,10 @@ msgstr "Population"
 msgid "Portuguese"
 msgstr "portugais"
 
+#, python-brace-format
+msgid "Pre-filled by the AI ({model}) for {studies} sources, with quotes checked at their page."
+msgstr "Pré-remplie par l'IA ({model}) pour {studies} sources, avec citations vérifiées à leur page."
+
 msgid "Pre-filling by the AI"
 msgstr "Pré-remplissage par l'IA"
 
@@ -3019,6 +3195,9 @@ msgstr "Projet ouvert avec revue-portee {version}"
 msgid "Prompt template"
 msgstr "Gabarit d'invite"
 
+msgid "Proposal"
+msgstr "Proposition"
+
 #, python-format
 msgid "Proposed by %(model)s on %(date)s UTC"
 msgstr "Proposée par %(model)s le %(date)s UTC"
@@ -3040,6 +3219,10 @@ msgstr "Protocole produit le {date} avec revue-portee {version}."
 #, python-format
 msgid "Protocol registered on %(date)s, DOI %(doi)s."
 msgstr "Protocole enregistré le %(date)s, DOI %(doi)s."
+
+#, python-brace-format
+msgid "Protocol registered on OSF on {date}: DOI {doi}."
+msgstr "Protocole enregistré sur OSF le {date} : DOI {doi}."
 
 #, python-brace-format
 msgid "Protocol registered: DOI {doi}"
@@ -3490,6 +3673,12 @@ msgstr "Rapport écrit : {path}"
 msgid "Report: {path}"
 msgstr "Rapport : {path}"
 
+msgid "Reporting"
+msgstr "Déclaration"
+
+msgid "Reporting checklist"
+msgstr "Liste de contrôle de la déclaration"
+
 msgid "Reports"
 msgstr "Rapports"
 
@@ -3561,6 +3750,10 @@ msgstr "Question de la revue"
 #, python-brace-format
 msgid "Review question framed (version {number})"
 msgstr "Question de recherche cadrée (version {number})"
+
+#, python-brace-format
+msgid "Review question: « {question} »."
+msgstr "Question de la revue : « {question} »."
 
 msgid "Review team"
 msgstr "Équipe de revue"
@@ -3791,6 +3984,9 @@ msgstr "Mots en commun, au moins, avec un seul auteur (de 0 à 1)."
 msgid "Short description."
 msgstr "Courte description."
 
+msgid "Show"
+msgstr "Afficher"
+
 msgid "Show the differences"
 msgstr "Afficher les différences"
 
@@ -3814,6 +4010,10 @@ msgstr "Sélection des sources"
 
 msgid "Source of evidence selection (in addition to the generated text)"
 msgstr "Sélection des sources (en plus du texte produit)"
+
+#, python-brace-format
+msgid "Source of the checklist: {source}"
+msgstr "Source de la liste : {source}"
 
 #, python-brace-format
 msgid "Source: {source}"
@@ -4029,6 +4229,13 @@ msgstr "Synthèse enregistrée."
 
 msgid "Synthesis tables"
 msgstr "Tableaux de synthèse"
+
+msgid ""
+"Table of the characteristics of each source: exports/donnees-extraites.csv (values decided by the"
+" person), with the references."
+msgstr ""
+"Tableau des caractéristiques de chaque source : exports/donnees-extraites.csv (valeurs décidées "
+"par la personne), avec les références."
 
 msgid ""
 "Tables and maps are built from the values you decided only (validated, corrected or extracted); a"
@@ -4885,6 +5092,10 @@ msgstr "Titre et résumé par défaut ; autres champs avec un préfixe : %(pre
 msgid "Title and abstract screening"
 msgstr "Tri des titres et résumés"
 
+#, python-brace-format
+msgid "Title of the report: « {title} »."
+msgstr "Titre du rapport : « {title} »."
+
 msgid "Title of the review."
 msgstr "Titre de la revue."
 
@@ -4918,6 +5129,19 @@ msgstr ""
 "rapportée dans un diagramme de flux PRISMA-ScR."
 
 #, python-brace-format
+msgid ""
+"Titles and abstracts: {references} references screened by {people} person(s), with the AI "
+"({model}) as a second reviewer that never excluded alone; disagreements reconciled by the person:"
+" {disagreements}."
+msgstr ""
+"Titres et résumés : {references} références triées par {people} personne(s), avec l'IA ({model}) "
+"comme second réviseur, qui n'a jamais exclu seule ; désaccords réconciliés par la personne : "
+"{disagreements}."
+
+msgid "To be completed by the team."
+msgstr "À compléter par l'équipe."
+
+#, python-brace-format
 msgid "To be completed: {hint}"
 msgstr "À compléter : {hint}"
 
@@ -4936,6 +5160,10 @@ msgstr "À rédiger : aucune synthèse révisée pour ce champ."
 #, python-format
 msgid "To decide: %(left)s of %(count)s."
 msgstr "À décider : %(left)s sur %(count)s."
+
+#, python-brace-format
+msgid "To discuss among the limitations: {facts}."
+msgstr "À discuter dans les limites : {facts}."
 
 #, python-format
 msgid "To review: %(count)s."
@@ -5020,6 +5248,13 @@ msgstr ""
 msgid "Unknown AI provider: {provider}."
 msgstr "Fournisseur d'IA inconnu : {provider}."
 
+msgid "Unknown checklist."
+msgstr "Liste inconnue."
+
+#, python-brace-format
+msgid "Unknown checklist: {name}."
+msgstr "Liste inconnue : {name}."
+
 msgid "Unknown collection."
 msgstr "Collecte inconnue."
 
@@ -5054,6 +5289,9 @@ msgstr "Champ inconnu : {code}."
 #, python-brace-format
 msgid "Unknown grid version: {number}."
 msgstr "Version de la grille inconnue : {number}."
+
+msgid "Unknown language."
+msgstr "Langue inconnue."
 
 msgid "Unknown level."
 msgstr "Niveau inconnu."
@@ -5276,6 +5514,13 @@ msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations
 msgid "Write the references kept for the full text (RIS and CSV) in the exports folder."
 msgstr "Écrire les références retenues pour le texte intégral (RIS et CSV) dans le dossier des exports."
 
+msgid ""
+"Write the reporting checklist (PRISMA-ScR) filled from the project data (Markdown and Word) in "
+"the exports folder."
+msgstr ""
+"Écrire la liste de contrôle de la déclaration (PRISMA-ScR) remplie à partir des données du projet"
+" (Markdown et Word) dans le dossier des exports."
+
 msgid "Write the text of the summary."
 msgstr "Écrivez le texte de la synthèse."
 
@@ -5449,6 +5694,9 @@ msgstr "virgule retirée (interdite dans les filtres OpenAlex)"
 msgid "complete search strategy for at least one database"
 msgstr "stratégie de recherche complète pour au moins une base de données"
 
+msgid "concept"
+msgstr "concept"
+
 msgid "concept of interest (Framing and Criteria pages)"
 msgstr "concept d'intérêt (pages « Cadrage » et « Critères »)"
 
@@ -5463,6 +5711,9 @@ msgstr "adresse de contact transmise aux API bibliographiques"
 
 msgid "contains bibliography"
 msgstr "contient la bibliographie"
+
+msgid "context"
+msgstr "contexte"
 
 msgid "context of interest (Framing and Criteria pages)"
 msgstr "contexte d'intérêt (pages « Cadrage » et « Critères »)"
@@ -5815,6 +6066,9 @@ msgstr "libre accès (OpenAlex)"
 msgid "open access (Unpaywall)"
 msgstr "libre accès (Unpaywall)"
 
+msgid "optional"
+msgstr "facultatif"
+
 msgid "or"
 msgstr "ou"
 
@@ -5844,6 +6098,9 @@ msgstr "synthèse vulgarisée"
 
 msgid "planned"
 msgstr "prévue"
+
+msgid "population"
+msgstr "population"
 
 msgid "population of interest (Framing and Criteria pages)"
 msgstr "population d'intérêt (pages « Cadrage » et « Critères »)"
@@ -6127,6 +6384,10 @@ msgstr "parenthèses ou guillemets non appariés"
 msgid "unexpected:"
 msgstr "inattendus :"
 
+#, python-format
+msgid "unknown data sources: %(sources)s"
+msgstr "sources de données inconnues : %(sources)s"
+
 msgid "unreadable line"
 msgstr "ligne illisible"
 
@@ -6214,6 +6475,14 @@ msgid "{count} reference without a full text, written: {path}"
 msgid_plural "{count} references without a full text, written: {path}"
 msgstr[0] "{count} référence sans texte intégral, écrite : {path}"
 msgstr[1] "{count} références sans texte intégral, écrites : {path}"
+
+#, python-brace-format
+msgid "{count} reports not retrieved"
+msgstr "{count} rapports non obtenus"
+
+#, python-brace-format
+msgid "{database} (searched on {date})"
+msgstr "{database} (recherche du {date})"
 
 #, python-brace-format
 msgid "{database} ({date}): {count}"
@@ -6318,6 +6587,10 @@ msgstr "{title} : usage de l'IA au tri (méthode, ébauche)"
 #, python-brace-format
 msgid "{title}: use of AI in title and abstract screening (methods, draft)"
 msgstr "{title} : usage de l'IA au tri des titres et résumés (méthode, ébauche)"
+
+#, python-brace-format
+msgid "{title}: {checklist} {version} checklist (draft)"
+msgstr "{title} : liste {checklist} {version} (ébauche)"
 
 #, python-brace-format
 msgid "{value} ({low} to {high})"

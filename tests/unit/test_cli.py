@@ -210,6 +210,17 @@ def test_narrative_export(tmp_path: Path) -> None:
     assert runner.invoke(app, ["narratif", str(path)]).exit_code == 1
 
 
+def test_reporting_checklist_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["prisma-scr", str(folder), "--langue", "en"])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0].endswith("prisma-scr-2018-en.md")
+    for wrong in (["--langue", "de"], ["--liste", "prisma-2099"]):
+        assert runner.invoke(app, ["prisma-scr", str(folder), *wrong]).exit_code == 1
+    assert runner.invoke(app, ["prisma-scr", str(tmp_path / "absent")]).exit_code == 1
+
+
 def test_comments_export(tmp_path: Path) -> None:
     runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
     folder = tmp_path / "demo.revue"
