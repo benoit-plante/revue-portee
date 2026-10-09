@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 17:06-0400\n"
+"POT-Creation-Date: 2026-10-09 18:01-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -521,6 +521,9 @@ msgstr "Annexe IV : éléments du protocole (Peters et al., 2022)"
 
 msgid "Appendix V: Correspondence with the OSF Generalized Systematic Review Registration form"
 msgstr "Annexe V : correspondance avec le formulaire OSF « Generalized Systematic Review Registration »"
+
+msgid "Appendix: reporting of the use of AI"
+msgstr "Annexe : déclaration de l'usage de l'IA"
 
 msgid "Apply the thresholds to the calibrated probabilities"
 msgstr "Appliquer les seuils aux probabilités étalonnées"
@@ -1044,6 +1047,10 @@ msgstr ""
 "conserver » : {excluded_to_kept}."
 
 #, python-brace-format
+msgid "Criteria version {number}"
+msgstr "Critères, version {number}"
+
+#, python-brace-format
 msgid "Criteria version {number} ({date}): {rationale}"
 msgstr "Version {number} des critères ({date}) : {rationale}"
 
@@ -1397,6 +1404,16 @@ msgstr "Doublons"
 msgid "Duplicates removed"
 msgstr "Doublons retirés"
 
+#, python-brace-format
+msgid ""
+"Duplicates were found by the tool's rules (algorithm version {version}) on identifiers and "
+"bibliographic fields; the person decided the ambiguous pairs ({pairs}). Duplicates removed: "
+"{removed}."
+msgstr ""
+"Les doublons ont été repérés par les règles de l'outil (algorithme, version {version}) sur les "
+"identifiants et les champs bibliographiques ; la personne a tranché les paires ambiguës "
+"({pairs}). Doublons retirés : {removed}."
+
 msgid "Duplicates?"
 msgstr "Doublons ?"
 
@@ -1407,6 +1424,15 @@ msgstr ""
 "Chaque descripteur MeSH de la stratégie et des suggestions de l'IA en attente est cherché dans "
 "MeSH (E-utilities du NCBI). Les descripteurs du thésaurus de l'APA ne peuvent pas être vérifiés "
 "automatiquement."
+
+#, python-brace-format
+msgid ""
+"Each call is recorded with the exact model version returned by the provider and the version of "
+"its prompt template; costs are estimated from the provider's prices of {date}."
+msgstr ""
+"Chaque appel est consigné avec la version exacte du modèle renvoyée par le fournisseur et la "
+"version de son gabarit d'invite ; les coûts sont estimés d'après les tarifs du fournisseur du "
+"{date}."
 
 msgid ""
 "Each modified criterion must be qualified before the new version comes into force: broadening "
@@ -1654,6 +1680,10 @@ msgid "Extraction grid"
 msgstr "Grille d'extraction"
 
 #, python-brace-format
+msgid "Extraction grid version {number}"
+msgstr "Grille d'extraction, version {number}"
+
+#, python-brace-format
 msgid "Extraction grid version {number} ({date}): {rationale}"
 msgstr "Version {number} de la grille d'extraction ({date}) : {rationale}"
 
@@ -1876,6 +1906,13 @@ msgstr ""
 "Pour le tri par l'IA, le texte de chaque rapport, sans sa bibliographie, a été transmis au "
 "fournisseur du modèle ({provider}) ; chaque appel est consigné avec sa réponse brute. Vérifier "
 "que les conditions des éditeurs le permettent reste la responsabilité de l'équipe de la revue."
+
+msgid ""
+"For the review of this section: where each element of the reporting of AI use (RAISE; CEE "
+"guidance, Macura et al., 2025) is reported above."
+msgstr ""
+"Pour la révision de cette section : où chaque élément de la déclaration de l'usage de l'IA (RAISE"
+" ; guide de la CEE, Macura et al., 2025) est déclaré ci-dessus."
 
 msgid "Forbidden host."
 msgstr "Hôte refusé."
@@ -2581,6 +2618,9 @@ msgstr "Mode : %(mode)s."
 msgid "Model"
 msgstr "Modèle"
 
+msgid "Model (exact version returned)"
+msgstr "Modèle (version exacte renvoyée)"
+
 msgid "Model calls made at a time."
 msgstr "Appels au modèle faits en même temps."
 
@@ -2800,6 +2840,9 @@ msgstr "Aucun texte à trier dans ce tour."
 
 msgid "No version of the criteria is in force yet."
 msgstr "Aucune version des critères n'est encore en vigueur."
+
+msgid "No version of the criteria or of the extraction grid was activated after the registration."
+msgstr "Aucune version des critères ni de la grille d'extraction n'a été activée après l'enregistrement."
 
 msgid "No version of the grid is in force yet."
 msgstr "Aucune version de la grille n'est encore en vigueur."
@@ -3109,6 +3152,9 @@ msgstr ""
 msgid "Plain-language summaries"
 msgstr "Synthèses vulgarisées"
 
+msgid "Plain-language summaries, revised by the person, with their readability index:"
+msgstr "Synthèses vulgarisées, révisées par la personne, avec leur indice de lisibilité :"
+
 #, python-brace-format
 msgid "Plain-language summary ({level}): draft proposed by the AI"
 msgstr "Synthèse vulgarisée ({level}) : ébauche proposée par l'IA"
@@ -3208,6 +3254,9 @@ msgstr "Proposée pour : %(rule)s."
 
 msgid "Protocol"
 msgstr "Protocole"
+
+msgid "Protocol and deviations"
+msgstr "Protocole et écarts"
 
 msgid "Protocol elements (Peters et al., 2022)"
 msgstr "Éléments du protocole (Peters et al., 2022)"
@@ -3473,6 +3522,10 @@ msgstr "Références repérées"
 
 msgid "Records identified by source"
 msgstr "Références repérées par source"
+
+#, python-brace-format
+msgid "Records imported by database: {sources}."
+msgstr "Références importées par base de données : {sources}."
 
 msgid "Records included in the dataset"
 msgstr "Références incluses dans le jeu"
@@ -3899,6 +3952,9 @@ msgstr "Seuils de tri : exclure sous {low}, inclure à partir de {high}"
 msgid "Search"
 msgstr "Recherche"
 
+msgid "Search and deduplication"
+msgstr "Recherche et dédoublonnage"
+
 msgid "Search strategy"
 msgstr "Stratégie de recherche"
 
@@ -4223,6 +4279,9 @@ msgstr ""
 
 msgid "Synthesis"
 msgstr "Synthèse"
+
+msgid "Synthesis and plain-language summaries"
+msgstr "Synthèse et synthèses vulgarisées"
 
 msgid "Synthesis recorded."
 msgstr "Synthèse enregistrée."
@@ -4582,6 +4641,16 @@ msgstr "Les critères n'ont pas changé pendant le tri."
 msgid "The criteria file {path} cannot be used: {error}"
 msgstr "Le fichier de critères {path} est inutilisable : {error}"
 
+#, python-brace-format
+msgid ""
+"The data decided by the person were summarized in frequency tables, cross tables and evidence "
+"maps of two fields; empty or sparse cells were flagged as gaps, of which {comments} were "
+"commented by the person."
+msgstr ""
+"Les données décidées par la personne ont été résumées en tableaux de fréquences, tableaux croisés"
+" et cartes des données probantes de deux champs ; les cellules vides ou peu peuplées ont été "
+"signalées comme lacunes, dont {comments} ont été commentées par la personne."
+
 msgid "The decision of the AI is not shown while you screen."
 msgstr "La décision de l'IA n'est pas affichée pendant votre tri."
 
@@ -4805,6 +4874,10 @@ msgstr "Le protocole est enregistré (DOI %(doi)s) : cette version sera un éca
 #, python-brace-format
 msgid "The protocol is registered on OSF: DOI {doi}."
 msgstr "Le protocole est enregistré sur OSF : DOI {doi}."
+
+#, python-brace-format
+msgid "The protocol was registered on OSF on {date} (DOI {doi})."
+msgstr "Le protocole a été enregistré sur OSF le {date} (DOI {doi})."
 
 msgid "The protocol will be registered on OSF before the search is run."
 msgstr "Le protocole sera enregistré sur OSF avant le lancement de la recherche."
@@ -5334,6 +5407,9 @@ msgstr "Paramètre(s) non pris en charge par le fournisseur Anthropic : {names}
 msgid "Unsupported project format: {version}."
 msgstr "Format de projet non pris en charge : {version}."
 
+msgid "Use of AI by task"
+msgstr "Usage de l'IA par tâche"
+
 msgid "Use of artificial intelligence"
 msgstr "Usage de l'intelligence artificielle"
 
@@ -5417,6 +5493,9 @@ msgstr ""
 
 msgid "Versions"
 msgstr "Versions"
+
+msgid "Versions activated after the registration (deviations from the protocol), each with its rationale:"
+msgstr "Versions activées après l'enregistrement (écarts au protocole), chacune avec sa justification :"
 
 msgid "Volume (issue)"
 msgstr "Volume (numéro)"
@@ -5672,6 +5751,9 @@ msgstr "probabilité d'inclusion étalonnée"
 msgid "calibrated with the latest calibration of the round"
 msgstr "étalonnées avec le dernier étalonnage du tour"
 
+msgid "calibration results"
+msgstr "résultats de l'étalonnage"
+
 msgid "cannot tell"
 msgstr "indéterminable"
 
@@ -5703,6 +5785,9 @@ msgstr "concept d'intérêt (pages « Cadrage » et « Critères »)"
 msgid "configured"
 msgstr "configurée"
 
+msgid "conflicts of interest"
+msgstr "conflits d'intérêts"
+
 msgid "conflicts of interest, or their absence"
 msgstr "conflits d'intérêts, ou leur absence"
 
@@ -5720,6 +5805,9 @@ msgstr "contexte d'intérêt (pages « Cadrage » et « Critères »)"
 
 msgid "corrected"
 msgstr "corrigée"
+
+msgid "costs"
+msgstr "coûts"
 
 #, python-brace-format
 msgid "criteria version {number}"
@@ -5773,6 +5861,9 @@ msgstr "études différentes"
 
 msgid "difficult"
 msgstr "difficile"
+
+msgid "disagreements and their resolution"
+msgstr "désaccords et leur résolution"
 
 #, python-brace-format
 msgid "disagreements to reconcile: {count}"
@@ -5907,6 +5998,9 @@ msgstr "catégorie hiérarchique"
 msgid "how results will be summarized and presented (tables, figures, narrative)"
 msgstr "comment les résultats seront résumés et présentés (tableaux, figures, synthèse narrative)"
 
+msgid "how the stakeholders were chosen and involved"
+msgstr "comment les parties prenantes ont été choisies et associées"
+
 msgid "in force"
 msgstr "en vigueur"
 
@@ -5940,6 +6034,9 @@ msgstr "reporté"
 msgid "licence: %(licence)s"
 msgstr "licence : %(licence)s"
 
+msgid "limitations"
+msgstr "limites"
+
 msgid "limitations specific to this review"
 msgstr "limites propres à cette revue"
 
@@ -5964,6 +6061,9 @@ msgstr "manquants :"
 #, python-brace-format
 msgid "model {model}"
 msgstr "modèle {model}"
+
+msgid "models and exact versions"
+msgstr "modèles et versions exactes"
 
 msgid "modified"
 msgstr "modification"
@@ -6261,6 +6361,9 @@ msgstr "voir la référence"
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"
 
+msgid "share of decisions where the AI took part"
+msgstr "proportion des décisions où l'IA est intervenue"
+
 msgid "shared authors and words"
 msgstr "auteurs et mots en commun"
 
@@ -6286,6 +6389,9 @@ msgstr "devis et sources retenus (études primaires, revues, littérature grise)
 msgid "superseded"
 msgstr "remplacée"
 
+msgid "supervision mode"
+msgstr "mode de supervision"
+
 msgid "taken into account without a change"
 msgstr "pris en compte sans modification"
 
@@ -6294,6 +6400,9 @@ msgstr "cible non atteinte"
 
 msgid "target reached"
 msgstr "cible atteinte"
+
+msgid "tasks"
+msgstr "tâches"
 
 msgid "text"
 msgstr "texte"
@@ -6329,6 +6438,9 @@ msgstr "le plafond du lot est atteint"
 msgid "the combination of blocks"
 msgstr "la combinaison des blocs"
 
+msgid "the date of each search"
+msgstr "la date de chaque recherche"
+
 msgid "the main screening has not started"
 msgstr "le tri principal n'a pas commencé"
 
@@ -6344,6 +6456,9 @@ msgstr "le réviseur"
 
 msgid "the same work published in two journals"
 msgstr "le même travail publié dans deux revues"
+
+msgid "thresholds"
+msgstr "seuils"
 
 msgid "title"
 msgstr "titre"
@@ -6374,6 +6489,9 @@ msgstr "à revoir : la synthèse a changé depuis"
 
 msgid "to review: values changed since"
 msgstr "à revoir : des valeurs ont changé depuis"
+
+msgid "tool and version"
+msgstr "outil et version"
 
 msgid "type"
 msgstr "type"
@@ -6406,6 +6524,9 @@ msgstr "très facile"
 
 msgid "where existing or ongoing reviews were searched for, and what was found"
 msgstr "où les revues existantes ou en cours ont été recherchées, et ce qui a été trouvé"
+
+msgid "where the protocol was published or registered"
+msgstr "où le protocole a été publié ou enregistré"
 
 msgid "whether a critical appraisal of the sources is planned, and why"
 msgstr "si une évaluation critique des sources est prévue, et pourquoi"
@@ -6505,6 +6626,10 @@ msgid "{database}: records collected: {collected} of {announced} announced"
 msgstr "{database} : notices collectées : {collected} sur {announced} annoncées"
 
 #, python-brace-format
+msgid "{database}: {records} records (search of {date})"
+msgstr "{database} : {records} références (recherche du {date})"
+
+#, python-brace-format
 msgid "{file} and the database describe different projects."
 msgstr "{file} et la base de données décrivent des projets différents."
 
@@ -6529,6 +6654,10 @@ msgid "{label}: {count} references sent to the AI in a batch"
 msgstr "{label} : {count} références envoyées à l'IA dans un lot"
 
 #, python-brace-format
+msgid "{level}: {index} ({formula}), target {target} or more"
+msgstr "{level} : {index} ({formula}), cible de {target} ou plus"
+
+#, python-brace-format
 msgid "{low} to {high}"
 msgstr "{low} à {high}"
 
@@ -6543,6 +6672,14 @@ msgstr "{name} : bonne page pour {rate} de {count} passages"
 #, python-brace-format
 msgid "{part} of {whole} ({share})"
 msgstr "{part} sur {whole} ({share})"
+
+#, python-brace-format
+msgid ""
+"{people} stakeholders were consulted and made {comments} comments (by role of their author: "
+"{roles}). Responses given: {done}; awaiting a response: {pending}."
+msgstr ""
+"{people} parties prenantes ont été consultées et ont formulé {comments} commentaires (selon le "
+"rôle de leur auteur : {roles}). Suites données : {done} ; en attente d'une suite : {pending}."
 
 #, python-brace-format
 msgid "{runs} runs of the same records (response stability)."
@@ -6573,6 +6710,10 @@ msgid "{title}: a scoping review protocol"
 msgstr "{title} : protocole de revue de portée"
 
 #, python-brace-format
+msgid "{title}: methods and use of AI (draft)"
+msgstr "{title} : méthode et usage de l'IA (ébauche)"
+
+#, python-brace-format
 msgid "{title}: narrative synthesis (draft)"
 msgstr "{title} : synthèse narrative (ébauche)"
 
@@ -6595,6 +6736,10 @@ msgstr "{title} : liste {checklist} {version} (ébauche)"
 #, python-brace-format
 msgid "{value} ({low} to {high})"
 msgstr "{value} ({low} à {high})"
+
+#, python-brace-format
+msgid "{version} ({date}): {rationale}"
+msgstr "{version} ({date}) : {rationale}"
 
 #, python-brace-format
 msgid ""
@@ -6628,4 +6773,11 @@ msgstr ""
 #~ "Variable d'environnement manquante : {names} ({description})."
 #~ " Définissez-la dans les réglages de l'environnement,"
 #~ " puis relancez la commande."
+
+#~ msgid ""
+#~ "{people} stakeholders were consulted and made {comments}"
+#~ " comments (by role of their author: {roles}). "
+#~ "Each comment was answered: {done}; awaiting a "
+#~ "response: {pending}."
+#~ msgstr ""
 

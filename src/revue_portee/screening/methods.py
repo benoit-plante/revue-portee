@@ -12,6 +12,7 @@ from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 from revue_portee.ai.tasks.fulltext import SCREEN_FULLTEXT
 from revue_portee.ai.tasks.screening import SCREEN_REFERENCE
@@ -21,15 +22,22 @@ from revue_portee.domain.screening import RoundKind, keeps, page_quote_counts, q
 from revue_portee.protocol.document import ExportFormat
 from revue_portee.reporting.document import Document, render_docx, render_markdown
 from revue_portee.reporting.methods import (
+    AITaskUse,
     ChangeSummary,
+    ConsultationSummary,
     CostLine,
+    DeviationLine,
     ExtractionSummary,
     FieldAgreementLine,
     FulltextSummary,
+    LayLine,
     MethodsData,
     ModelUse,
     PilotSummary,
+    RegistrationLine,
     ScreeningSummary,
+    SearchLine,
+    SynthesisSummary,
     ThresholdSummary,
     build_methods,
 )
@@ -351,6 +359,110 @@ def _extraction(folder: ProjectFolder, calls: list[StoredCall]) -> ExtractionSum
     )
 
 
+def _ai_tasks(calls: list[StoredCall]) -> tuple[AITaskUse, ...]:
+    """Every AI task of the project: provider, exact models returned, template versions,
+    calls and estimated cost."""
+    by_task: dict[str, list[StoredCall]] = defaultdict(list)
+    for call in calls:
+        by_task[call.task].append(call)
+    return tuple(
+        AITaskUse(
+            task=task,
+            provider=found[0].record.provider,
+            models_returned=tuple(sorted({
+                c.record.model_returned for c in found
+                if c.record.status == "ok" and c.record.model_returned
+            })),
+            template_versions=tuple(sorted({c.record.prompt_template_version for c in found})),
+            calls=len(found),
+            amount=sum((c.record.cost_estimate for c in found), Decimal(0)),
+        )
+        for task, found in sorted(by_task.items())
+    )  # fmt: skip
+
+
+def _complete_facts(folder: ProjectFolder, *, now: Clock, tool_version: str) -> dict[str, Any]:
+    """Facts of the steps beyond the screening (tranche 4.4): protocol and deviations,
+    search, deduplication, synthesis and consultation."""
+    # Imported here: these use cases read the screening, which this module belongs to.
+    from revue_portee.collect.deduplication import dedup_state
+    from revue_portee.domain.dedup import ALGORITHM_VERSION
+    from revue_portee.domain.lay_summary import TARGET_INDEX, revised_summaries
+    from revue_portee.domain.synthesis import GapComment
+    from revue_portee.protocol.document import protocol_data
+    from revue_portee.stakeholders.comments import consultation_state
+    from revue_portee.storage.repositories import lay_summary as lay_repo
+    from revue_portee.storage.repositories import synthesis as synthesis_repo
+
+    protocol = protocol_data(folder, now=now, tool_version=tool_version)
+    by_query = {q.id: q.translation.database.display_name for q in protocol.queries}
+    with folder.engine.connect() as connection:
+        comments: list[GapComment] = synthesis_repo.list_comments(connection)
+        summaries = lay_repo.list_summaries(connection)
+    latest: dict[tuple[str, str, str, str], str] = {}
+    for comment in sorted(comments, key=lambda c: (c.created_at, c.id)):
+        latest[comment.rows_field, comment.columns_field, comment.row, comment.column] = (
+            comment.text
+        )
+    consultation = consultation_state(folder).counts
+    registration = protocol.registration
+    return {
+        "registration": None
+        if registration is None
+        else RegistrationLine(doi=registration.doi, registered_on=registration.registered_on),
+        "deviations": tuple(
+            [
+                DeviationLine(
+                    kind="criteria",
+                    number=d.number,
+                    activated_on=d.activated_at.date(),
+                    rationale=d.rationale,
+                )
+                for d in protocol.deviations
+            ]
+            + [
+                DeviationLine(
+                    kind="grid",
+                    number=d.number,
+                    activated_on=d.activated_at.date(),
+                    rationale=d.rationale,
+                )
+                for d in protocol.grid_deviations
+            ]
+        ),
+        "search": tuple(
+            SearchLine(
+                database=by_query.get(r.query_id, "?"),
+                executed_on=r.executed_at.date(),
+                records=r.result_count or 0,
+            )
+            for r in sorted(protocol.counts, key=lambda r: by_query.get(r.query_id, ""))
+        ),
+        "dedup_algorithm": ALGORITHM_VERSION,
+        "pairs_decided": len(dedup_state(folder).decisions),
+        "synthesis": SynthesisSummary(
+            gap_comments=sum(1 for text in latest.values() if text),
+            lay=tuple(
+                LayLine(
+                    level=level.value,
+                    formula=found.formula,
+                    index=found.index,
+                    target=TARGET_INDEX[level],
+                )
+                for level, summary in revised_summaries(summaries).items()
+                if (found := summary.readability) is not None
+            ),
+        ),
+        "consultation": ConsultationSummary(
+            stakeholders=consultation.stakeholders,
+            by_role=consultation.by_role,
+            comments=consultation.comments,
+            answered=consultation.answered,
+            by_action={a.value: n for a, n in consultation.by_action.items()},
+        ),
+    }
+
+
 def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> MethodsData:
     report = flow_report(folder, now=now, tool_version=tool_version)
     config = folder.ai_settings().tasks.get(TASK)
@@ -401,6 +513,8 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         costs=_costs(folder, screening_calls),
         full_text=_fulltext(folder, every_call),
         extraction=_extraction(folder, every_call),
+        ai_tasks=_ai_tasks(every_call),
+        **_complete_facts(folder, now=now, tool_version=tool_version),
         other_costs=CostLine(
             phase="other",
             calls=len(others),
