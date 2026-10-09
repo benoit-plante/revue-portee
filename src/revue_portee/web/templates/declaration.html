@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Reporting") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Reporting checklist") }}</h1>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+<p>{{ _("For each item of the checklist, the tool proposes a text or a place in the report, from the project data; the team checks and completes it. The checklist is a data file: a new version is added without a change of the tool.") }}</p>
+<form method="get" action="/declaration" class="inline-form">
+  <label for="liste">{{ _("Checklist") }}</label>
+  <select id="liste" name="liste">{% for key, c in available.items() %}<option value="{{ key }}" {% if c.id == checklist.id %}selected{% endif %}>{{ c.name }} {{ c.version }}</option>{% endfor %}</select>
+  <button type="submit" class="secondary">{{ _("Show") }}</button>
+</form>
+{% set done = filled | rejectattr("to_complete") | list | length %}
+<p>{{ _("Items with a proposal: %(done)s of %(total)s.", done=done, total=filled | length) }}</p>
+<table class="criteria">
+  <caption class="visually-hidden">{{ _("Items of the checklist and the proposals of the tool") }}</caption>
+  <thead><tr><th scope="col">{{ _("No.") }}</th><th scope="col">{{ _("Item") }}</th><th scope="col">{{ _("Proposal") }}</th></tr></thead>
+  <tbody>
+  {% for f in filled %}
+    <tr>
+      <th scope="row">{{ f.item.id }}{% if f.item.optional %} <span class="small">({{ _("optional") }})</span>{% endif %}</th>
+      <td>{{ f.item.fr }}</td>
+      <td>{% if f.proposals %}{{ f.proposals | join(" ") }}{% else %}<em>{{ _("To be completed by the team.") }}</em>{% endif %}{% if f.unknown %} <span class="small">({{ _("unknown data sources: %(sources)s", sources=f.unknown | join(", ")) }})</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="small">{{ checklist.source }}</p>
+<form method="post" action="/declaration/export" class="inline-form">
+  {{ csrf() }}
+  <input type="hidden" name="liste" value="{{ checklist.id }}">
+  <button type="submit" name="langue" value="fr" class="secondary">{{ _("Export in French (Markdown and Word)") }}</button>
+  <button type="submit" name="langue" value="en" class="secondary">{{ _("Export in English (Markdown and Word)") }}</button>
+</form>
+{% endblock %}

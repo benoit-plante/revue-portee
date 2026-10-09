@@ -34,6 +34,7 @@ from revue_portee.collect import collection, deduplication, enrichment, imports
 from revue_portee.collect.collection import CollectorFactory
 from revue_portee.collect.enrichment import WorkSource, enriched_reference
 from revue_portee.config.secrets import MissingSecretError
+from revue_portee.declaration import checklist as declaration
 from revue_portee.domain.changes import MODIFICATION_TYPES, ChangeType
 from revue_portee.domain.criteria import (
     CriterionKind,
@@ -82,6 +83,7 @@ from revue_portee.reporting.document import render_docx, render_markdown
 from revue_portee.reporting.flow import pending_items
 from revue_portee.reporting.flow_svg import render_flow_svg
 from revue_portee.reporting.formats import separator
+from revue_portee.reporting.prisma_scr import fill_checklist
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
@@ -92,6 +94,7 @@ from revue_portee.resources import (
     flow_template,
     grid_template,
     peters_checklist,
+    reporting_checklists,
     tool_validation,
 )
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment, studies
@@ -2857,6 +2860,56 @@ def create_app(
             "path": path.relative_to(folder.path).as_posix()
         }
         return consultation_page(request, message=message)
+
+    # --- Reporting checklist --------------------------------------------------------
+
+    def declaration_page(
+        request: Request, *, checklist: str, message: str | None = None, status_code: int = 200
+    ) -> HTMLResponse:
+        available = reporting_checklists()
+        chosen = available.get(checklist)
+        if chosen is None:
+            raise HTTPException(status_code=404, detail=_("Unknown checklist."))
+        facts = declaration.checklist_facts(folder, now=now, tool_version=context.tool_version)
+        return render(
+            request,
+            "declaration.html",
+            {
+                "available": available,
+                "checklist": chosen,
+                "filled": fill_checklist(chosen, facts, language="fr"),
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/declaration", response_class=HTMLResponse)
+    def show_declaration(
+        request: Request, liste: str = declaration.DEFAULT_CHECKLIST
+    ) -> HTMLResponse:
+        return declaration_page(request, checklist=liste)
+
+    @app.post("/declaration/export")
+    def export_declaration(
+        request: Request,
+        _csrf: Csrf,
+        liste: Annotated[str, Form()] = declaration.DEFAULT_CHECKLIST,
+        langue: Annotated[str, Form()] = "fr",
+    ) -> Response:
+        if langue not in ("fr", "en"):
+            raise HTTPException(status_code=404, detail=_("Unknown language."))
+        try:
+            written = declaration.export_checklist(
+                folder, checklist=liste, language=langue, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except declaration.UnknownChecklistError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        message = _("Files written in %(path)s: %(count)s.") % {
+            "path": "exports",
+            "count": len(written),
+        }
+        return declaration_page(request, checklist=liste, message=message)
 
     # --- Extraction grid --------------------------------------------------------------
 

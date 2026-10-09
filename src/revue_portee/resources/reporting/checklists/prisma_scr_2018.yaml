@@ -1,0 +1,129 @@
+# PRISMA-ScR reporting checklist (EF-DEC-02, ENF-NOR-03), stored as data.
+# Each item is a short paraphrase of the published item, not its text; « sources » name
+# the project data the tool proposes for it (reporting/prisma_scr.py). A source the tool
+# does not know is listed as such and the item is left to the team: a new version of
+# the checklist (PRISMA-ScR 2026) is added as a new file, without a change of code.
+id: prisma-scr-2018
+name: PRISMA-ScR
+version: "2018"
+published: 2018-10-02
+source: >-
+  Tricco AC, Lillie E, Zarin W, et al. PRISMA Extension for Scoping Reviews
+  (PRISMA-ScR): Checklist and Explanation. Ann Intern Med. 2018;169(7):467-473.
+  doi:10.7326/M18-0850
+# Item names and order checked on 2026-10-09 against https://www.prisma-statement.org/scoping
+# (22 items: 20 essential, 2 optional, the critical appraisal items 12 and 16).
+verified: true
+items:
+  - id: "1"
+    section: title
+    en: Title - identify the report as a scoping review
+    fr: Titre - indiquer qu'il s'agit d'une revue de portée
+    sources: [title]
+  - id: "2"
+    section: abstract
+    en: Structured summary - background, objectives, eligibility, sources, charting, results, conclusions
+    fr: Résumé structuré - contexte, objectifs, admissibilité, sources, extraction, résultats, conclusions
+    sources: [summary]
+  - id: "3"
+    section: introduction
+    en: Rationale - what is already known and why a scoping approach
+    fr: Justification - état des connaissances et raison d'une revue de portée
+    sources: [protocol.background]
+  - id: "4"
+    section: introduction
+    en: Objectives - questions and objectives, with their key elements (population, concept, context)
+    fr: Objectifs - questions et objectifs, avec leurs éléments clés (population, concept, contexte)
+    sources: [framing.question, protocol.objectives]
+  - id: "5"
+    section: methods
+    en: Protocol and registration - whether a protocol exists, where, and its registration
+    fr: Protocole et enregistrement - existence du protocole, accès et enregistrement
+    sources: [registration]
+  - id: "6"
+    section: methods
+    en: Eligibility criteria - characteristics of the sources used as criteria, with rationale
+    fr: Critères d'admissibilité - caractéristiques des sources retenues comme critères, avec justification
+    sources: [criteria, deviations]
+  - id: "7"
+    section: methods
+    en: Information sources - databases and other sources, with the date of the last search
+    fr: Sources d'information - bases de données et autres sources, avec la date de la dernière recherche
+    sources: [databases]
+  - id: "8"
+    section: methods
+    en: Search - the full search strategy of at least one database
+    fr: Recherche - stratégie de recherche complète d'au moins une base de données
+    sources: [queries]
+  - id: "9"
+    section: methods
+    en: Selection of sources of evidence - the screening and eligibility process
+    fr: Sélection des sources de données probantes - processus de tri et d'admissibilité
+    sources: [screening, fulltext]
+  - id: "10"
+    section: methods
+    en: Data charting process - forms, piloting, who charted and how data were confirmed
+    fr: Processus d'extraction des données - grille, essai pilote, qui a extrait et comment les données ont été confirmées
+    sources: [charting]
+  - id: "11"
+    section: methods
+    en: Data items - the variables charted, with any assumptions
+    fr: Éléments de données - variables extraites et hypothèses éventuelles
+    sources: [grid.fields]
+  - id: "12"
+    section: methods
+    en: Critical appraisal of individual sources of evidence (optional)
+    fr: Évaluation critique des sources individuelles (facultatif)
+    optional: true
+    sources: [appraisal]
+  - id: "13"
+    section: methods
+    en: Synthesis of results - how the charted data were handled and summarized
+    fr: Synthèse des résultats - traitement et résumé des données extraites
+    sources: [synthesis.methods]
+  - id: "14"
+    section: results
+    en: Selection of sources of evidence - numbers screened, assessed and included, with reasons for exclusion, ideally in a flow diagram
+    fr: Sélection des sources - nombres triés, évalués et inclus, avec les motifs d'exclusion, idéalement dans un diagramme de flux
+    sources: [flow]
+  - id: "15"
+    section: results
+    en: Characteristics of sources of evidence - the characteristics charted for each source, with citations
+    fr: Caractéristiques des sources - caractéristiques extraites pour chaque source, avec les références
+    sources: [results.characteristics]
+  - id: "16"
+    section: results
+    en: Critical appraisal within sources of evidence (optional)
+    fr: Évaluation critique au sein des sources (facultatif)
+    optional: true
+    sources: [appraisal]
+  - id: "17"
+    section: results
+    en: Results of individual sources of evidence - the data relevant to the questions, for each source
+    fr: Résultats des sources individuelles - données pertinentes pour les questions, pour chaque source
+    sources: [results.individual]
+  - id: "18"
+    section: results
+    en: Synthesis of results - the results as they relate to the questions and objectives
+    fr: Synthèse des résultats - résultats en lien avec les questions et les objectifs
+    sources: [synthesis.results]
+  - id: "19"
+    section: discussion
+    en: Summary of evidence - main results, links to the concepts, relevance to key groups
+    fr: Résumé des données probantes - principaux résultats, liens avec les concepts, pertinence pour les groupes clés
+    sources: [summary.evidence]
+  - id: "20"
+    section: discussion
+    en: Limitations - of the scoping review process
+    fr: Limites - du processus de la revue de portée
+    sources: [limitations]
+  - id: "21"
+    section: discussion
+    en: Conclusions - general interpretation and implications, next steps
+    fr: Conclusions - interprétation générale, implications et prochaines étapes
+    sources: [conclusions]
+  - id: "22"
+    section: funding
+    en: Funding - sources of funding and role of the funders
+    fr: Financement - sources de financement et rôle des bailleurs de fonds
+    sources: [protocol.funding]

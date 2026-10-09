@@ -4,6 +4,7 @@ configuration."""
 
 from functools import cache
 from importlib.resources import files
+from importlib.resources.abc import Traversable
 from typing import Any
 
 import yaml
@@ -12,6 +13,7 @@ from revue_portee.ai.costs import PriceTable
 from revue_portee.ai.settings import AISettings
 from revue_portee.domain.grid import GridTemplate
 from revue_portee.domain.protocol import Checklist, OsfForm
+from revue_portee.domain.reporting_checklist import ReportingChecklist
 from revue_portee.reporting.flow import FlowTemplate
 from revue_portee.reporting.methods import ToolValidation
 
@@ -19,10 +21,12 @@ __all__ = [
     "default_ai_settings",
     "flow_template",
     "grid_template",
+    "load_checklists",
     "load_yaml",
     "osf_form",
     "peters_checklist",
     "price_table",
+    "reporting_checklists",
     "tool_validation",
 ]
 
@@ -31,6 +35,25 @@ def load_yaml(name: str) -> Any:  # noqa: ANN401 - YAML documents are untyped un
     """Parse ``resources/<name>`` (a path relative to this package)."""
     resource = files("revue_portee.resources").joinpath(*name.split("/"))
     return yaml.safe_load(resource.read_text(encoding="utf-8"))
+
+
+def load_checklists(folder: Traversable) -> dict[str, ReportingChecklist]:
+    """Every reporting checklist (``*.yaml``) of ``folder``, by id."""
+    found = {}
+    for resource in sorted(folder.iterdir(), key=lambda r: r.name):
+        if resource.name.endswith(".yaml"):
+            checklist = ReportingChecklist.model_validate(
+                yaml.safe_load(resource.read_text(encoding="utf-8"))
+            )
+            found[checklist.id] = checklist
+    return found
+
+
+@cache
+def reporting_checklists() -> dict[str, ReportingChecklist]:
+    """The checklists of ``resources/reporting/checklists/``: a new version (PRISMA-ScR
+    2026) is a new file there."""
+    return load_checklists(files("revue_portee.resources").joinpath("reporting", "checklists"))
 
 
 @cache
