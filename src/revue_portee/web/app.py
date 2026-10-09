@@ -64,6 +64,7 @@ from revue_portee.domain.screening import (
 )
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
+from revue_portee.domain.stakeholders import CommentTarget, ResponseAction
 from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.extraction import grid as extraction_grid
@@ -109,6 +110,7 @@ from revue_portee.sources import (
     SourceFactory,
     default_source_factory,
 )
+from revue_portee.stakeholders import comments as consultation
 from revue_portee.stakeholders import lay_summary as lay_summaries
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import criteria as criteria_repo
@@ -118,7 +120,14 @@ from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.synthesis import maps as synthesis_maps
 from revue_portee.synthesis import narrative as synthesis_narrative
 from revue_portee.version import tool_version as current_tool_version
-from revue_portee.web import dedup_view, fulltext_view, grid_view, pilot_view, screening_view
+from revue_portee.web import (
+    consultation_view,
+    dedup_view,
+    fulltext_view,
+    grid_view,
+    pilot_view,
+    screening_view,
+)
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -2737,6 +2746,117 @@ def create_app(
                 request, level, error=_("Write the text of the summary."), status_code=422
             )
         return see_other(f"/synthese/vulgarisation/{chosen.value}?ok=revision")
+
+    # --- Consultation of stakeholders -----------------------------------------------
+
+    def consultation_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        return render(
+            request,
+            "consultation.html",
+            {
+                "state": consultation.consultation_state(folder),
+                "targets": consultation_view.target_labels(),
+                "actions": consultation_view.action_labels(),
+                "today": now().date().isoformat(),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/consultation", response_class=HTMLResponse)
+    def show_consultation(request: Request, ok: str = "") -> HTMLResponse:
+        messages = {
+            "personne": _("Stakeholder added."),
+            "commentaire": _("Comment recorded."),
+            "suite": _("Response recorded."),
+        }
+        return consultation_page(request, message=messages.get(ok))
+
+    @app.post("/consultation/parties-prenantes")
+    def add_stakeholder(
+        request: Request,
+        _csrf: Csrf,
+        nom: Annotated[str, Form()] = "",
+        role: Annotated[str, Form()] = "",
+        organisation: Annotated[str, Form()] = "",
+    ) -> Response:
+        if not nom.strip() or not role.strip():
+            return consultation_page(
+                request, error=_("Give a name (or a pseudonym) and a role."), status_code=422
+            )
+        consultation.add_stakeholder(
+            folder, name=nom, role=role, organisation=organisation, now=now,
+            tool_version=context.tool_version,
+        )  # fmt: skip
+        return see_other("/consultation?ok=personne")
+
+    @app.post("/consultation/commentaires")
+    def record_stakeholder_comment(
+        request: Request,
+        _csrf: Csrf,
+        partie: Annotated[str, Form()] = "",
+        cible: Annotated[str, Form()] = "",
+        precision: Annotated[str, Form()] = "",
+        recu_le: Annotated[str, Form()] = "",
+        texte: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            target = CommentTarget(cible)
+            received = date.fromisoformat(recu_le)
+        except ValueError:
+            return consultation_page(
+                request, error=_("Choose a target and a date of reception."), status_code=422
+            )
+        if not texte.strip():
+            return consultation_page(request, error=_("Write the comment."), status_code=422)
+        try:
+            consultation.record_comment(
+                folder, partie, target=target, text=texte, received_on=received,
+                target_detail=precision, now=now, tool_version=context.tool_version,
+            )  # fmt: skip
+        except consultation.UnknownStakeholderError as error:
+            return consultation_page(request, error=str(error), status_code=422)
+        return see_other("/consultation?ok=commentaire")
+
+    @app.post("/consultation/commentaires/{comment_id}/suite")
+    def answer_stakeholder_comment(
+        request: Request,
+        comment_id: str,
+        _csrf: Csrf,
+        suite: Annotated[str, Form()] = "",
+        texte: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            action = ResponseAction(suite)
+        except ValueError:
+            return consultation_page(request, error=_("Choose what was done."), status_code=422)
+        if not texte.strip():
+            return consultation_page(
+                request, error=_("Say what was changed, or why not."), status_code=422
+            )
+        try:
+            consultation.answer(
+                folder, comment_id, action=action, text=texte, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except consultation.UnknownCommentError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        return see_other(f"/consultation?ok=suite#commentaire-{comment_id}")
+
+    @app.post("/consultation/export")
+    def export_consultation(request: Request, _csrf: Csrf) -> Response:
+        path = consultation.export_follow_up(folder)
+        message = _("Follow-up written in %(path)s.") % {
+            "path": path.relative_to(folder.path).as_posix()
+        }
+        return consultation_page(request, message=message)
 
     # --- Extraction grid --------------------------------------------------------------
 

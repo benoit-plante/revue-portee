@@ -210,6 +210,15 @@ def test_narrative_export(tmp_path: Path) -> None:
     assert runner.invoke(app, ["narratif", str(path)]).exit_code == 1
 
 
+def test_comments_export(tmp_path: Path) -> None:
+    runner.invoke(app, ["nouveau", str(tmp_path / "demo"), "--titre", "Démo", "--reviseur", "B"])
+    folder = tmp_path / "demo.revue"
+    result = runner.invoke(app, ["commentaires", str(folder)])
+    assert result.exit_code == 0, result.output
+    assert result.output.strip().endswith("suivi-commentaires.csv")
+    assert runner.invoke(app, ["commentaires", str(tmp_path / "absent")]).exit_code == 1
+
+
 def test_lay_summary_export(tmp_path: Path) -> None:
     from demo import build_extracted
 

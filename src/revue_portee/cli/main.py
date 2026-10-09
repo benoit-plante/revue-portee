@@ -306,6 +306,30 @@ def export_extracted(
 
 
 @app.command(
+    "commentaires",
+    help=_(
+        "Write the follow-up of the stakeholders' comments (CSV) in the exports folder; "
+        "stakeholders by code and role, not by name."
+    ),
+)
+def export_comments(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.stakeholders.comments import export_follow_up
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        typer.echo(str(export_follow_up(folder)))
+    finally:
+        folder.close()
+
+
+@app.command(
     "vulgarisation",
     help=_(
         "Write the plain-language summary revised by the person for a level (Markdown and "

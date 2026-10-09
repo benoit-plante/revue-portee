@@ -239,6 +239,7 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
     synthesis, the extraction pilots and the comments on the gaps (tranches 3.1 to 3.5)."""
     # Imported here: the extraction reads the studies, which import the screening.
     from revue_portee.extraction import validation
+    from revue_portee.stakeholders import comments as consultation_uc
 
     with folder.engine.connect() as connection:
         versions = grid_repo.list_versions(connection)
@@ -286,8 +287,20 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
             for s in summaries
         ),
     )  # fmt: skip
+    consultation = consultation_uc.consultation_state(folder)
+    people = csv_text(
+        ("stakeholder", "role", "organisation", "created_at"),
+        (
+            (consultation.codes[p.id], p.role, p.organisation, p.created_at.isoformat())
+            for p in sorted(consultation.stakeholders, key=lambda p: consultation.codes[p.id])
+        ),
+    )
     kept, _count = validation.extraction_tables(folder)
     return kept | {
+        # Stakeholders by code, role and organisation, never by name; comments and
+        # responses without their text (unpublished communications) (tranche 4.2).
+        "parties-prenantes.csv": people,
+        "suivi-commentaires.csv": consultation_uc.follow_up_csv(consultation, with_text=False),
         "syntheses-vulgarisees.csv": lay,
         "syntheses-narratives.csv": narratives,
         "grille.csv": grid,

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Consultation") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Consultation of stakeholders") }}</h1>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+<p>{{ _("Who was consulted, on what, and what was done with each comment (Pollock et al., 2022). Only a name, a role and an organisation are kept about a person; a pseudonym may stand for the name. The journal and the public archive never hold the name nor the text of a comment.") }}</p>
+<p>{{ _("Stakeholders: %(people)s; comments: %(comments)s; awaiting a response: %(pending)s.", people=state.counts.stakeholders, comments=state.counts.comments, pending=state.counts.pending) }}</p>
+
+<section aria-labelledby="personnes-titre">
+  <h2 id="personnes-titre">{{ _("Stakeholders") }}</h2>
+  {% if state.stakeholders %}
+  <table class="criteria">
+    <caption class="visually-hidden">{{ _("Stakeholders consulted") }}</caption>
+    <thead><tr><th scope="col">{{ _("Code") }}</th><th scope="col">{{ _("Name") }}</th><th scope="col">{{ _("Role") }}</th><th scope="col">{{ _("Organisation") }}</th></tr></thead>
+    <tbody>
+    {% for p in state.stakeholders %}
+      <tr><th scope="row">{{ state.codes[p.id] }}</th><td>{{ p.name }}</td><td>{{ p.role }}</td><td>{{ p.organisation or "—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <details {% if not state.stakeholders %}open{% endif %}>
+    <summary>{{ _("Add a stakeholder") }}</summary>
+    <form method="post" action="/consultation/parties-prenantes">
+      {{ csrf() }}
+      <label for="nom">{{ _("Name or pseudonym") }}</label>
+      <input type="text" id="nom" name="nom" required>
+      <label for="role">{{ _("Role") }}</label>
+      <input type="text" id="role" name="role" required placeholder="{{ _('patient partner, clinician, manager…') }}">
+      <label for="organisation">{{ _("Organisation (optional)") }}</label>
+      <input type="text" id="organisation" name="organisation">
+      <button type="submit">{{ _("Add") }}</button>
+    </form>
+  </details>
+</section>
+
+{% if state.stakeholders %}
+<section aria-labelledby="nouveau-titre">
+  <h2 id="nouveau-titre">{{ _("Record a comment") }}</h2>
+  <form method="post" action="/consultation/commentaires">
+    {{ csrf() }}
+    <label for="partie">{{ _("Stakeholder") }}</label>
+    <select id="partie" name="partie">{% for p in state.stakeholders %}<option value="{{ p.id }}">{{ state.codes[p.id] }} — {{ p.name }} ({{ p.role }})</option>{% endfor %}</select>
+    <label for="cible">{{ _("On") }}</label>
+    <select id="cible" name="cible">{% for value, label in targets.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+    <label for="precision">{{ _("Detail (optional)") }}</label>
+    <input type="text" id="precision" name="precision" placeholder="{{ _('field D3, criteria version 2…') }}">
+    <label for="recu_le">{{ _("Received on") }}</label>
+    <input type="date" id="recu_le" name="recu_le" value="{{ today }}" required>
+    <label for="texte-commentaire">{{ _("Comment") }}</label>
+    <textarea id="texte-commentaire" name="texte" rows="3" required></textarea>
+    <button type="submit">{{ _("Record the comment") }}</button>
+  </form>
+</section>
+{% endif %}
+
+<section aria-labelledby="suivi-titre">
+  <h2 id="suivi-titre">{{ _("Follow-up of the comments") }}</h2>
+  {% if state.follow_ups %}
+  {% for f in state.follow_ups %}
+  <article id="commentaire-{{ f.comment.id }}" class="comment">
+    <h3>{{ f.code }} ({{ f.stakeholder.role }}) — {{ targets[f.comment.target] }}{% if f.comment.target_detail %}, {{ f.comment.target_detail }}{% endif %} — {{ f.comment.received_on.isoformat() }}</h3>
+    <p>{{ f.comment.text }}</p>
+    {% if f.response %}<p><strong>{{ actions[f.response.action] }}</strong>&nbsp;: {{ f.response.text }}</p>{% else %}<p><em>{{ _("Awaiting a response.") }}</em></p>{% endif %}
+    <details>
+      <summary>{% if f.response %}{{ _("Change the response") }}{% else %}{{ _("Respond") }}{% endif %}</summary>
+      <form method="post" action="/consultation/commentaires/{{ f.comment.id }}/suite">
+        {{ csrf() }}
+        <fieldset>
+          <legend>{{ _("What was done") }}</legend>
+          {% for value, label in actions.items() %}<label><input type="radio" name="suite" value="{{ value }}" {% if f.response and f.response.action == value %}checked{% endif %}> {{ label }}</label> {% endfor %}
+        </fieldset>
+        <label for="suite-{{ f.comment.id }}">{{ _("What was changed, or why not") }}</label>
+        <textarea id="suite-{{ f.comment.id }}" name="texte" rows="2">{{ f.response.text if f.response else "" }}</textarea>
+        <button type="submit">{{ _("Record the response") }}</button>
+      </form>
+    </details>
+  </article>
+  {% endfor %}
+  <form method="post" action="/consultation/export">{{ csrf() }}<button type="submit" class="secondary">{{ _("Export the follow-up (CSV)") }}</button></form>
+  {% else %}
+  <p>{{ _("No comment yet.") }}</p>
+  {% endif %}
+</section>
+{% endblock %}

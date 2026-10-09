@@ -51,6 +51,7 @@ __all__ = [
     "collection_end",
     "collection_page",
     "collection_run",
+    "comment_response",
     "create_project_engine",
     "criteria_version",
     "criterion",
@@ -92,6 +93,8 @@ __all__ = [
     "search_run",
     "search_strategy_version",
     "sensitivity_check",
+    "stakeholder",
+    "stakeholder_comment",
     "study_link_assessment",
     "study_link_decision",
     "suggestion_review",
@@ -1042,6 +1045,46 @@ lay_summary = Table(
     Column("supersedes_id", String(26), ForeignKey("lay_summary.id")),
     Column("narrative_ids_json", Text, nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+)
+
+# Stakeholders (tranche 4.2): name, role and organisation only (EF-CON-03).
+stakeholder = Table(
+    "stakeholder",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("name", Text, nullable=False),
+    Column("role", Text, nullable=False),
+    Column("organisation", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+stakeholder_comment = Table(
+    "stakeholder_comment",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("stakeholder_id", String(26), ForeignKey("stakeholder.id"), nullable=False),
+    Column("target", String(16), nullable=False),
+    Column("target_detail", Text, nullable=False),
+    Column("text", Text, nullable=False),
+    Column("received_on", Date, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+comment_response = Table(
+    "comment_response",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("comment_id", String(26), ForeignKey("stakeholder_comment.id"), nullable=False),
+    Column("action", String(16), nullable=False),
+    Column("text", Text, nullable=False),
+    Column("supersedes_id", String(26), ForeignKey("comment_response.id")),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
     _journal_column(),
 )
 
