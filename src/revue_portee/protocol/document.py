@@ -18,6 +18,7 @@ from revue_portee.resources import osf_form, peters_checklist
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import framing as framing_repo
+from revue_portee.storage.repositories import grid as grid_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import protocol as protocol_repo
 from revue_portee.storage.repositories import search as search_repo
@@ -75,6 +76,8 @@ def protocol_data(
             search=search,
             queries=queries,
             counts=tuple(latest_counts.values()),
+            grid=grid_repo.get_active_version(connection)
+            or grid_repo.get_draft_version(connection),
             tool_version=tool_version,
             generated_at=now(),
         )

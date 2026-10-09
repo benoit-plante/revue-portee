@@ -45,6 +45,8 @@ from revue_portee.domain.criteria import (
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.fulltext import FulltextDocument
+from revue_portee.domain.grid import FieldType
+from revue_portee.domain.grid import diff_versions as grid_diff
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
 from revue_portee.domain.screening import (
@@ -59,6 +61,7 @@ from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKi
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
+from revue_portee.extraction import grid as extraction_grid
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
@@ -73,7 +76,12 @@ from revue_portee.reporting.formats import separator
 from revue_portee.reporting.protocol import change_labels as report_change_labels
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
-from revue_portee.resources import flow_template, peters_checklist, tool_validation
+from revue_portee.resources import (
+    flow_template,
+    grid_template,
+    peters_checklist,
+    tool_validation,
+)
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment, studies
 from revue_portee.screening import fulltext as fulltext_screening
 from revue_portee.screening import main as main_screening
@@ -96,7 +104,7 @@ from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.version import tool_version as current_tool_version
-from revue_portee.web import dedup_view, fulltext_view, pilot_view, screening_view
+from revue_portee.web import dedup_view, fulltext_view, grid_view, pilot_view, screening_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -2107,6 +2115,141 @@ def create_app(
         if row is None or row.document is None:
             raise HTTPException(status_code=404, detail=_("No full text for this reference."))
         return row, row.document
+
+    # --- Extraction grid --------------------------------------------------------------
+
+    def grid_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        state = extraction_grid.grid_state(folder)
+        versions = list(state.versions)
+        history = [
+            (v, None if i == 0 else grid_diff(versions[i - 1], v)) for i, v in enumerate(versions)
+        ]
+        draft_diff = (
+            None
+            if state.draft is None or state.active is None
+            else grid_diff(state.active, state.draft)
+        )
+        return render(
+            request,
+            "grille.html",
+            {
+                "state": state,
+                "history": list(reversed(history)),
+                "draft_diff": draft_diff,
+                "type_labels": grid_view.type_labels(),
+                "changed_labels": grid_view.changed_labels(),
+                "template": grid_template(),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )  # fmt: skip
+
+    def grid_form(
+        form: Any,  # noqa: ANN401 - Starlette form data
+    ) -> dict[str, Any]:
+        def lines(name: str) -> list[str]:
+            return [line for line in str(form.get(name, "")).splitlines() if line.strip()]
+
+        return {
+            "label": str(form.get("libelle", "")),
+            "type": FieldType(str(form.get("type", ""))),
+            "definition": str(form.get("definition", "")),
+            "guidance": str(form.get("consignes", "")),
+            "examples": lines("exemples"),
+            "choices": lines("choix"),
+        }
+
+    grid_errors = (
+        ValueError,
+        extraction_grid.UnknownFieldError,
+        extraction_grid.NoDraftError,
+    )
+
+    def grid_error(error: Exception) -> str:
+        if isinstance(error, ValidationError):
+            return _(
+                "A choice field needs at least two distinct choices, one per line; other "
+                "fields have no choices; a field needs a name."
+            )
+        if isinstance(error, MissingRationaleError):
+            return _("A new version of the grid needs a rationale.")
+        if isinstance(error, EmptyCriteriaError):
+            return _("The grid needs at least one field.")
+        return str(error) or _("This change cannot be made.")
+
+    @app.get("/grille", response_class=HTMLResponse)
+    def show_grid(request: Request, ok: str = "") -> HTMLResponse:
+        messages = {
+            "ajout": _("Field added to the draft."),
+            "modele": _("Fields of the starting grid added to the draft."),
+            "modif": _("Field modified in the draft."),
+            "retrait": _("Field removed from the draft."),
+            "activation": _("The new version of the grid is in force."),
+            "abandon": _("Draft discarded."),
+        }
+        return grid_page(request, message=messages.get(ok))
+
+    @app.post("/grille/ajouter")
+    async def add_grid_field(request: Request, _csrf: Csrf) -> Response:
+        try:
+            extraction_grid.add_field(
+                folder, **grid_form(await request.form()), now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except grid_errors as error:
+            return grid_page(request, error=grid_error(error), status_code=422)
+        return see_other("/grille?ok=ajout#brouillon")
+
+    @app.post("/grille/modele")
+    def add_grid_template(_csrf: Csrf) -> Response:
+        extraction_grid.add_template(folder, now=now, tool_version=context.tool_version)
+        return see_other("/grille?ok=modele#brouillon")
+
+    @app.post("/grille/{code}/modifier")
+    async def update_grid_field(request: Request, code: str, _csrf: Csrf) -> Response:
+        try:
+            extraction_grid.update_field(
+                folder, code, **grid_form(await request.form()), now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except grid_errors as error:
+            return grid_page(request, error=grid_error(error), status_code=422)
+        return see_other(f"/grille?ok=modif#champ-{code}")
+
+    @app.post("/grille/{code}/retirer")
+    def remove_grid_field(request: Request, code: str, _csrf: Csrf) -> Response:
+        try:
+            extraction_grid.remove_field(folder, code, now=now, tool_version=context.tool_version)
+        except grid_errors as error:
+            return grid_page(request, error=grid_error(error), status_code=422)
+        return see_other("/grille?ok=retrait#brouillon")
+
+    @app.post("/grille/activer")
+    def activate_grid(
+        request: Request, _csrf: Csrf, justification: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            extraction_grid.activate_draft(
+                folder, rationale=justification, now=now, tool_version=context.tool_version
+            )
+        except (*grid_errors, EmptyCriteriaError) as error:
+            return grid_page(request, error=grid_error(error), status_code=422)
+        return see_other("/grille?ok=activation")
+
+    @app.post("/grille/abandonner")
+    def discard_grid_draft(request: Request, _csrf: Csrf) -> Response:
+        try:
+            extraction_grid.discard_draft(folder, now=now, tool_version=context.tool_version)
+        except extraction_grid.NoDraftError as error:
+            return grid_page(request, error=str(error), status_code=422)
+        return see_other("/grille?ok=abandon")
 
     # --- Studies and their reports -------------------------------------------------
 

@@ -20,6 +20,7 @@ from revue_portee.ai.settings import AISettings, TaskStatus
 from revue_portee.domain.changes import ChangeType, CriterionChange
 from revue_portee.domain.criteria import CriteriaVersion, Criterion, CriterionKind, PccElement
 from revue_portee.domain.framing import Framing
+from revue_portee.domain.grid import GridVersion
 from revue_portee.domain.project import Project, Reviewer
 from revue_portee.domain.protocol import (
     Checklist,
@@ -90,6 +91,7 @@ class ProtocolData(BaseModel):
     search: StrategyVersion | None = None
     queries: tuple[QueryVersion, ...] = ()  # of the search version, one per database
     counts: tuple[SearchRun, ...] = ()  # latest count of each query
+    grid: GridVersion | None = None  # extraction grid in force, otherwise its draft
     tool_version: str
     generated_at: AwareDatetime
 
@@ -764,8 +766,50 @@ def _appendices(_: Translate, data: ProtocolData, language: str) -> list[Block]:
         Heading(level=3, text=_("Appendix II: Search strategy")),
         *_search_appendix(_, data, language),
         Heading(level=3, text=_("Appendix III: Data extraction instrument")),
-        _todo(_, _("draft charting tool")),
+        *_grid_appendix(_, data.grid),
     ]
+
+
+def _grid_appendix(_: Translate, grid: GridVersion | None) -> list[Block]:
+    """The extraction grid (EF-EXT-01): its version in force, or its draft."""
+    if grid is None or not grid.fields:
+        return [_todo(_, _("draft charting tool"))]
+    types = {
+        "text": _("text"),
+        "number": _("number"),
+        "single_choice": _("single choice"),
+        "multiple_choice": _("multiple choice"),
+        "hierarchical": _("hierarchical category"),
+        "boolean": _("yes or no"),
+        "date": _("date"),
+    }
+    if grid.activated_at is None:
+        intro = _("Draft of version {number} of the extraction grid; it may be revised after "
+                  "the extraction pilot.").format(number=grid.number)  # fmt: skip
+    else:
+        intro = _("Version {number} of the extraction grid; it may be revised after the "
+                  "extraction pilot, each change being versioned and justified.").format(
+            number=grid.number
+        )  # fmt: skip
+    rows = tuple(
+        (
+            f.code,
+            f.label,
+            types[f.type.value],
+            " ".join(part for part in (f.definition, _choices(f.choices)) if part),
+        )
+        for f in grid.sorted_fields()
+    )
+    return [
+        Paragraph(text=intro),
+        Table(header=(_("Code"), _("Field"), _("Type"), _("Definition and choices")), rows=rows),
+    ]
+
+
+def _choices(choices: Iterable[str]) -> str:
+    """Choices of a field, between brackets."""
+    items = list(choices)
+    return f"[{' | '.join(items)}]" if items else ""
 
 
 def _checklist_appendix(
