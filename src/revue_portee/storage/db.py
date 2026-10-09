@@ -74,6 +74,7 @@ __all__ = [
     "journal_entry",
     "key_article_set_version",
     "metadata",
+    "narrative_draft",
     "pair_decision",
     "primary_report_choice",
     "project",
@@ -1005,6 +1006,23 @@ gap_comment = Table(
     Column("text", Text, nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+narrative_draft = Table(
+    "narrative_draft",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("field_code", String(16), nullable=False),
+    Column("grid_version_id", String(26), ForeignKey("grid_version.id"), nullable=False),
+    Column("language", String(8), nullable=False),
+    Column("sentences_json", Text, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("reviewer_kind", String(8), nullable=False),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id")),
+    Column("supersedes_id", String(26), ForeignKey("narrative_draft.id")),
+    Column("created_at", UTCDateTime, nullable=False),
     _journal_column(),
 )
 

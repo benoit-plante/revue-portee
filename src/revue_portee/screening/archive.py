@@ -52,6 +52,7 @@ from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import fulltext as fulltext_repo
 from revue_portee.storage.repositories import grid as grid_repo
 from revue_portee.storage.repositories import journal, projects
+from revue_portee.storage.repositories import narrative as narrative_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.storage.repositories import synthesis as synthesis_repo
 
@@ -241,6 +242,7 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
     with folder.engine.connect() as connection:
         versions = grid_repo.list_versions(connection)
         comments = synthesis_repo.list_comments(connection)
+        drafts = narrative_repo.list_drafts(connection)
     grid = csv_text(
         ("version", "version_id", "status", "activated_at", "code", "label", "type",
          "definition", "guidance", "choices"),
@@ -259,8 +261,20 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
             for c in comments
         ),
     )
+    narratives = csv_text(
+        ("draft_id", "field", "status", "reviewer_kind", "ai_call_id", "supersedes_id",
+         "created_at", "sentence", "text", "study_ids"),
+        (
+            (d.id, d.field_code, d.status.value, d.reviewer_kind.value, d.ai_call_id or "",
+             d.supersedes_id or "", d.created_at.isoformat(), number, s.text,
+             " ".join(s.study_ids))
+            for d in drafts
+            for number, s in enumerate(d.sentences, start=1)
+        ),
+    )  # fmt: skip
     kept, _count = validation.extraction_tables(folder)
     return kept | {
+        "syntheses-narratives.csv": narratives,
         "grille.csv": grid,
         "valeurs-extraites.csv": validation.history_table(folder),
         "pilotes-extraction.csv": validation.pilots_table(folder),

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Narrative synthesis") }}{% endblock %}
+{% block content %}
+<p><a href="/synthese">{{ _("Synthesis") }}</a></p>
+<h1>{{ _("Narrative synthesis") }}</h1>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if not state %}
+<p class="message info">{{ _("Activate a version of the extraction grid first.") }} <a href="/grille">{{ _("Extraction grid") }}</a></p>
+{% else %}
+<p>{{ _("Field by field, the AI may draft a few sentences from the values you decided; each sentence cites the studies it rests on. You revise every draft: only your revision is exported, never the AI's draft alone.") }}</p>
+<table class="criteria">
+  <caption class="visually-hidden">{{ _("Fields of the grid and their synthesis") }}</caption>
+  <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Studies with a decided value") }}</th><th scope="col">{{ _("Synthesis") }}</th></tr></thead>
+  <tbody>
+  {% for f in state.fields %}
+    <tr>
+      <th scope="row"><a href="/synthese/narratif/{{ f.field.code }}">{{ f.field.code }} — {{ f.field.label }}</a></th>
+      <td>{{ f.studies | length }}</td>
+      <td>{% if f.to_revise %}{{ _("draft of the AI, to revise") }}{% elif f.revised %}{{ _("revised") }}{% if f.outdated %} — <strong>{{ _("to review: values changed since") }}</strong>{% endif %}{% else %}—{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<form method="post" action="/synthese/narratif/export">{{ csrf() }}<button type="submit" class="secondary">{{ _("Export the revised synthesis (Markdown and Word)") }}</button></form>
+{% endif %}
+{% endblock %}

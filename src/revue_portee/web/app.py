@@ -50,6 +50,7 @@ from revue_portee.domain.fulltext import FulltextDocument
 from revue_portee.domain.grid import FieldType
 from revue_portee.domain.grid import diff_versions as grid_diff
 from revue_portee.domain.journal import verify_chain
+from revue_portee.domain.narrative import NarrativeSentence, UnsupportedSentenceError
 from revue_portee.domain.project import ReviewerKind
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
 from revue_portee.domain.screening import (
@@ -112,6 +113,7 @@ from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.synthesis import maps as synthesis_maps
+from revue_portee.synthesis import narrative as synthesis_narrative
 from revue_portee.version import tool_version as current_tool_version
 from revue_portee.web import dedup_view, fulltext_view, grid_view, pilot_view, screening_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
@@ -324,6 +326,11 @@ _RECONCILE_ERRORS: tuple[type[Exception], ...] = (
 )
 _VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
 _EXTRACTION_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, prefill.NoGridError)
+_NARRATIVE_ERRORS: tuple[type[Exception], ...] = (
+    *_EXTRACTION_ERRORS,
+    synthesis_narrative.NothingToSynthesizeError,
+    synthesis_narrative.UnknownFieldError,
+)
 _TEXT_DECISION_ERRORS: tuple[type[Exception], ...] = (
     *_DECISION_ERRORS,
     fulltext_screening.AIFirstError,
@@ -343,6 +350,8 @@ DEDUP_JOB = "dedoublonnage"
 STUDY_JOB = "etudes-ia"
 # Key of the background job where the AI pre-fills the extraction grid.
 EXTRACTION_JOB = "extraction-ia"
+# Key of the background job where the AI drafts the narrative synthesis of a field.
+NARRATIVE_JOB = "narratif-ia-{code}"
 
 
 def create_app(
@@ -2441,6 +2450,142 @@ def create_app(
         return synthesis_page(
             request, rows=lignes, columns=colonnes, sparse=sparse, message=message
         )
+
+    # --- Narrative synthesis --------------------------------------------------------
+
+    def narrative_page(
+        request: Request,
+        code: str,
+        *,
+        preview: CostPreview | None = None,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        try:
+            state = synthesis_narrative.narrative_state(folder)
+            target = state.field(code)
+        except (prefill.NoGridError, synthesis_narrative.UnknownFieldError) as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        job = NARRATIVE_JOB.format(code=code)
+        shown = target.current.sentences if target.current is not None else ()
+        return render(
+            request,
+            "synthese_narratif_champ.html",
+            {
+                "state": state,
+                "target": target,
+                "labels": state.labels,
+                "rows": [*shown, None, None],
+                "running": background.running(job),
+                "job_error": background.error(job),
+                "preview": preview,
+                "ceiling": None if preview is None else pilot_view.batch_ceiling(preview.estimate),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/synthese/narratif", response_class=HTMLResponse)
+    def show_narrative(request: Request, message: str = "") -> HTMLResponse:
+        try:
+            state = synthesis_narrative.narrative_state(folder)
+        except prefill.NoGridError:
+            return render(request, "synthese_narratif.html", {"state": None})
+        return render(
+            request, "synthese_narratif.html", {"state": state, "message": message or None}
+        )
+
+    @app.post("/synthese/narratif/export")
+    def export_narrative(request: Request, _csrf: Csrf) -> Response:
+        try:
+            written = synthesis_narrative.export_narrative(
+                folder, language="fr", now=now, tool_version=context.tool_version
+            )
+        except prefill.NoGridError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        message = _("Files written in %(path)s: %(count)s.") % {
+            "path": "exports/synthese",
+            "count": len(written),
+        }
+        return show_narrative(request, message=message)
+
+    @app.get("/synthese/narratif/{code}", response_class=HTMLResponse)
+    def show_field_narrative(request: Request, code: str, ok: str = "") -> HTMLResponse:
+        messages = {
+            "ia": _("The AI is drafting the synthesis in the background."),
+            "revision": _("Synthesis recorded."),
+        }
+        return narrative_page(request, code, message=messages.get(ok))
+
+    @app.post("/synthese/narratif/{code}/ia/estimation")
+    def estimate_narrative(request: Request, code: str, _csrf: Csrf) -> Response:
+        try:
+            preview = synthesis_narrative.preview_ai(folder, code, factory=provider_factory)
+        except _NARRATIVE_ERRORS as error:
+            return narrative_page(request, code, error=str(error), status_code=422)
+        return narrative_page(request, code, preview=preview)
+
+    @app.post("/synthese/narratif/{code}/ia")
+    def draft_narrative(
+        request: Request, code: str, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return narrative_page(
+                request, code, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return narrative_page(request, code, error=error, status_code=422)
+
+        def work() -> None:
+            synthesis_narrative.draft_with_ai(
+                folder, code, ceiling=limit, factory=provider_factory, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+
+        if not background.start(NARRATIVE_JOB.format(code=code), work):
+            return narrative_page(
+                request, code, error=_("An AI batch is already running."), status_code=422
+            )
+        return see_other(f"/synthese/narratif/{code}?ok=ia")
+
+    @app.post("/synthese/narratif/{code}")
+    async def revise_narrative(request: Request, code: str, _csrf: Csrf) -> Response:
+        form = await request.form()
+        raw = str(form.get("nombre", "0"))
+        sentences = []
+        for index in range(int(raw) if raw.isdigit() else 0):
+            text_ = str(form.get(f"phrase-{index}", "")).strip()
+            if not text_:
+                continue
+            cited = tuple(str(v) for v in form.getlist(f"etudes-{index}"))
+            if not cited:
+                return narrative_page(
+                    request, code,
+                    error=_("Each sentence must rest on at least one study (sentence %(n)s).")
+                    % {"n": index + 1},
+                    status_code=422,
+                )  # fmt: skip
+            sentences.append(NarrativeSentence(text=text_, study_ids=cited))
+        try:
+            await run_in_threadpool(
+                synthesis_narrative.revise, folder, code, sentences, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except (prefill.NoGridError, synthesis_narrative.UnknownFieldError) as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except UnsupportedSentenceError:
+            return narrative_page(
+                request, code,
+                error=_("Write at least one sentence, each resting on included studies."),
+                status_code=422,
+            )  # fmt: skip
+        return see_other(f"/synthese/narratif/{code}?ok=revision")
 
     # --- Extraction grid --------------------------------------------------------------
 

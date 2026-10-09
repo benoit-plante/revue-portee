@@ -1,0 +1,7 @@
+id: draft_synthesis
+version: "1"
+task: draft_synthesis
+changelog:
+  - version: "1"
+    date: "2026-10-09"
+    change: First version (tranche 3.6), one call per field of the grid, each sentence citing its studies.

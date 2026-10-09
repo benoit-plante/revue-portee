@@ -285,9 +285,12 @@ def _extraction(folder: ProjectFolder, calls: list[StoredCall]) -> ExtractionSum
     """The data extraction, once a grid is in force and values exist."""
     # Imported here: the extraction reads the studies, which import the screening.
     from revue_portee.ai.tasks.extraction import EXTRACT_FIELDS
+    from revue_portee.ai.tasks.synthesis import DRAFT_SYNTHESIS
     from revue_portee.domain.extraction import ValueStatus, current_values, quote_summary
+    from revue_portee.domain.narrative import DraftStatus
     from revue_portee.extraction import prefill, validation
     from revue_portee.storage.repositories import extraction as extraction_repo
+    from revue_portee.storage.repositories import narrative as narrative_repo
 
     state = prefill.extraction_state(folder)
     with folder.engine.connect() as connection:
@@ -309,6 +312,10 @@ def _extraction(folder: ProjectFolder, calls: list[StoredCall]) -> ExtractionSum
         {c.record.prompt_template_version for c in calls if c.task == EXTRACT_FIELDS.name}
     )
     pilot_state = validation.pilot_state(folder)
+    with folder.engine.connect() as connection:
+        drafts = narrative_repo.list_drafts(connection)
+    narrative_calls = [c for c in calls if c.task == DRAFT_SYNTHESIS.name]
+    narrative_config = folder.ai_settings().tasks.get(DRAFT_SYNTHESIS.name)
     return ExtractionSummary(
         grid_version=state.grid.number,
         fields=len(state.grid.fields),
@@ -327,6 +334,14 @@ def _extraction(folder: ProjectFolder, calls: list[StoredCall]) -> ExtractionSum
         quotes_not_found=checks[QuoteCheck.NOT_FOUND],
         pilot_studies=0 if pilot_state is None else len(pilot_state.pilot.reference_ids),
         pilot_seed=None if pilot_state is None else pilot_state.pilot.seed,
+        narrative_model=""
+        if narrative_config is None or not narrative_calls
+        else str(narrative_config.model or ""),
+        narrative_template_version=", ".join(
+            sorted({c.record.prompt_template_version for c in narrative_calls})
+        ),
+        narrative_drafted=len({d.field_code for d in drafts if d.status is DraftStatus.PROPOSED}),
+        narrative_revised=len({d.field_code for d in drafts if d.status is DraftStatus.REVISED}),
         pilot_agreement=()
         if pilot_state is None
         else tuple(

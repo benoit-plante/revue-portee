@@ -189,3 +189,22 @@ def test_synthesis_export(tmp_path: Path) -> None:
                   ["--langue", "de"], ["--lignes", "D1", "--colonnes", "D9"]):  # fmt: skip
         assert runner.invoke(app, ["synthese", str(folder), *wrong]).exit_code == 1
     assert runner.invoke(app, ["synthese", str(tmp_path / "absent")]).exit_code == 1
+
+
+def test_narrative_export(tmp_path: Path) -> None:
+    from demo import build, build_extracted
+
+    demo = build_extracted(tmp_path / "a")
+    folder = demo.folder.path
+    demo.folder.close()
+    result = runner.invoke(app, ["narratif", str(folder), "--langue", "en"])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0].endswith("narratif-en.md")
+    text = (folder / "exports" / "synthese" / "narratif-en.md").read_text(encoding="utf-8")
+    assert "To be written: no revised synthesis of this field." in text
+    assert runner.invoke(app, ["narratif", str(folder), "--langue", "de"]).exit_code == 1
+    assert runner.invoke(app, ["narratif", str(tmp_path / "absent")]).exit_code == 1
+    without = build(tmp_path / "b")
+    path = without.folder.path
+    without.folder.close()
+    assert runner.invoke(app, ["narratif", str(path)]).exit_code == 1

@@ -26,7 +26,7 @@
         <li><a href="/textes" {% if page.startswith("texte") %}aria-current="page"{% endif %}>{{ _("Full texts") }}</a></li>
         <li><a href="/grille" {% if page == "grille.html" %}aria-current="page"{% endif %}>{{ _("Grid") }}</a></li>
         <li><a href="/extraction" {% if page.startswith("extraction") %}aria-current="page"{% endif %}>{{ _("Extraction") }}</a></li>
-        <li><a href="/synthese" {% if page == "synthese.html" %}aria-current="page"{% endif %}>{{ _("Synthesis") }}</a></li>
+        <li><a href="/synthese" {% if page.startswith("synthese") %}aria-current="page"{% endif %}>{{ _("Synthesis") }}</a></li>
         <li><a href="/rapports" {% if page == "rapports.html" %}aria-current="page"{% endif %}>{{ _("Reports") }}</a></li>
         <li><a href="/protocole" {% if page == "protocole.html" %}aria-current="page"{% endif %}>{{ _("Protocol") }}</a></li>
         <li><a href="/journal" {% if page == "journal.html" %}aria-current="page"{% endif %}>{{ _("Journal") }}</a></li>

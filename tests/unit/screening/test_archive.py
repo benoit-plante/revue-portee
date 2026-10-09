@@ -9,6 +9,7 @@ import json
 import zipfile
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -382,3 +383,42 @@ def test_no_quote_of_the_ai_in_the_public_archive(tmp_path: Path) -> None:
     for content in files.values():
         assert b"We interviewed 24 older adults" not in content
         assert b"living in three residences" not in content
+
+
+def test_narrative_drafts_in_the_archive(tmp_path: Path) -> None:
+    from decimal import Decimal
+
+    from demo import build_extracted
+    from revue_portee.domain.narrative import NarrativeSentence
+    from revue_portee.screening.methods import methods_data
+    from revue_portee.synthesis import narrative
+    from unit.extraction.test_prefill import factory
+    from unit.synthesis.test_narrative import AI_TEXT, drafted
+
+    demo = build_extracted(tmp_path)
+    ref = demo.ids()["loneliness"]
+    kwargs: dict[str, Any] = {"now": demo.clock, "tool_version": TOOL_VERSION}
+    try:
+        narrative.draft_with_ai(
+            demo.folder, "D1", ceiling=Decimal(1), factory=factory(drafted), **kwargs
+        )
+        narrative.revise(
+            demo.folder, "D1", [NarrativeSentence(text="Qualitative.", study_ids=(ref,))],
+            **kwargs,
+        )  # fmt: skip
+        summary = methods_data(demo.folder, **kwargs).extraction
+        files = archive_files(
+            demo.folder, ArchiveKind.PUBLIC, now=make_clock(), tool_version=TOOL_VERSION
+        )
+    finally:
+        demo.folder.close()
+    rows = list(csv.DictReader(io.StringIO(files["donnees/syntheses-narratives.csv"].decode())))
+    assert [(r["field"], r["status"], r["reviewer_kind"], r["text"], r["study_ids"])
+            for r in rows] == [
+        ("D1", "proposed", "ai", AI_TEXT, ref),
+        ("D1", "revised", "human", "Qualitative.", ref),
+    ]  # fmt: skip
+    assert rows[1]["supersedes_id"] == rows[0]["draft_id"]
+    assert summary is not None
+    assert (summary.narrative_drafted, summary.narrative_revised) == (1, 1)
+    assert summary.narrative_template_version == "1"
