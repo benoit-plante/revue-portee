@@ -1,0 +1,10 @@
+{#- The AI's full-text decision: value, probability, rationale and, for each criterion,
+    its assessment, quote, page and the check of the quote in the text. -#}
+{% set statuses = assessment_labels() %}
+<p><strong>{{ values[a.value] }}</strong> — {{ _("probability of inclusion: %(p)s", p=percent(a.confidence_raw)) }}</p>
+<p>{{ a.rationale }}</p>
+<ul class="small">
+{% for item in a.assessments %}
+  <li>{{ item.code }}&nbsp;: {{ statuses[item.status] }}{% if item.evidence_quote %} — «&nbsp;{{ item.evidence_quote }}&nbsp;»{% if item.page %} ({{ _("page %(page)s", page=item.page) }}){% endif %}{% if item.quote_check %} — {{ check_labels[item.quote_check] }}{% endif %}{% endif %}</li>
+{% endfor %}
+</ul>

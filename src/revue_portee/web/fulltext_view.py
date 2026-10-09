@@ -2,7 +2,8 @@
 
 from revue_portee.i18n import gettext as _
 
-__all__ = ["JOB", "match_labels", "origin_labels", "status_labels"]
+__all__ = ["JOB", "check_labels", "match_labels", "mode_labels", "origin_labels",
+           "status_labels"]  # fmt: skip
 
 # Key of the background job that looks for open access versions (one at a time).
 JOB = "textes-libres"
@@ -23,6 +24,19 @@ def origin_labels() -> dict[str, str]:
         "unpaywall": _("open access (Unpaywall)"),
         "upload": _("added by the team"),
     }
+
+
+def check_labels() -> dict[str, str]:
+    """Result of the check of a quote of the AI in the text."""
+    return {
+        "at_page": _("found at this page"),
+        "other_page": _("found, but on another page"),
+        "not_found": _("not found in the text"),
+    }
+
+
+def mode_labels() -> dict[str, str]:
+    return {"blind": _("blind double screening"), "assisted": _("assisted screening")}
 
 
 def match_labels() -> dict[str, str]:

@@ -1,6 +1,6 @@
 # Jeu de démonstration
 
-Petit projet de revue fictif, construit par `tests/demo.py` et réutilisé par les tests de bout en bout. Il part des 9 notices fictives du dédoublonnage (`tests/fixtures/dedup/demo-*.ris`) et va jusqu'à l'obtention des textes intégraux, avec une réconciliation et un changement de critère réévalué.
+Petit projet de revue fictif, construit par `tests/demo.py` et réutilisé par les tests de bout en bout. Il part des 9 notices fictives du dédoublonnage (`tests/fixtures/dedup/demo-*.ris`) et va jusqu'au tri des textes intégraux, avec une réconciliation et un changement de critère réévalué.
 
 ## Critères
 
@@ -40,6 +40,15 @@ Petit projet de revue fictif, construit par `tests/demo.py` et réutilisé par l
 
 Textes obtenus : **2**, tous deux en libre accès (2 sur 3 recherchés, soit 66,7 %); téléversés : 0; rapports non obtenus : **1**.
 
+**Tri des textes intégraux** (tranche 2.2, critères version 2) : l'essai pilote contient les deux textes obtenus (moins de 40 textes : tous), triés à l'aveugle par la personne et par l'IA, puis le tour principal est en **double tri à l'aveugle** ; les décisions du pilote y comptent (même version des critères).
+
+| Texte | Personne | IA | Citations de l'IA (page donnée → vérification) | Décision en vigueur |
+|---|---|---|---|---|
+| Instabilité résidentielle | exclure (P1 : le texte révèle des adolescents de 14 à 17 ans) | exclure | P1 « A cohort of 1,200 adolescents aged 14 to 17 » (p. 2 → trouvée à la page) ; C1 « Housing instability and the mental health » (p. 1 → trouvée à la page) | exclure, motif principal P1 |
+| Solitude des aînés | inclure | inclure | P1 « We interviewed 24 older adults » (p. 2 → trouvée à la page) ; C1 « living in three residences » (p. 1 → trouvée, mais à la page 2) ; X1 « This is an original research article » (p. 1 → introuvable) | inclure |
+
+Pilote : 2 textes, accord 100 %. Citations du tour principal : **5** vérifiées, **3** à la bonne page, **1** à une autre page, **1** introuvable. Désaccords : 0. Appels à l'IA au texte intégral : 2 au pilote et 2 au tour principal (un appel par texte, 0,002 $ chacun avec le fournisseur factice).
+
 **Résultat**
 
 | Case du diagramme | Nombre |
@@ -53,4 +62,7 @@ Textes obtenus : **2**, tous deux en libre accès (2 sur 3 recherchés, soit 66,
 | Références exclues | 2 (par une personne 2, par l'IA seule 0) |
 | Rapports recherchés pour le texte intégral | 3 |
 | Rapports non obtenus | 1 |
+| Rapports évalués pour l'admissibilité | 2 |
+| Rapports exclus (avec motifs) | 1 (P1 : 1) |
+| Sources de données probantes incluses | 1 |
 | Désaccords | 1, réconcilié |

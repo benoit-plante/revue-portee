@@ -115,6 +115,7 @@ __all__ = [
     "add_new_texts",
     "ai_inputs",
     "check_answer",
+    "criteria_of_round",
     "fulltext_thresholds",
     "kept",
     "main_round",
@@ -127,6 +128,7 @@ __all__ = [
     "reconcile",
     "record_decision",
     "replay_decision",
+    "round_of",
     "run_ai",
     "screenable_texts",
     "start_main",
@@ -213,6 +215,16 @@ def _version(folder: ProjectFolder, version_id: str) -> CriteriaVersion:
 
 
 # --- Rounds -------------------------------------------------------------------------
+
+
+def round_of(folder: ProjectFolder, round_id: str) -> ScreeningRound:
+    """A round of the full-text stage, pilot or main (UnknownRoundError otherwise)."""
+    return _any_round(folder, round_id)
+
+
+def criteria_of_round(folder: ProjectFolder, screening: ScreeningRound) -> CriteriaVersion:
+    """The criteria a round is screened with."""
+    return _version(folder, screening.criteria_version_id)
 
 
 def pilot_round(folder: ProjectFolder) -> PilotRound | None:

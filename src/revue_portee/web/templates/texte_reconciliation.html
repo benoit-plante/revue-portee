@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Reconciliation") }}{% endblock %}
+{% block content %}
+<p><a href="/textes/tri">{{ _("Full-text screening") }}</a></p>
+<h1>{{ _("Reconcile the full-text disagreements") }}</h1>
+<p class="small">{{ _("Disagreements left: %(count)s.", count=left) }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if row %}
+{% set ref = row.reference %}
+<article class="pair" aria-labelledby="texte-titre">
+  <h2 id="texte-titre">{{ ref.title or _("(no title)") }}</h2>
+  <p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %} — <a href="/textes/{{ ref.id }}" target="_blank" rel="noopener">{{ _("Text by page") }}</a> · <a href="/textes/{{ ref.id }}/pdf" target="_blank" rel="noopener">PDF</a></p>
+</article>
+<div class="two-columns">
+  <section aria-labelledby="vous-titre">
+    <h2 id="vous-titre">{{ _("Your decision") }}</h2>
+    <p><strong>{{ values[human.value] }}</strong>{% if human.criteria_cited %} ({{ human.criteria_cited | join(", ") }}){% endif %}</p>
+    {% if human.rationale %}<p>{{ human.rationale }}</p>{% endif %}
+  </section>
+  <section aria-labelledby="ia-titre">
+    <h2 id="ia-titre">{{ _("Decision of the AI") }}</h2>
+    {% include "_texte_ia.html" %}
+  </section>
+</div>
+<h2>{{ _("Final decision") }}</h2>
+{% with action = "/textes/tri/reconciliation", reference_id = ref.id, checked = human.criteria_cited, skippable = false %}{% include "_tri_form.html" %}{% endwith %}
+{% else %}
+<p>{{ _("No disagreement to reconcile.") }}</p>
+{% endif %}
+{% endblock %}
