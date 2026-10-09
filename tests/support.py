@@ -6,6 +6,8 @@ from contextlib import closing, contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pymupdf
+
 from revue_portee.ai.base import ModelProvider
 from revue_portee.ai.providers.fake import FakeProvider, Responder
 from revue_portee.ai.settings import AITaskConfig
@@ -58,3 +60,31 @@ def fake_factory(
         )
 
     return factory
+
+
+def make_pdf(
+    pages: list[str],
+    *,
+    first_label: int | None = None,
+    password: str | None = None,
+) -> bytes:
+    """A small PDF with one text per page (each line written as given); with
+    ``first_label``, PDF page labels numbered from it."""
+    document = pymupdf.open()  # type: ignore[no-untyped-call]
+    for text in pages:
+        page = document.new_page()
+        page.insert_text((72, 72), text, fontsize=10)
+    if first_label is not None:
+        document.set_page_labels(  # type: ignore[no-untyped-call]
+            [{"startpage": 0, "prefix": "", "style": "D", "firstpagenum": first_label}]
+        )
+    if password is None:
+        data = document.tobytes()  # type: ignore[no-untyped-call]
+    else:
+        data = document.tobytes(  # type: ignore[no-untyped-call]
+            encryption=pymupdf.PDF_ENCRYPT_AES_256,  # type: ignore[attr-defined]
+            user_pw=password,
+            owner_pw=password + "-owner",
+        )
+    document.close()  # type: ignore[no-untyped-call]
+    return bytes(data)

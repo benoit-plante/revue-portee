@@ -18,6 +18,7 @@ from typing import Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 from revue_portee.domain.changes import ChangeType
+from revue_portee.domain.fulltext import RetrievalCounts
 from revue_portee.i18n import translator
 from revue_portee.reporting.document import (
     Block,
@@ -192,6 +193,7 @@ class MethodsData(BaseModel):
     currency: str
     prices_as_of: str
     validation: ToolValidation
+    retrieval: RetrievalCounts | None = None  # full texts of the reports sought
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -667,6 +669,55 @@ def _environment(_: Translate, data: MethodsData, language: str) -> str:
     return text + "."
 
 
+MOSTLY_OPEN_ACCESS = 0.5  # share of the texts obtained above which it is reported
+
+
+def _retrieval(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """How the full texts were obtained (EF-SEL-14), once their retrieval started."""
+    counts = data.retrieval
+    if counts is None or not counts.started:
+        return []
+    text = _(
+        "The full texts of the {sought} reports sought were looked for in the open access "
+        "versions known to OpenAlex, then to Unpaywall; the team obtained the others "
+        "through its own access. Texts obtained: {obtained}, of which {open_access} in "
+        "open access ({share} of the reports sought) and {uploaded} by the team. Reports "
+        "not retrieved, declared by the person with the reason: {not_retrievable}."
+    ).format(
+        sought=integer(counts.sought, language),
+        obtained=integer(counts.obtained, language),
+        open_access=integer(counts.open_access, language),
+        share=percent(counts.open_access_share or 0.0, language),
+        uploaded=integer(counts.uploaded, language),
+        not_retrievable=integer(counts.not_retrievable, language),
+    )
+    left = counts.not_sought + counts.not_found
+    if left:
+        text += " " + _("Texts still to obtain: {count}.").format(count=integer(left, language))
+    blocks: list[Block] = [
+        Heading(level=2, text=_("Retrieval of full texts")),
+        Paragraph(text=text),
+    ]
+    if counts.obtained and counts.open_access / counts.obtained > MOSTLY_OPEN_ACCESS:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Most of the texts come from open access versions: reports available "
+                    "only by subscription may be under-represented among those obtained."
+                )
+            )
+        )
+    if counts.needs_ocr:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Texts without readable text (scanned), to read without the tool: {count}."
+                ).format(count=integer(counts.needs_ocr, language))
+            )
+        )
+    return blocks
+
+
 def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
@@ -749,6 +800,7 @@ def build_methods(data: MethodsData, *, language: str) -> Document:
     blocks += _description(_, data, language)
     blocks += _validation(_, data, language)
     blocks += _results(_, data, language)
+    blocks += _retrieval(_, data, language)
     blocks += _limitations(_, data, language)
     blocks += _funding(_)
     blocks += [Heading(level=2, text=_("References")), BulletList(items=_REFERENCES)]

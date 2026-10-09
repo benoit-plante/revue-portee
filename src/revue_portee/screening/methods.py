@@ -30,7 +30,7 @@ from revue_portee.reporting.methods import (
 )
 from revue_portee.resources import price_table, tool_validation
 from revue_portee.screening import main, pilot, settings
-from revue_portee.screening.report import flow_report
+from revue_portee.screening.report import flow_report, full_text_counts
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import ai as ai_repo
 from revue_portee.storage.repositories import criteria as criteria_repo
@@ -224,6 +224,7 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         thresholds=thresholds,
         screening=None if started is None else _screening(main.main_state(folder, started.id)),
         flow=report.numbers,
+        retrieval=full_text_counts(folder),
         changes=changes,
         costs=_costs(folder, calls),
         other_costs=CostLine(

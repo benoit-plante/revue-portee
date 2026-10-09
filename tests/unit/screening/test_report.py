@@ -46,6 +46,7 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
     assert (numbers.removed_by_automation, numbers.removed_other) == (0, 0)
     assert (numbers.screened, numbers.excluded, numbers.sought) == (5, 2, 3)
     assert (numbers.excluded_by_person, numbers.excluded_by_automation) == (2, 0)
+    assert numbers.not_retrieved == 1
     assert numbers.reassessments == (
         ReassessmentCounts(
             from_version=1,

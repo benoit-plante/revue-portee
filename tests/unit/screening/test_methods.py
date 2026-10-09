@@ -56,6 +56,10 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
         "unlinked": (0, Decimal(0)),
     }
     assert data.other_costs.calls == 0
+    # full texts: 3 sought, 2 obtained in open access, 1 declared not retrievable
+    assert data.retrieval is not None
+    assert (data.retrieval.sought, data.retrieval.obtained, data.retrieval.open_access) == (3, 2, 2)
+    assert data.retrieval.not_retrievable == 1
 
 
 def test_pilot_counted_by_hand(tmp_path: Path) -> None:
@@ -118,5 +122,10 @@ def test_export_in_both_languages(tmp_path: Path) -> None:
     assert text.startswith("# Soutien à la parentalité et santé mentale des enfants : usage")
     assert "Références triées : 5 ; exclues : 2" in text
     assert "Aucune référence n'a été exclue par l'IA seule." in text
+    english = paths[2].read_text(encoding="utf-8")
+    assert "## Retrieval of full texts" in english
+    assert "Texts obtained: 2, of which 2 in open access (66.7% of the reports sought)" in english
+    assert "not retrieved, declared by the person with the reason: 1." in english
+    assert "Most of the texts come from open access versions" in english
     placeholders = [b for b in french.blocks if isinstance(b, Paragraph) and b.placeholder]
     assert len(placeholders) == 3  # rationale, limitations of the review, funding

@@ -3,7 +3,12 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-__all__ = ["FetchedPage", "FetchedRecord", "abstract_from_inverted_index"]
+__all__ = [
+    "FetchedPage",
+    "FetchedRecord",
+    "OpenAccessLocation",
+    "abstract_from_inverted_index",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +26,16 @@ class FetchedPage:
     announced: int  # records the API announces for the whole query
     next_cursor: str | None  # None after the last page
     raw: Any  # the answer as received (JSON document or XML text)
+
+
+@dataclass(frozen=True, slots=True)
+class OpenAccessLocation:
+    """Where a source says a free PDF of a work can be downloaded."""
+
+    pdf_url: str
+    license: str = ""  # e.g. cc-by
+    version: str = ""  # submittedVersion, acceptedVersion or publishedVersion
+    host_type: str = ""  # publisher or repository
 
 
 def abstract_from_inverted_index(index: dict[str, list[int]] | None) -> str:

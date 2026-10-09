@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Text by page") }}{% endblock %}
+{% block content %}
+{% set ref = row.reference %}
+{% set document = row.document %}
+<p><a href="/textes#reference-{{ ref.id }}">{{ _("Back to the full texts") }}</a></p>
+<h1>{{ ref.title or _("(no title)") }}</h1>
+<p class="small">
+  {{ origin_labels[document.origin.value] }} · {{ ngettext("%(num)s page", "%(num)s pages", document.page_count) }}
+  {% if document.license %} · {{ _("licence: %(licence)s", licence=document.license) }}{% endif %}
+  {% if document.version %} · {{ document.version }}{% endif %}
+  · {{ _("added on %(date)s", date=document.created_at.strftime("%Y-%m-%d")) }} · {{ document.converter }}
+  · <a href="/textes/{{ ref.id }}/pdf">PDF</a>
+</p>
+{% if document.needs_ocr %}
+<div class="message info" role="status">{{ _("This PDF has almost no text (scanned): character recognition is not done by the tool, read it in the PDF.") }}</div>
+{% endif %}
+<p>{{ _("The page numbers are those of the PDF; the number printed on the page is shown when it differs and could be read. The bibliography, when it was found, is marked: it is not sent to the model.") }}</p>
+{% for page, has_bibliography in pages %}
+<section aria-labelledby="page-{{ page.number }}" class="text-page">
+  <h2 id="page-{{ page.number }}">{{ _("Page %(number)s", number=page.number) }}{% if page.label %} <span class="small">({{ _("printed: %(label)s", label=page.label) }})</span>{% endif %}{% if has_bibliography %} <span class="small">— {{ _("contains bibliography") }}</span>{% endif %}</h2>
+  <pre class="page-text">{{ page.text }}</pre>
+</section>
+{% endfor %}
+{% endblock %}

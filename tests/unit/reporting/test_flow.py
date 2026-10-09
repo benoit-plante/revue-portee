@@ -8,6 +8,7 @@ import pytest
 
 from revue_portee.dedup.counts import FlowCounts
 from revue_portee.domain.criteria import CriterionKind
+from revue_portee.domain.fulltext import RetrievalCounts
 from revue_portee.domain.screening import (
     AssessmentStatus,
     CriterionAssessment,
@@ -117,6 +118,32 @@ def test_an_exclusion_by_the_ai_alone_would_be_shown() -> None:
     )
 
 
+def _retrieval(**counts: int) -> RetrievalCounts:
+    zero = dict.fromkeys(RetrievalCounts.model_fields, 0)
+    return RetrievalCounts.model_validate(zero | counts)
+
+
+def test_full_texts_counted_by_hand() -> None:
+    final = {ref: decision(ref, IN if ref in "abc" else EX) for ref in REMAINING}
+    # 3 reports sought: none looked for yet, the full-text boxes are still to come
+    before = flow_numbers(
+        COUNTS, REMAINING, final, screened_by_ai=REMAINING,
+        retrieval=_retrieval(sought=3, not_sought=3),
+    )  # fmt: skip
+    assert before.not_retrieved is None
+    assert before.pending == Pending()
+    # a obtained, b not found for now, c declared not retrievable: 1 not retrieved,
+    # 1 text left to obtain or declare
+    started = flow_numbers(
+        COUNTS, REMAINING, final, screened_by_ai=REMAINING,
+        retrieval=_retrieval(sought=3, obtained=1, open_access=1, not_found=1,
+                             not_retrievable=1),
+    )  # fmt: skip
+    assert started.not_retrieved == 1
+    assert started.pending == Pending(texts_missing=1)
+    assert started.provisional
+
+
 @pytest.mark.parametrize(
     ("pending", "expected"),
     [
@@ -126,6 +153,7 @@ def test_an_exclusion_by_the_ai_alone_would_be_shown() -> None:
         (Pending(disagreements=1), True),
         (Pending(duplicate_pairs=1), True),
         (Pending(reassessments=1), True),
+        (Pending(texts_missing=1), True),
         (Pending(screening_not_started=True), True),
     ],
 )
@@ -256,6 +284,14 @@ def test_svg_in_french_and_english() -> None:
     assert "Records excluded (n = 900)" in english_lines
     assert 'xml:lang="en"' in english
     assert "PROVISIONAL" not in english
+
+
+def test_reports_not_retrieved_drawn_once_counted() -> None:
+    counted = numbers(not_retrieved=7)
+    svg = render_flow_svg(counted, flow_template(), CONTEXT, language="fr")
+    root = ET.fromstring(svg)  # noqa: S314 - our own output
+    assert "Rapports non obtenus (n = 7)" in texts(svg)
+    assert len([r for r in root.iter(f"{SVG}rect") if r.get("stroke-dasharray")]) == 3
 
 
 def test_stages_to_come_are_dashed() -> None:

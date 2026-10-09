@@ -11,11 +11,15 @@ come. Every number comes from the project:
   reassessments included; a reference is excluded or kept (include or uncertain, which
   both go on to the full text, D-079);
 - no reference is excluded by the AI alone in V1 (D-014): the number is computed from
-  the decisions in force, so the diagram would show any such exclusion.
+  the decisions in force, so the diagram would show any such exclusion;
+- full texts (tranche 2.1): once their retrieval has started, the reports not retrieved
+  are those the person declared not retrievable (docs/10-conception-texte-integral.md
+  §2.1.1); the texts neither obtained nor declared are left to do.
 
 The diagram is provisional while something is left to do: references not yet screened
 by the person or by the AI, disagreements to reconcile, pairs of possible duplicates
-to examine, or a reassessment not completed.
+to examine, a reassessment not completed, or full texts neither obtained nor
+declared not retrievable once their retrieval has started.
 """
 
 import datetime as dt
@@ -25,6 +29,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict
 
 from revue_portee.dedup.counts import FlowCounts
+from revue_portee.domain.fulltext import RetrievalCounts
 from revue_portee.domain.screening import Decision, DecisionValue, ReviewerKind, keeps
 from revue_portee.reporting.formats import integer
 
@@ -113,6 +118,7 @@ class Pending(BaseModel):
     disagreements: int = 0  # disagreements not reconciled
     duplicate_pairs: int = 0  # pairs of possible duplicates to examine
     reassessments: int = 0  # reassessments not completed
+    texts_missing: int = 0  # full texts neither obtained nor declared not retrievable
     screening_not_started: bool = False
 
     @property
@@ -124,6 +130,7 @@ class Pending(BaseModel):
                 self.disagreements,
                 self.duplicate_pairs,
                 self.reassessments,
+                self.texts_missing,
             )
         )
 
@@ -142,6 +149,7 @@ class FlowNumbers(BaseModel):
     excluded_by_person: int
     excluded_by_automation: int
     sought: int  # kept at the title and abstract stage, going on to the full text
+    not_retrieved: int | None = None  # declared not retrievable; None before retrieval
     reassessments: tuple[ReassessmentCounts, ...]
     pending: Pending
 
@@ -186,17 +194,20 @@ def flow_numbers(
     disagreements_open: int = 0,
     reassessments: Sequence[ReassessmentCounts] = (),
     screening_started: bool = True,
+    retrieval: RetrievalCounts | None = None,
 ) -> FlowNumbers:
     """Numbers of the diagram.
 
     ``after_deduplication`` lists the references left after deduplication, ``final``
     the decision in force on each reference (the latest human decision); decisions on
-    references since grouped as duplicates are not counted.
+    references since grouped as duplicates are not counted. ``retrieval`` counts the
+    full texts of the references sought.
     """
     remaining = set(after_deduplication)
     decided = {ref: d for ref, d in final.items() if ref in remaining}
     excluded = [d for d in decided.values() if d.value is DecisionValue.EXCLUDE]
     by_automation = sum(1 for d in excluded if d.reviewer_kind is ReviewerKind.AI)
+    retrieving = retrieval is not None and retrieval.started
     return FlowNumbers(
         identified_by_source=dict(counts.identified_by_source),
         identified=counts.identified,
@@ -209,6 +220,7 @@ def flow_numbers(
         excluded_by_person=len(excluded) - by_automation,
         excluded_by_automation=by_automation,
         sought=len(decided) - len(excluded),
+        not_retrieved=retrieval.not_retrievable if retrieval is not None and retrieving else None,
         reassessments=tuple(reassessments),
         pending=Pending(
             not_screened=len(remaining) - len(decided),
@@ -216,6 +228,11 @@ def flow_numbers(
             disagreements=disagreements_open,
             duplicate_pairs=counts.pending_pairs,
             reassessments=sum(1 for r in reassessments if not r.completed),
+            texts_missing=(
+                retrieval.not_sought + retrieval.not_found
+                if retrieval is not None and retrieving
+                else 0
+            ),
             screening_not_started=not screening_started,
         ),
     )
@@ -232,6 +249,10 @@ def pending_items(_: Callable[[str], str], pending: Pending, language: str) -> l
         (pending.disagreements, _("disagreements to reconcile: {count}")),
         (pending.duplicate_pairs, _("pairs of possible duplicates to examine: {count}")),
         (pending.reassessments, _("reassessments not completed: {count}")),
+        (
+            pending.texts_missing,
+            _("full texts neither obtained nor declared not retrievable: {count}"),
+        ),
     ):
         if count:
             items.append(text.format(count=integer(count, language)))

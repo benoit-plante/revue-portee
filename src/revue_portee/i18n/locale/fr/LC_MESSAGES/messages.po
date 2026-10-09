@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 19:25-0400\n"
+"POT-Creation-Date: 2026-10-08 21:58-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -25,6 +25,12 @@ msgstr "%(code)s : %(type)s (proposé par %(who)s, confirmé par le réviseur)"
 #, python-format
 msgid "%(input)s in, %(output)s out"
 msgstr "%(input)s en entrée, %(output)s en sortie"
+
+#, python-format
+msgid "%(num)s page"
+msgid_plural "%(num)s pages"
+msgstr[0] "%(num)s page"
+msgstr[1] "%(num)s pages"
 
 #, python-format
 msgid ""
@@ -104,6 +110,9 @@ msgstr ""
 
 msgid "A deduplication is already running."
 msgstr "Un dédoublonnage est déjà en cours."
+
+msgid "A full text is already obtained for this reference."
+msgstr "Un texte intégral est déjà obtenu pour cette référence."
 
 msgid "A modified suggestion needs a text."
 msgstr "Une suggestion modifiée doit avoir un texte."
@@ -258,6 +267,19 @@ msgstr "Activer le brouillon"
 msgid "Activate version %(number)s"
 msgstr "Activer la version %(number)s"
 
+msgid "Add"
+msgstr "Ajouter"
+
+msgid "Add PDFs obtained by the team"
+msgstr "Ajouter des PDF obtenus par l'équipe"
+
+msgid ""
+"Add PDFs obtained by the team: each file is matched to its reference by DOI, then title, unless "
+"--reference is given."
+msgstr ""
+"Ajouter des PDF obtenus par l'équipe : chaque fichier est apparié à sa référence par le DOI, puis"
+" le titre, sauf si --reference est donné."
+
 msgid "Add a criterion"
 msgstr "Ajouter un critère"
 
@@ -272,6 +294,9 @@ msgstr "Ajoutez au moins un critère avant d'activer la version."
 
 msgid "Add the criterion"
 msgstr "Ajouter le critère"
+
+msgid "Add the files"
+msgstr "Ajouter les fichiers"
 
 msgid "Add the note"
 msgstr "Ajouter la note"
@@ -289,6 +314,14 @@ msgstr "Critères ajoutés"
 msgid "Added: %(code)s"
 msgstr "Ajouté : %(code)s"
 
+#, python-format
+msgid "Added: %(file)s (found by %(kind)s)"
+msgstr "Ajouté : %(file)s (trouvé par %(kind)s)"
+
+#, python-brace-format
+msgid "Added: {file} → {reference}"
+msgstr "Ajouté : {file} → {reference}"
+
 msgid "Additional references"
 msgstr "Références supplémentaires"
 
@@ -304,6 +337,17 @@ msgstr "Accord"
 
 msgid "Agreement and accuracy of the AI"
 msgstr "Accord et exactitude de l'IA"
+
+#, python-format
+msgid "Already in the project: %(file)s"
+msgstr "Déjà dans le projet : %(file)s"
+
+#, python-brace-format
+msgid "Already in the project: {file}"
+msgstr "Déjà dans le projet : {file}"
+
+msgid "Also look again for the references not found before"
+msgstr "Chercher de nouveau les références non trouvées auparavant"
 
 msgid "An AI batch is already running on this round."
 msgstr "Un lot d'IA est déjà en cours sur ce tour."
@@ -408,6 +452,9 @@ msgstr "Revenir à l'ordre tiré"
 
 msgid "Back to the framing"
 msgstr "Retour au cadrage"
+
+msgid "Back to the full texts"
+msgstr "Retour aux textes intégraux"
 
 msgid "Back to the references skipped"
 msgstr "Revenir aux références passées"
@@ -533,11 +580,17 @@ msgstr "Vérifier les descripteurs MeSH"
 msgid "Check the hash chain of the project journal."
 msgstr "Vérifier la chaîne d'empreintes du journal du projet."
 
+msgid "Choose a PDF file."
+msgstr "Choisissez un fichier PDF."
+
 msgid "Choose a RIS file."
 msgstr "Choisissez un fichier RIS."
 
 msgid "Choose a decision."
 msgstr "Choisissez une décision."
+
+msgid "Choose one or more PDF files."
+msgstr "Choisissez un ou plusieurs fichiers PDF."
 
 msgid "Choose the kind of archive."
 msgstr "Choisissez le type d'archive."
@@ -579,6 +632,13 @@ msgstr "Collectes, de la plus récente à la plus ancienne"
 
 msgid "Compare every reference"
 msgstr "Comparer toutes les références"
+
+msgid ""
+"Compare the text extraction by page of PyMuPDF, pypdf and pdfplumber on test PDFs; local, no "
+"model call."
+msgstr ""
+"Comparer l'extraction du texte par page de PyMuPDF, pypdf et pdfplumber sur des PDF d'essai ; "
+"local, sans appel au modèle."
 
 msgid "Compare version"
 msgstr "Comparer la version"
@@ -755,6 +815,12 @@ msgstr "Crossref : références complétées : {enriched} sur {checked} vérif
 msgid "DOI"
 msgstr "DOI"
 
+msgid "DOI in the file name"
+msgstr "DOI dans le nom du fichier"
+
+msgid "DOI in the text"
+msgstr "DOI dans le texte"
+
 msgid "DOI of the registration"
 msgstr "DOI de l'enregistrement"
 
@@ -800,6 +866,18 @@ msgstr ""
 
 msgid "Decisions the AI would change"
 msgstr "Décisions que l'IA changerait"
+
+msgid "Declare"
+msgstr "Déclarer"
+
+msgid "Declare not retrievable"
+msgstr "Déclarer introuvable"
+
+msgid "Declare that the full text of a reference cannot be obtained, with the reason."
+msgstr "Déclarer que le texte intégral d'une référence ne peut pas être obtenu, avec la raison."
+
+msgid "Declared not retrievable"
+msgstr "Déclarés introuvables"
 
 msgid "Deduplication running in the background: the page refreshes when it ends."
 msgstr "Dédoublonnage en cours en arrière-plan : la page s'actualise à la fin."
@@ -1115,6 +1193,9 @@ msgstr "Fichier importé."
 msgid "File not found: {path}"
 msgstr "Fichier introuvable : {path}"
 
+msgid "Files added"
+msgstr "Fichiers ajoutés"
+
 msgid "Final decision"
 msgstr "Décision finale"
 
@@ -1161,6 +1242,15 @@ msgstr "Suivre les lots en cours"
 msgid "Following the running batches."
 msgstr "Suivi des lots en cours."
 
+msgid ""
+"For each reference not looked for yet, the tool asks OpenAlex, then Unpaywall (by DOI), for a "
+"free PDF and downloads it from the publisher or repository they name. Each answer is kept, with "
+"the address, the licence declared and the version of the text."
+msgstr ""
+"Pour chaque référence pas encore cherchée, l'outil demande à OpenAlex, puis à Unpaywall (par "
+"DOI), un PDF en libre accès et le télécharge chez l'éditeur ou le dépôt qu'ils indiquent. Chaque "
+"réponse est conservée, avec l'adresse, la licence déclarée et la version du texte."
+
 msgid "Forbidden host."
 msgstr "Hôte refusé."
 
@@ -1198,6 +1288,37 @@ msgstr "Français, Word (DOCX)"
 msgid "From the year"
 msgstr "À partir de l'année"
 
+#, python-brace-format
+msgid "Full text declared not retrievable: {reason}"
+msgstr "Texte intégral déclaré introuvable : {reason}"
+
+msgid "Full text not found in open access"
+msgstr "Texte intégral non trouvé en libre accès"
+
+#, python-brace-format
+msgid "Full text obtained in open access ({source}): {pages} pages"
+msgstr "Texte intégral obtenu en libre accès ({source}) : {pages} pages"
+
+#, python-brace-format
+msgid "Full text uploaded: {pages} pages"
+msgstr "Texte intégral téléversé : {pages} pages"
+
+msgid "Full texts"
+msgstr "Textes intégraux"
+
+msgid "Full texts of the references sought"
+msgstr "Textes intégraux des références recherchées"
+
+#, python-brace-format
+msgid ""
+"Full texts: {obtained} obtained of {sought} sought ({open_access} in open access, {share}; "
+"{uploaded} added by the team); not found: {not_found}; not retrievable: {not_retrievable}; never "
+"looked for: {not_sought}."
+msgstr ""
+"Textes intégraux : {obtained} obtenus sur {sought} recherchés ({open_access} en libre accès, "
+"{share} ; {uploaded} ajoutés par l'équipe) ; non trouvés : {not_found} ; introuvables : "
+"{not_retrievable} ; jamais cherchés : {not_sought}."
+
 msgid "Funding"
 msgstr "Financement"
 
@@ -1213,6 +1334,9 @@ msgstr "allemand"
 
 msgid "Give the justification of the thresholds."
 msgstr "Donnez la justification des seuils."
+
+msgid "Give the reason why the full text cannot be obtained."
+msgstr "Donnez la raison pour laquelle le texte intégral ne peut pas être obtenu."
 
 msgid "Group them"
 msgstr "Les regrouper"
@@ -1255,6 +1379,12 @@ msgstr "Historique"
 
 msgid "How to write the terms (one per line)"
 msgstr "Comment écrire les termes (un par ligne)"
+
+msgid "Identifier of the reference (one file only)."
+msgstr "Identifiant de la référence (un seul fichier)."
+
+msgid "Identifier of the reference."
+msgstr "Identifiant de la référence."
 
 #, python-brace-format
 msgid ""
@@ -1466,8 +1596,30 @@ msgstr "Ligne {line} : label_included doit valoir 0 ou 1."
 msgid "Links"
 msgstr "Liens"
 
+msgid "List of the references still without a text (CSV), to look for through the library"
+msgstr "Liste des références encore sans texte (CSV), à chercher par la bibliothèque"
+
 msgid "Local port."
 msgstr "Port local."
+
+msgid "Look again for the references not found before."
+msgstr "Chercher de nouveau les références non trouvées auparavant."
+
+msgid "Look for at most this many references."
+msgstr "Chercher au plus ce nombre de références."
+
+msgid ""
+"Look for the open access PDF of the references kept (OpenAlex, then Unpaywall) and store it in "
+"the project (calls these services)."
+msgstr ""
+"Chercher le PDF en libre accès des références retenues (OpenAlex, puis Unpaywall) et le conserver"
+" dans le projet (appelle ces services)."
+
+msgid "Look for the open access versions"
+msgstr "Chercher les versions en libre accès"
+
+msgid "Looking for the open access versions…"
+msgstr "Recherche des versions en libre accès…"
 
 msgid "Main language (ISO code)."
 msgstr "Langue principale (code ISO)."
@@ -1579,6 +1731,13 @@ msgstr "Modifiée, puis acceptée"
 msgid "Modified: %(code)s"
 msgstr "Modifié : %(code)s"
 
+msgid ""
+"Most of the texts come from open access versions: reports available only by subscription may be "
+"under-represented among those obtained."
+msgstr ""
+"La plupart des textes proviennent de versions en libre accès : les rapports accessibles seulement"
+" par abonnement peuvent être sous-représentés parmi ceux obtenus."
+
 msgid "Name of the dataset."
 msgstr "Nom du jeu de données."
 
@@ -1600,6 +1759,9 @@ msgstr "Aucune IA n'a servi au tri des titres et résumés."
 
 msgid "No MeSH descriptor yet."
 msgstr "Aucun descripteur MeSH pour l'instant."
+
+msgid "No PDF file found."
+msgstr "Aucun fichier PDF trouvé."
 
 msgid ""
 "No budget yet: set one before the first batch of AI screening. Calls stop cleanly when it is "
@@ -1625,6 +1787,9 @@ msgstr "Aucune décision de votre part pour l'instant."
 
 msgid "No disagreement to reconcile."
 msgstr "Aucun désaccord à réconcilier."
+
+msgid "No full text for this reference."
+msgstr "Aucun texte intégral pour cette référence."
 
 msgid "No group of duplicates."
 msgstr "Aucun groupe de doublons."
@@ -1652,6 +1817,19 @@ msgstr ""
 msgid "No query yet: save the search strategy on the Search page."
 msgstr "Pas encore de requête : enregistrez la stratégie de recherche dans la page Recherche."
 
+#, python-brace-format
+msgid "No reference found (add it with --reference): {file}"
+msgstr "Aucune référence trouvée (l'ajouter avec --reference) : {file}"
+
+#, python-format
+msgid "No reference found, add it from its row below: %(file)s"
+msgstr "Aucune référence trouvée, l'ajouter depuis sa ligne ci-dessous : %(file)s"
+
+msgid "No reference is kept for the full text yet: finish the title and abstract screening first."
+msgstr ""
+"Aucune référence n'est encore retenue pour le texte intégral : terminez d'abord le tri des titres"
+" et résumés."
+
 msgid "No reference of the round has both a human and an AI decision yet."
 msgstr "Aucune référence du tour n'a encore à la fois une décision humaine et une décision de l'IA."
 
@@ -1671,8 +1849,14 @@ msgstr "Pas des doublons"
 msgid "Not found in %(database)s (left out of the recall):"
 msgstr "Introuvables dans %(database)s (exclus du rappel) :"
 
+msgid "Not found in open access"
+msgstr "Non trouvés en libre accès"
+
 msgid "Not grouped automatically:"
 msgstr "Non regroupées automatiquement :"
+
+msgid "Not looked for yet"
+msgstr "Pas encore cherchés"
 
 msgid "Note (for example, minutes of a team meeting)"
 msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
@@ -1713,6 +1897,9 @@ msgstr "Dont erronées"
 
 msgid "Only published literature was sent to the model; no participant data."
 msgstr "Seule de la littérature publiée a été transmise au modèle ; aucune donnée de participants."
+
+msgid "Open access versions"
+msgstr "Versions en libre accès"
 
 #, python-brace-format
 msgid "Open http://{host}:{port}/ in your browser (Ctrl+C to stop)."
@@ -1764,6 +1951,15 @@ msgstr "Élément PCC"
 msgid "PCC element: %(element)s. The code and the PCC element of a criterion never change."
 msgstr "Élément PCC : %(element)s. Le code et l'élément PCC d'un critère ne changent jamais."
 
+msgid "PDF file"
+msgstr "Fichier PDF"
+
+msgid "PDF files"
+msgstr "Fichiers PDF"
+
+msgid "PDF files or folders of PDFs."
+msgstr "Fichiers PDF ou dossiers de PDF."
+
 msgid "PMID"
 msgstr "PMID"
 
@@ -1772,6 +1968,10 @@ msgstr "Diagramme de flux PRISMA 2020 adapté aux revues de portée"
 
 msgid "PROVISIONAL"
 msgstr "PROVISOIRE"
+
+#, python-format
+msgid "Page %(number)s"
+msgstr "Page %(number)s"
 
 msgid "Pages"
 msgstr "Pages"
@@ -2045,6 +2245,9 @@ msgstr "Justification de l'IA :"
 msgid "Raw answers: {path}"
 msgstr "Réponses brutes : {path}"
 
+msgid "Reason (reported in the diagram as « Reports not retrieved »)"
+msgstr "Raison (déclarée dans le diagramme sous « Rapports non obtenus »)"
+
 msgid "Reason for the change (kept with the version)"
 msgstr "Raison du changement (conservée avec la version)"
 
@@ -2186,6 +2389,10 @@ msgstr "Références qu'elle exclurait"
 msgid "References kept for the full text"
 msgstr "Références retenues pour le texte intégral"
 
+#, python-brace-format
+msgid "References looked for: {looked_for}; texts obtained: {obtained}."
+msgstr "Références cherchées : {looked_for} ; textes obtenus : {obtained}."
+
 #, python-format
 msgid ""
 "References reassessed: %(count)s (seed %(seed)s%(sampled)s). The AI screens them again with the "
@@ -2207,6 +2414,12 @@ msgstr ""
 "Références triées : {screened} ; exclues : {excluded} ; retenues pour le texte intégral (inclure "
 "ou incertain) : {sought}. L'IA a trié {ai} des {total} références ({share}) ; la personne en a "
 "trié {human}."
+
+msgid "References sought"
+msgstr "Références recherchées"
+
+msgid "References sought for their full text, by title"
+msgstr "Références recherchées pour leur texte intégral, par titre"
 
 #, python-format
 msgid "References stored: %(count)s"
@@ -2293,9 +2506,16 @@ msgstr "Critères retirés"
 msgid "Removed: %(code)s"
 msgstr "Retiré : %(code)s"
 
+msgid "Replace with another version"
+msgstr "Remplacer par une autre version"
+
 #, python-brace-format
 msgid "Report written: {path}"
 msgstr "Rapport écrit : {path}"
+
+#, python-brace-format
+msgid "Report: {path}"
+msgstr "Rapport : {path}"
 
 msgid "Reports"
 msgstr "Rapports"
@@ -2312,6 +2532,9 @@ msgstr "Résultats du tri avec l'IA"
 
 msgid "Resume"
 msgstr "Reprendre"
+
+msgid "Retrieval of full texts"
+msgstr "Obtention des textes intégraux"
 
 msgid "Review protocol"
 msgstr "Protocole de la revue"
@@ -2622,12 +2845,49 @@ msgstr "Termes"
 msgid "Terms (one per line)"
 msgstr "Termes (un par ligne)"
 
+msgid "Text added."
+msgstr "Texte ajouté."
+
+#, python-brace-format
+msgid "Text added: {file}"
+msgstr "Texte ajouté : {file}"
+
+msgid "Text by page"
+msgstr "Texte par page"
+
 #, python-format
 msgid "Text copied as is in the query of one database: %(prefixes)s."
 msgstr "Texte recopié tel quel dans la requête d'une seule base : %(prefixes)s."
 
+msgid "Text declared not retrievable."
+msgstr "Texte déclaré introuvable."
+
 msgid "Text of the protocol"
 msgstr "Texte du protocole"
+
+msgid "Texts obtained"
+msgstr "Textes obtenus"
+
+msgid ""
+"Texts obtained through the library, from the authors or elsewhere. Each file is matched to its "
+"reference by the DOI in its name or in its first pages, then by the title; files that match no "
+"reference are listed and can be added from their row below."
+msgstr ""
+"Textes obtenus par la bibliothèque, auprès des auteurs ou ailleurs. Chaque fichier est apparié à "
+"sa référence par le DOI de son nom ou de ses premières pages, puis par le titre ; les fichiers "
+"qui ne correspondent à aucune référence sont énumérés et peuvent être ajoutés depuis leur ligne "
+"ci-dessous."
+
+#, python-brace-format
+msgid "Texts still to obtain: {count}."
+msgstr "Textes encore à obtenir : {count}."
+
+msgid "Texts without readable text (scanned)"
+msgstr "Textes sans texte lisible (numérisés)"
+
+#, python-brace-format
+msgid "Texts without readable text (scanned), to read without the tool: {count}."
+msgstr "Textes sans texte lisible (numérisés), à lire sans l'outil : {count}."
 
 msgid ""
 "The AI batches are followed in the background: the page refreshes when they end. A batch usually "
@@ -2719,6 +2979,9 @@ msgstr "L'API d'Anthropic limite le nombre de requêtes : réessayez plus tard.
 msgid "The Anthropic API refused the key: check REVUE_PORTEE_ANTHROPIC_KEY (or ANTHROPIC_API_KEY)."
 msgstr "L'API d'Anthropic a refusé la clé : vérifiez REVUE_PORTEE_ANTHROPIC_KEY (ou ANTHROPIC_API_KEY)."
 
+msgid "The PDF is protected by a password."
+msgstr "Le PDF est protégé par un mot de passe."
+
 #, python-brace-format
 msgid "The [ia] section of {file} is invalid."
 msgstr "La section [ia] de {file} est invalide."
@@ -2784,8 +3047,19 @@ msgstr ""
 msgid "The file holds no RIS record (no line starting with « TY  - »)."
 msgstr "Le fichier ne contient aucune notice RIS (aucune ligne ne commence par « TY  - »)."
 
+msgid "The file is not a readable PDF."
+msgstr "Le fichier n'est pas un PDF lisible."
+
 msgid "The file is not a text file (UTF-8 or Latin-1 expected)."
 msgstr "Le fichier n'est pas un fichier texte (UTF-8 ou Latin-1 attendu)."
+
+#, python-brace-format
+msgid "The file sent by {host} is larger than {limit} MB."
+msgstr "Le fichier envoyé par {host} dépasse {limit} Mo."
+
+#, python-brace-format
+msgid "The file sent by {host} is not a PDF (often a web page asking to sign in)."
+msgstr "Le fichier envoyé par {host} n'est pas un PDF (souvent une page web qui demande de se connecter)."
 
 #, python-brace-format
 msgid "The file {file} is unreadable."
@@ -2808,6 +3082,20 @@ msgstr ""
 #, python-brace-format
 msgid "The folder {folder} already exists and is not empty."
 msgstr "Le dossier {folder} existe déjà et n'est pas vide."
+
+#, python-brace-format
+msgid ""
+"The full texts of the {sought} reports sought were looked for in the open access versions known "
+"to OpenAlex, then to Unpaywall; the team obtained the others through its own access. Texts "
+"obtained: {obtained}, of which {open_access} in open access ({share} of the reports sought) and "
+"{uploaded} by the team. Reports not retrieved, declared by the person with the reason: "
+"{not_retrievable}."
+msgstr ""
+"Les textes intégraux des {sought} rapports recherchés ont été cherchés dans les versions en libre"
+" accès connues d'OpenAlex, puis d'Unpaywall ; l'équipe a obtenu les autres par ses propres accès."
+" Textes obtenus : {obtained}, dont {open_access} en libre accès ({share} des rapports recherchés)"
+" et {uploaded} par l'équipe. Rapports non obtenus, déclarés par la personne avec la raison : "
+"{not_retrievable}."
 
 msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
 msgstr "La langue doit être un code ISO 639-1 de deux lettres, par exemple fr ou en."
@@ -2843,6 +3131,14 @@ msgstr "Le nom du réviseur est obligatoire."
 
 msgid "The next pairs appear as these are decided."
 msgstr "Les paires suivantes s'affichent à mesure que celles-ci sont décidées."
+
+msgid ""
+"The page numbers are those of the PDF; the number printed on the page is shown when it differs "
+"and could be read. The bibliography, when it was found, is marked: it is not sent to the model."
+msgstr ""
+"Les numéros de page sont ceux du PDF ; le numéro imprimé sur la page est indiqué quand il diffère"
+" et a pu être lu. La bibliographie, quand elle a été repérée, est signalée : elle n'est pas "
+"envoyée au modèle."
 
 msgid ""
 "The person's decisions on the pairs left to them are simulated by the annotation; the pairs are "
@@ -2921,6 +3217,15 @@ msgstr ""
 "Les références après dédoublonnage sont triées dans un ordre tiré au hasard, avec une graine "
 "consignée. Vos décisions du pilote prises avec les critères en vigueur sont reprises."
 
+msgid ""
+"The references kept at the title and abstract stage (include or uncertain) go on to the full "
+"text. Their PDF is kept in the project folder, with its text by page; it never goes into an "
+"archive."
+msgstr ""
+"Les références retenues au tri des titres et résumés (inclure ou incertain) passent au texte "
+"intégral. Leur PDF est conservé dans le dossier du projet, avec son texte par page ; il ne va "
+"jamais dans une archive."
+
 msgid "The registration date cannot be in the future."
 msgstr "La date de l'enregistrement ne peut pas être dans le futur."
 
@@ -2932,6 +3237,15 @@ msgstr "La requête du lot a échoué chez le fournisseur."
 
 msgid "The request of the batch was canceled."
 msgstr "La requête du lot a été annulée."
+
+msgid ""
+"The right to read an article does not always give the right to have it processed by an AI: "
+"checking the publishers' conditions before the screening of full texts remains the responsibility"
+" of the team."
+msgstr ""
+"Le droit de lire un article ne donne pas toujours le droit de le faire traiter par une IA : "
+"vérifier les conditions des éditeurs avant le tri des textes intégraux reste la responsabilité de"
+" l'équipe."
 
 msgid "The screening has not started."
 msgstr "Le tri n'est pas commencé."
@@ -3032,6 +3346,13 @@ msgstr "Ces revues ont été mises de côté : elles n'ont pas servi à constru
 msgid "These two references are not a pair of the deduplication."
 msgstr "Ces deux références ne forment pas une paire du dédoublonnage."
 
+msgid ""
+"This PDF has almost no text (scanned): character recognition is not done by the tool, read it in "
+"the PDF."
+msgstr ""
+"Ce PDF ne contient presque pas de texte (numérisé) : l'outil ne fait pas de reconnaissance de "
+"caractères, lisez-le dans le PDF."
+
 msgid "This archive contains abstracts and raw responses: do not deposit it publicly."
 msgstr "Cette archive contient des résumés et des réponses brutes : ne pas la déposer publiquement."
 
@@ -3047,6 +3368,9 @@ msgstr "Cette référence n'est pas un désaccord entre vous et l'IA : rien à 
 
 msgid "This reference is not part of the pilot round."
 msgstr "Cette référence ne fait pas partie du tour pilote."
+
+msgid "This reference is not sought for its full text (it was not kept at screening)."
+msgstr "Cette référence n'est pas recherchée pour son texte intégral (elle n'a pas été retenue au tri)."
 
 msgid ""
 "This scoping review will be conducted in accordance with the JBI methodology for scoping reviews "
@@ -3314,6 +3638,15 @@ msgstr "Versions"
 msgid "Volume (issue)"
 msgstr "Volume (numéro)"
 
+msgid "Where things stand"
+msgstr "État"
+
+msgid "Why the text cannot be obtained."
+msgstr "Pourquoi le texte ne peut pas être obtenu."
+
+msgid "With --reference, give exactly one PDF file."
+msgstr "Avec --reference, donnez exactement un fichier PDF."
+
 msgid "Wording"
 msgstr "Libellé"
 
@@ -3332,6 +3665,9 @@ msgstr ""
 
 msgid "Write the flow diagram of the screening (SVG, French and English) in the exports folder."
 msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) dans le dossier des exports."
+
+msgid "Write the list of the references still without a full text (CSV) in the exports folder."
+msgstr "Écrire la liste des références encore sans texte intégral (CSV) dans le dossier des exports."
 
 msgid "Write the protocol (Markdown and DOCX) in the exports folder."
 msgstr "Écrire le protocole (Markdown et DOCX) dans le dossier des exportations."
@@ -3413,8 +3749,15 @@ msgstr "une thèse et une autre version du travail"
 msgid "added"
 msgstr "ajout"
 
+msgid "added by the team"
+msgstr "ajouté par l'équipe"
+
 msgid "added criterion"
 msgstr "critère ajouté"
+
+#, python-format
+msgid "added on %(date)s"
+msgstr "ajouté le %(date)s"
 
 #, python-brace-format
 msgid "all included records and excluded ones drawn with the seed {seed}"
@@ -3476,6 +3819,9 @@ msgstr "conflits d'intérêts, ou leur absence"
 
 msgid "contact address sent to the bibliographic APIs"
 msgstr "adresse de contact transmise aux API bibliographiques"
+
+msgid "contains bibliography"
+msgstr "contient la bibliographie"
 
 msgid "context of interest (Framing and Criteria pages)"
 msgstr "contexte d'intérêt (pages « Cadrage » et « Critères »)"
@@ -3568,6 +3914,10 @@ msgstr "existe (%(ui)s)"
 msgid "field not available: searched in title and abstract"
 msgstr "champ indisponible : cherché dans le titre et le résumé"
 
+#, python-brace-format
+msgid "full texts neither obtained nor declared not retrievable: {count}"
+msgstr "textes intégraux ni obtenus ni déclarés introuvables : {count}"
+
 msgid "funding of the review and of the AI use, and conflicts of interest"
 msgstr "financement de la revue et de l'usage de l'IA, et conflits d'intérêts"
 
@@ -3599,6 +3949,10 @@ msgstr "gardées séparées le %(date)s"
 #, python-brace-format
 msgid "languages: {languages}"
 msgstr "langues : {languages}"
+
+#, python-format
+msgid "licence: %(licence)s"
+msgstr "licence : %(licence)s"
 
 msgid "limitations specific to this review"
 msgstr "limites propres à cette revue"
@@ -3637,17 +3991,33 @@ msgstr "nouveau bloc"
 msgid "no"
 msgstr "non"
 
+#, python-brace-format
+msgid "no open access PDF could be downloaded ({count} tried)"
+msgstr "aucun PDF en libre accès n'a pu être téléchargé ({count} essayés)"
+
+msgid "no readable text (scanned PDF): read it without the tool"
+msgstr "aucun texte lisible (PDF numérisé) : le lire sans l'outil"
+
 msgid "not checked yet"
 msgstr "pas encore vérifié"
 
+msgid "not found in open access"
+msgstr "non trouvé en libre accès"
+
 msgid "not found in the reference"
 msgstr "introuvable dans la référence"
+
+msgid "not looked for yet"
+msgstr "pas encore cherché"
 
 msgid "not met"
 msgstr "non satisfait"
 
 msgid "not reached"
 msgstr "non atteintes"
+
+msgid "not retrievable"
+msgstr "introuvable"
 
 msgid "not started yet"
 msgstr "pas encore commencée"
@@ -3658,12 +4028,30 @@ msgstr "objectif de la revue"
 msgid "objective, introduction, inclusion criteria and methods, in 250 words or less"
 msgstr "objectif, introduction, critères d'inclusion et méthode, en 250 mots au plus"
 
+msgid "obtained"
+msgstr "obtenu"
+
+msgid "of the references sought"
+msgstr "des références recherchées"
+
+msgid "of which added by the team"
+msgstr "dont ajoutés par l'équipe"
+
+msgid "of which in open access"
+msgstr "dont en libre accès"
+
 #, python-format
 msgid "official form: %(heading)s"
 msgstr "forme officielle : %(heading)s"
 
 msgid "one term per line: use separate lines instead of AND, OR, NOT"
 msgstr "un terme par ligne : utilisez des lignes distinctes plutôt que AND, OR, NOT"
+
+msgid "open access (OpenAlex)"
+msgstr "libre accès (OpenAlex)"
+
+msgid "open access (Unpaywall)"
+msgstr "libre accès (Unpaywall)"
 
 msgid "or"
 msgstr "ou"
@@ -3680,6 +4068,10 @@ msgstr "prévue"
 
 msgid "population of interest (Framing and Criteria pages)"
 msgstr "population d'intérêt (pages « Cadrage » et « Critères »)"
+
+#, python-format
+msgid "printed: %(label)s"
+msgstr "imprimée : %(label)s"
 
 msgid "probability of inclusion"
 msgstr "probabilité d'inclusion"
@@ -3797,6 +4189,9 @@ msgstr "score : %(score)s"
 msgid "secret value"
 msgstr "valeur secrète"
 
+msgid "see the reference"
+msgstr "voir la référence"
+
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"
 
@@ -3848,6 +4243,9 @@ msgstr "le réviseur"
 
 msgid "the same work published in two journals"
 msgstr "le même travail publié dans deux revues"
+
+msgid "title"
+msgstr "titre"
 
 msgid "title translated by PubMed; same first author, year, journal and pages"
 msgstr "titre traduit par PubMed ; même premier auteur, même année, même revue et mêmes pages"
@@ -3933,6 +4331,12 @@ msgstr[0] "{count} référence retenue, écrite : {path}"
 msgstr[1] "{count} références retenues, écrites : {path}"
 
 #, python-brace-format
+msgid "{count} reference without a full text, written: {path}"
+msgid_plural "{count} references without a full text, written: {path}"
+msgstr[0] "{count} référence sans texte intégral, écrite : {path}"
+msgstr[1] "{count} références sans texte intégral, écrites : {path}"
+
+#, python-brace-format
 msgid "{database} ({date}): {count}"
 msgstr "{database} ({date}) : {count}"
 
@@ -3983,6 +4387,10 @@ msgstr "{low} à {high}"
 #, python-brace-format
 msgid "{name}: recall {recall}, precision {precision}; report: {path}"
 msgstr "{name} : rappel {recall}, précision {precision} ; rapport : {path}"
+
+#, python-brace-format
+msgid "{name}: right page for {rate} of {count} passages"
+msgstr "{name} : bonne page pour {rate} de {count} passages"
 
 #, python-brace-format
 msgid "{runs} runs of the same records (response stability)."

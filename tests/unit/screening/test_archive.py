@@ -101,6 +101,9 @@ def recount(archive: Archive) -> dict[str, object]:
         "excluded_by_person": sum(1 for f in excluded if f["reviewer_kind"] == "human"),
         "excluded_by_automation": sum(1 for f in excluded if f["reviewer_kind"] == "ai"),
         "sought": len(finals) - len(excluded),
+        "not_retrieved": sum(
+            1 for t in archive.rows("donnees/textes.csv") if t["status"] == "not_retrievable"
+        ),
         "reassessments": reassessments,
         "disagreements_open": sum(
             1 for s in state if s["disagreement"] == "1" and s["reconciled"] == "0"
@@ -149,6 +152,7 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
         "excluded_by_person": 2,
         "excluded_by_automation": 0,
         "sought": 3,
+        "not_retrieved": 1,
         "reassessments": [
             {
                 "from_version": 1,
@@ -166,7 +170,7 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
     declared = json.loads(archive.text("donnees/diagramme.json"))
     for key in ("identified_by_source", "identified", "duplicates_removed", "screened",
                 "excluded", "excluded_by_person", "excluded_by_automation", "sought",
-                "reassessments"):  # fmt: skip
+                "not_retrieved", "reassessments"):  # fmt: skip
         assert declared[key] == counted[key], key
     assert check_journal(archive) == len(entries) - 1  # the export is recorded afterwards
     # nothing copyrighted, no database in the public archive
@@ -176,6 +180,11 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
     references = archive.rows("donnees/references.csv")
     assert "abstract" not in references[0]
     assert "url" not in references[0]
+    texts = archive.rows("donnees/textes.csv")
+    assert len(texts) == 3
+    assert "url" not in texts[0]
+    assert "filename" not in texts[0]
+    assert "example.org" not in archive.text("donnees/textes.csv")
     assert {
         "LISEZMOI.md",
         "projet.toml",

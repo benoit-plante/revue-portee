@@ -165,10 +165,14 @@ def _rows(
     identified_row = ("identification", identified, removed)
     screened_row = ("screening", Box(*main, [screened]), excluded)
     sought = Box(*main, [counted("sought", numbers.sought, bold=True)])
+    if numbers.not_retrieved is None:
+        not_retrieved = later(side, "not_retrieved")
+    else:
+        not_retrieved = Box(*side, [counted("not_retrieved", numbers.not_retrieved, bold=True)])
     return [
         identified_row,
         screened_row,
-        ("screening", sought, later(side, "not_retrieved")),
+        ("screening", sought, not_retrieved),
         ("screening", later(main, "assessed"), later(side, "reports_excluded")),
         ("included", later(main, "included", "included_reports"), None),
     ]
