@@ -73,6 +73,7 @@ __all__ = [
     "import_file",
     "journal_entry",
     "key_article_set_version",
+    "lay_summary",
     "metadata",
     "narrative_draft",
     "pair_decision",
@@ -1022,6 +1023,24 @@ narrative_draft = Table(
     Column("reviewer_kind", String(8), nullable=False),
     Column("ai_call_id", String(26), ForeignKey("ai_call.id")),
     Column("supersedes_id", String(26), ForeignKey("narrative_draft.id")),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+)
+
+lay_summary = Table(
+    "lay_summary",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("level", String(16), nullable=False),
+    Column("language", String(8), nullable=False),
+    Column("title", Text, nullable=False),
+    Column("text", Text, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("reviewer_kind", String(8), nullable=False),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id")),
+    Column("supersedes_id", String(26), ForeignKey("lay_summary.id")),
+    Column("narrative_ids_json", Text, nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
     _journal_column(),
 )

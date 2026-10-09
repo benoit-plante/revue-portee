@@ -1,0 +1,7 @@
+id: draft_lay_summary
+version: "1"
+task: draft_lay_summary
+changelog:
+  - version: "1"
+    date: "2026-10-09"
+    change: First version (tranche 4.1), one call per language level, from the narrative synthesis revised by the person.

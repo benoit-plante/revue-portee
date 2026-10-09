@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Plain-language summaries") }}{% endblock %}
+{% block content %}
+<p><a href="/synthese">{{ _("Synthesis") }}</a></p>
+<h1>{{ _("Plain-language summaries") }}</h1>
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if not state %}
+<p class="message info">{{ _("Activate a version of the extraction grid first.") }} <a href="/grille">{{ _("Extraction grid") }}</a></p>
+{% else %}
+<p>{{ _("Summaries of the results for readers outside research, at the language level you choose. They rest on the narrative synthesis you revised; the AI may propose a draft, you revise it, and only your revision is exported, with its readability index.") }}</p>
+{% if not state.sources %}
+<p class="message info">{{ _("Revise the narrative synthesis of at least one field first: the summary rests on it.") }} <a href="/synthese/narratif">{{ _("Narrative synthesis") }}</a></p>
+{% endif %}
+<table class="criteria">
+  <caption class="visually-hidden">{{ _("Language levels and their summary") }}</caption>
+  <thead><tr><th scope="col">{{ _("Level") }}</th><th scope="col">{{ _("Readability target") }}</th><th scope="col">{{ _("Summary") }}</th></tr></thead>
+  <tbody>
+  {% for s in state.levels %}
+    <tr>
+      <th scope="row"><a href="/synthese/vulgarisation/{{ s.level.value }}">{{ level_names[s.level] }}</a></th>
+      <td>{{ _("%(target)s or more", target=goals[s.level] | int) }}</td>
+      <td>{% if s.to_revise %}{{ _("draft of the AI, to revise") }}{% elif s.revised %}{{ _("revised") }}{% if s.outdated %} — <strong>{{ _("to review: the synthesis changed since") }}</strong>{% endif %}{% else %}—{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

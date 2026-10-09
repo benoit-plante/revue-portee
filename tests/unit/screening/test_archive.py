@@ -422,3 +422,32 @@ def test_narrative_drafts_in_the_archive(tmp_path: Path) -> None:
     assert summary is not None
     assert (summary.narrative_drafted, summary.narrative_revised) == (1, 1)
     assert summary.narrative_template_version == "1"
+
+
+def test_lay_summaries_in_the_archive(tmp_path: Path) -> None:
+    from decimal import Decimal
+
+    from revue_portee.domain.lay_summary import LayLevel
+    from revue_portee.stakeholders import lay_summary
+    from unit.extraction.test_prefill import factory
+    from unit.stakeholders.test_lay_summary import _with_synthesis, summarized
+
+    demo = _with_synthesis(tmp_path)
+    kwargs: dict[str, Any] = {"now": demo.clock, "tool_version": TOOL_VERSION}
+    try:
+        lay_summary.draft_with_ai(demo.folder, LayLevel.GENERAL, ceiling=Decimal(1),
+                                  factory=factory(summarized), **kwargs)  # fmt: skip
+        lay_summary.revise(demo.folder, LayLevel.GENERAL, title="T",
+                           text="Le chat dort. Il fait beau.", **kwargs)  # fmt: skip
+        files = archive_files(
+            demo.folder, ArchiveKind.PUBLIC, now=make_clock(), tool_version=TOOL_VERSION
+        )
+    finally:
+        demo.folder.close()
+    rows = list(csv.DictReader(io.StringIO(files["donnees/syntheses-vulgarisees.csv"].decode())))
+    assert [(r["level"], r["status"], r["readability_formula"], r["readability_index"])
+            for r in rows] == [
+        ("general", "proposed", "Kandel-Moles", "75.8"),
+        ("general", "revised", "Kandel-Moles", "130.4"),
+    ]  # fmt: skip
+    assert (rows[1]["words"], rows[1]["sentences"], rows[1]["syllables"]) == ("6", "2", "6")

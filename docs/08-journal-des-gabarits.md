@@ -138,6 +138,19 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | Aucune à ce jour |
 | Résultats | Aucun |
 
+### draft_lay_summary v1
+
+| Élément | Description |
+|---|---|
+| Tâche | Ébauche d'une synthèse vulgarisée des résultats, un niveau de langue par appel : grand public, lecteurs informés, professionnels (EF-CON-01, tranche 4.1) |
+| Date | 2026-10-09, tranche 4.1 |
+| Rédaction | Écrit d'un seul jet. Le modèle ne reçoit que la question, le nombre d'études incluses et la synthèse narrative **révisée par la personne**, champ par champ : jamais une ébauche de l'IA seule, jamais les textes intégraux. Consignes par niveau (mots courants, phrases courtes, termes techniques expliqués) avec la cible de lisibilité du niveau; rien ajouter à la synthèse (ni résultat, ni chiffre, ni recommandation); dire ce qu'est une revue de portée et combien d'études elle inclut. L'outil calcule l'indice de lisibilité, et la personne révise le résumé avant tout usage |
+| Données de mise au point | **Aucune.** Exécuté seulement avec le fournisseur factice des tests |
+| Versions essayées | Aucune autre |
+| Appels réels | Aucun |
+| Données de test | Aucune à ce jour |
+| Résultats | Aucun |
+
 ## Bilan
 
 Aucun des sept gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.

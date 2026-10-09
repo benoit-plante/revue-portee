@@ -208,3 +208,18 @@ def test_narrative_export(tmp_path: Path) -> None:
     path = without.folder.path
     without.folder.close()
     assert runner.invoke(app, ["narratif", str(path)]).exit_code == 1
+
+
+def test_lay_summary_export(tmp_path: Path) -> None:
+    from demo import build_extracted
+
+    demo = build_extracted(tmp_path)
+    folder = demo.folder.path
+    demo.folder.close()
+    result = runner.invoke(app, ["vulgarisation", str(folder), "--niveau", "professional"])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0].endswith("vulgarisation-professional.md")
+    text = (folder / "exports" / "vulgarisation-professional.md").read_text(encoding="utf-8")
+    assert "À rédiger : aucune synthèse révisée pour ce niveau." in text
+    assert runner.invoke(app, ["vulgarisation", str(folder), "--niveau", "enfants"]).exit_code == 1
+    assert runner.invoke(app, ["vulgarisation", str(tmp_path / "absent")]).exit_code == 1

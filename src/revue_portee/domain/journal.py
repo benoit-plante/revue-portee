@@ -101,6 +101,9 @@ class EntryType:
     SYNTHESIS_DRAFT_PROPOSED = "synthesis.draft_proposed"
     SYNTHESIS_DRAFT_REVISED = "synthesis.draft_revised"
     SYNTHESIS_AI_FAILED = "synthesis.ai_failed"
+    LAY_SUMMARY_PROPOSED = "lay_summary.proposed"
+    LAY_SUMMARY_REVISED = "lay_summary.revised"
+    LAY_SUMMARY_AI_FAILED = "lay_summary.ai_failed"
 
 
 class JournalEntry(BaseModel):

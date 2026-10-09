@@ -10,7 +10,7 @@
 {% else %}
 <p>{{ _("Tables and maps are built from the values you decided only (validated, corrected or extracted); a value proposed by the AI that you have not checked never counts. A study counts once in each of its categories.") }}</p>
 <p>{{ _("Included studies: %(count)s.", count=studies | length) }}</p>
-<p><a href="/synthese/narratif">{{ _("Narrative synthesis") }}</a></p>
+<p><a href="/synthese/narratif">{{ _("Narrative synthesis") }}</a> · <a href="/synthese/vulgarisation">{{ _("Plain-language summaries") }}</a></p>
 
 <section aria-labelledby="carte-titre">
   <h2 id="carte-titre">{{ _("Evidence map") }}</h2>

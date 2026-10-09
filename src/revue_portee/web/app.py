@@ -50,6 +50,7 @@ from revue_portee.domain.fulltext import FulltextDocument
 from revue_portee.domain.grid import FieldType
 from revue_portee.domain.grid import diff_versions as grid_diff
 from revue_portee.domain.journal import verify_chain
+from revue_portee.domain.lay_summary import TARGET_INDEX, LayLevel, meets_target
 from revue_portee.domain.narrative import NarrativeSentence, UnsupportedSentenceError
 from revue_portee.domain.project import ReviewerKind
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
@@ -75,6 +76,7 @@ from revue_portee.jobs.runner import BackgroundJobs
 from revue_portee.protocol import criteria, framing, notes, qualification, registration, suggestions
 from revue_portee.protocol.ai_assist import AITaskError, CostPreview, default_provider_factory
 from revue_portee.protocol.document import protocol_document
+from revue_portee.reporting import lay_summary as lay_report
 from revue_portee.reporting.document import render_docx, render_markdown
 from revue_portee.reporting.flow import pending_items
 from revue_portee.reporting.flow_svg import render_flow_svg
@@ -107,6 +109,7 @@ from revue_portee.sources import (
     SourceFactory,
     default_source_factory,
 )
+from revue_portee.stakeholders import lay_summary as lay_summaries
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import projects
@@ -326,6 +329,11 @@ _RECONCILE_ERRORS: tuple[type[Exception], ...] = (
 )
 _VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
 _EXTRACTION_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, prefill.NoGridError)
+_LAY_ERRORS: tuple[type[Exception], ...] = (
+    *_AI_ERRORS,
+    prefill.NoGridError,
+    lay_summaries.NoRevisedSynthesisError,
+)
 _NARRATIVE_ERRORS: tuple[type[Exception], ...] = (
     *_EXTRACTION_ERRORS,
     synthesis_narrative.NothingToSynthesizeError,
@@ -352,6 +360,8 @@ STUDY_JOB = "etudes-ia"
 EXTRACTION_JOB = "extraction-ia"
 # Key of the background job where the AI drafts the narrative synthesis of a field.
 NARRATIVE_JOB = "narratif-ia-{code}"
+# Key of the background job where the AI drafts the plain-language summary of a level.
+LAY_JOB = "vulgarisation-ia-{level}"
 
 
 def create_app(
@@ -2586,6 +2596,147 @@ def create_app(
                 status_code=422,
             )  # fmt: skip
         return see_other(f"/synthese/narratif/{code}?ok=revision")
+
+    # --- Plain-language summaries ---------------------------------------------------
+
+    def lay_level(level: str) -> LayLevel:
+        try:
+            return LayLevel(level)
+        except ValueError as unknown:
+            raise HTTPException(status_code=404, detail=_("Unknown level.")) from unknown
+
+    def lay_page(
+        request: Request,
+        level: str,
+        *,
+        preview: CostPreview | None = None,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        chosen = lay_level(level)
+        try:
+            state = lay_summaries.lay_state(folder)
+        except prefill.NoGridError as missing:
+            raise HTTPException(status_code=404, detail=str(missing)) from missing
+        target = state.level(chosen)
+        job = LAY_JOB.format(level=chosen.value)
+        shown = target.current
+        found = None if shown is None else shown.readability
+        return render(
+            request,
+            "vulgarisation_niveau.html",
+            {
+                "state": state,
+                "target": target,
+                "level_name": lay_report.level_labels(_)[chosen],
+                "readability": found,
+                "band_name": None if found is None else lay_report.band_labels(_)[found.band],
+                "goal": TARGET_INDEX[chosen],
+                "reached": meets_target(chosen, found),
+                "running": background.running(job),
+                "job_error": background.error(job),
+                "preview": preview,
+                "ceiling": None if preview is None else pilot_view.batch_ceiling(preview.estimate),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/synthese/vulgarisation", response_class=HTMLResponse)
+    def show_lay_summaries(request: Request, message: str = "") -> HTMLResponse:
+        try:
+            state = lay_summaries.lay_state(folder)
+        except prefill.NoGridError:
+            return render(request, "vulgarisation.html", {"state": None})
+        return render(
+            request,
+            "vulgarisation.html",
+            {
+                "state": state,
+                "level_names": lay_report.level_labels(_),
+                "goals": TARGET_INDEX,
+                "message": message or None,
+            },
+        )
+
+    @app.get("/synthese/vulgarisation/{level}", response_class=HTMLResponse)
+    def show_lay_summary(request: Request, level: str, ok: str = "") -> HTMLResponse:
+        messages = {
+            "ia": _("The AI is drafting the summary in the background."),
+            "revision": _("Summary recorded."),
+        }
+        return lay_page(request, level, message=messages.get(ok))
+
+    @app.post("/synthese/vulgarisation/{level}/ia/estimation")
+    def estimate_lay_summary(request: Request, level: str, _csrf: Csrf) -> Response:
+        try:
+            preview = lay_summaries.preview_ai(folder, lay_level(level), factory=provider_factory)
+        except _LAY_ERRORS as error:
+            return lay_page(request, level, error=str(error), status_code=422)
+        return lay_page(request, level, preview=preview)
+
+    @app.post("/synthese/vulgarisation/{level}/ia")
+    def draft_lay_summary(
+        request: Request, level: str, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        chosen = lay_level(level)
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return lay_page(
+                request, level, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return lay_page(request, level, error=error, status_code=422)
+
+        def work() -> None:
+            lay_summaries.draft_with_ai(
+                folder, chosen, ceiling=limit, factory=provider_factory, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+
+        if not background.start(LAY_JOB.format(level=chosen.value), work):
+            return lay_page(
+                request, level, error=_("An AI batch is already running."), status_code=422
+            )
+        return see_other(f"/synthese/vulgarisation/{chosen.value}?ok=ia")
+
+    @app.post("/synthese/vulgarisation/{level}/export")
+    def export_lay_summary(request: Request, level: str, _csrf: Csrf) -> Response:
+        written = lay_summaries.export_summary(
+            folder, lay_level(level), now=now, tool_version=context.tool_version
+        )
+        message = _("Files written in %(path)s: %(count)s.") % {
+            "path": "exports",
+            "count": len(written),
+        }
+        return lay_page(request, level, message=message)
+
+    @app.post("/synthese/vulgarisation/{level}")
+    def revise_lay_summary(
+        request: Request,
+        level: str,
+        _csrf: Csrf,
+        titre: Annotated[str, Form()] = "",
+        texte: Annotated[str, Form()] = "",
+    ) -> Response:
+        chosen = lay_level(level)
+        try:
+            lay_summaries.revise(
+                folder, chosen, title=titre, text=texte, now=now,
+                tool_version=context.tool_version,
+            )  # fmt: skip
+        except lay_summaries.NoRevisedSynthesisError as error:
+            return lay_page(request, level, error=str(error), status_code=422)
+        except ValueError:
+            return lay_page(
+                request, level, error=_("Write the text of the summary."), status_code=422
+            )
+        return see_other(f"/synthese/vulgarisation/{chosen.value}?ok=revision")
 
     # --- Extraction grid --------------------------------------------------------------
 
