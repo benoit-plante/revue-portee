@@ -8,7 +8,9 @@ references excluded for P1, the AI screens them again and the person verifies th
 whose decision it would change. The full texts of the three references kept are then
 looked for in open access: one is found in OpenAlex, one in Unpaywall after a host
 refuses the first link, and the third, found nowhere, is declared not retrievable.
-Every number of the diagram is counted by hand in the README.
+The two texts are screened in a blind full-text round, after a pilot of both: the
+housing study turns out to be about adolescents (excluded for P1), the loneliness study
+is included. Every number of the diagram is counted by hand in the README.
 """
 
 from collections.abc import Callable, Sequence
@@ -21,6 +23,7 @@ from typing import Any
 from revue_portee.ai.base import ModelProvider, TaskInput
 from revue_portee.ai.providers.fake import FakeBatches, FakeProvider
 from revue_portee.ai.settings import AITaskConfig
+from revue_portee.ai.tasks.fulltext import ScreenFulltextInput
 from revue_portee.ai.tasks.screening import ScreenReferenceInput
 from revue_portee.collect import deduplication, imports
 from revue_portee.collect.enrichment import enriched_reference
@@ -28,10 +31,18 @@ from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.references import Reference
-from revue_portee.domain.screening import DecisionValue, Thresholds
+from revue_portee.domain.screening import DecisionValue, ScreeningMode, Thresholds
 from revue_portee.fulltext import retrieval
 from revue_portee.protocol import criteria
-from revue_portee.screening import ai_screening, batch_ai, main, pilot, reassessment, settings
+from revue_portee.screening import (
+    ai_screening,
+    batch_ai,
+    fulltext,
+    main,
+    pilot,
+    reassessment,
+    settings,
+)
 from revue_portee.sources.http import SourceAccessError
 from revue_portee.sources.records import OpenAccessLocation
 from revue_portee.storage.project_folder import ProjectFolder
@@ -100,6 +111,8 @@ HUMAN_V1 = {
 
 def _responder(answers: dict[str, dict[str, Any]]) -> Callable[[TaskInput], dict[str, Any]]:
     def respond(item: TaskInput) -> dict[str, Any]:
+        if isinstance(item, ScreenFulltextInput):
+            return answers[key_of(item.report.title)]
         assert isinstance(item, ScreenReferenceInput)
         return answers[key_of(item.reference.title)]
 
@@ -140,6 +153,7 @@ class Demo:
     clock: Clock
     round_id: str = ""
     impact_id: str = ""
+    fulltext_round_id: str = ""
 
     def ids(self) -> dict[str, str]:
         """Identifier of each of the five references of the main screening, by key."""
@@ -303,7 +317,7 @@ PDFS = {
     ],
     "https://repository.example.org/housing.pdf": [
         "Housing instability and the mental health\nof young adults: a cohort study",
-        "Methods\nA cohort of 1,200 adults\naged 18 to 30.",
+        "Methods\nA cohort of 1,200 adolescents\naged 14 to 17.",
     ],
 }
 # Body text added to every page, so that the demonstration PDFs are not taken for
@@ -349,12 +363,72 @@ def retrieve_texts(demo: Demo) -> DemoFinder:
     return finder
 
 
+def _ft(code: str, status: str, quote: str = "", page: int | None = None) -> dict[str, Any]:
+    return {"code": code, "status": status, "evidence_quote": quote, "page": page}
+
+
+# The AI at the full-text stage (version 2), with its quotes and their pages. Housing:
+# both quotes at their page. Loneliness: P1 at its page, C1 given page 1 but on page 2,
+# and X1 quoting words that are not in the text.
+AI_FT = {
+    "housing": {
+        "assessments": [
+            _ft("P1", "not_met", "A cohort of 1,200 adolescents aged 14 to 17", 2),
+            _ft("C1", "met", "Housing instability and the mental health", 1),
+            _ft("X1", "not_met"),
+        ],
+        "decision": "exclude",
+        "inclusion_probability": 0.03,
+        "rationale": "P1 non satisfait : des adolescents de 14 à 17 ans.",
+        "decisive_criteria": ["P1"],
+    },
+    "loneliness": {
+        "assessments": [
+            _ft("P1", "met", "We interviewed 24 older adults", 2),
+            _ft("C1", "met", "living in three residences", 1),
+            _ft("X1", "not_met", "This is an original research article", 1),
+        ],
+        "decision": "include",
+        "inclusion_probability": 0.9,
+        "rationale": "P1 et C1 satisfaits.",
+        "decisive_criteria": ["P1", "C1"],
+    },
+}
+# The person's full-text decisions in the pilot.
+HUMAN_FT = {"housing": (EX, ["P1"]), "loneliness": (IN, [])}
+
+
+def screen_texts(demo: Demo, *, mode: ScreeningMode = ScreeningMode.BLIND) -> None:
+    """The full-text pilot (both texts), screened by the person and the AI, then the
+    main round in ``mode``, screened by the AI (the pilot's decisions count for it)."""
+    folder, clock = demo.folder, demo.clock
+    chosen = _factory(AI_FT)
+    trial = fulltext.start_pilot(folder, seed=5, now=clock, tool_version=TOOL_VERSION)
+    for key, ref in demo.keyed(trial.reference_ids).items():
+        value, cited = HUMAN_FT[key]
+        fulltext.record_decision(
+            folder, trial.id, ref, value, criteria_cited=cited, now=clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+    fulltext.run_ai(
+        folder, trial.id, batch_limit=Decimal(5), factory=chosen, now=clock,
+        tool_version=TOOL_VERSION,
+    )  # fmt: skip
+    started = fulltext.start_main(folder, mode, seed=7, now=clock, tool_version=TOOL_VERSION)
+    demo.fulltext_round_id = started.id
+    fulltext.run_ai(
+        folder, started.id, batch_limit=Decimal(5), factory=chosen, now=clock,
+        tool_version=TOOL_VERSION,
+    )  # fmt: skip
+
+
 def build(tmp_path: Path) -> Demo:
-    """The whole demonstration, up to the full texts obtained."""
+    """The whole demonstration, up to the full-text screening."""
     demo = create(tmp_path)
     deduplicate(demo)
     screen(demo)
     reconcile(demo)
     broaden_and_reassess(demo)
     retrieve_texts(demo)
+    screen_texts(demo)
     return demo

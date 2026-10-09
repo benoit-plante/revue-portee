@@ -117,6 +117,7 @@ def _rounds(connection: Connection) -> tuple[str, str]:
         "seed",
         "sample_size",
         "created_at",
+        "mode",
     )
     table = csv_text(
         header,
@@ -130,6 +131,7 @@ def _rounds(connection: Connection) -> tuple[str, str]:
                 r.seed,
                 r.sample_size,
                 r.created_at,
+                r.mode.value,
             )
             for r in sorted(rounds, key=lambda r: r.created_at)
         ),

@@ -14,7 +14,12 @@ come. Every number comes from the project:
   the decisions in force, so the diagram would show any such exclusion;
 - full texts (tranche 2.1): once their retrieval has started, the reports not retrieved
   are those the person declared not retrievable (docs/10-conception-texte-integral.md
-  §2.1.1); the texts neither obtained nor declared are left to do.
+  §2.1.1); the texts neither obtained nor declared are left to do;
+- full-text screening (tranche 2.2): once its main round has started, the reports
+  assessed are the texts with a decision in force (the latest human decision), the
+  reports excluded are counted by primary reason (the first criterion cited, in the
+  order of the criteria), and the sources of evidence included are the reports
+  included, until the reports of one study are grouped (tranche 2.3).
 
 The diagram is provisional while something is left to do: references not yet screened
 by the person or by the AI, disagreements to reconcile, pairs of possible duplicates
@@ -38,6 +43,7 @@ __all__ = [
     "FlowNumbers",
     "FlowPhase",
     "FlowTemplate",
+    "FulltextCounts",
     "Pending",
     "ReassessmentCounts",
     "StageStatus",
@@ -119,6 +125,10 @@ class Pending(BaseModel):
     duplicate_pairs: int = 0  # pairs of possible duplicates to examine
     reassessments: int = 0  # reassessments not completed
     texts_missing: int = 0  # full texts neither obtained nor declared not retrievable
+    texts_not_screened: int = 0  # full texts without a decision of the person
+    texts_without_ai: int = 0  # full texts the AI has not screened (scanned ones aside)
+    text_disagreements: int = 0  # full-text disagreements not reconciled
+    texts_uncertain: int = 0  # full texts whose decision in force is « uncertain »
     screening_not_started: bool = False
 
     @property
@@ -131,8 +141,31 @@ class Pending(BaseModel):
                 self.duplicate_pairs,
                 self.reassessments,
                 self.texts_missing,
+                self.texts_not_screened,
+                self.texts_without_ai,
+                self.text_disagreements,
+                self.texts_uncertain,
             )
         )
+
+
+class FulltextCounts(BaseModel):
+    """The full-text screening, as the diagram counts it (built by the use case)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    assessed: int  # texts with a decision in force
+    included: int
+    uncertain: int
+    excluded_by_reason: dict[str, int]  # primary reason (criterion code): reports
+    reason_labels: dict[str, str]  # criterion code: its text
+    not_screened: int
+    without_ai: int
+    disagreements: int  # not reconciled
+
+    @property
+    def excluded(self) -> int:
+        return sum(self.excluded_by_reason.values())
 
 
 class FlowNumbers(BaseModel):
@@ -150,6 +183,7 @@ class FlowNumbers(BaseModel):
     excluded_by_automation: int
     sought: int  # kept at the title and abstract stage, going on to the full text
     not_retrieved: int | None = None  # declared not retrievable; None before retrieval
+    full_text: FulltextCounts | None = None  # None before the full-text screening
     reassessments: tuple[ReassessmentCounts, ...]
     pending: Pending
 
@@ -195,6 +229,7 @@ def flow_numbers(
     reassessments: Sequence[ReassessmentCounts] = (),
     screening_started: bool = True,
     retrieval: RetrievalCounts | None = None,
+    full_text: FulltextCounts | None = None,
 ) -> FlowNumbers:
     """Numbers of the diagram.
 
@@ -221,6 +256,7 @@ def flow_numbers(
         excluded_by_automation=by_automation,
         sought=len(decided) - len(excluded),
         not_retrieved=retrieval.not_retrievable if retrieval is not None and retrieving else None,
+        full_text=full_text,
         reassessments=tuple(reassessments),
         pending=Pending(
             not_screened=len(remaining) - len(decided),
@@ -233,6 +269,10 @@ def flow_numbers(
                 if retrieval is not None and retrieving
                 else 0
             ),
+            texts_not_screened=0 if full_text is None else full_text.not_screened,
+            texts_without_ai=0 if full_text is None else full_text.without_ai,
+            text_disagreements=0 if full_text is None else full_text.disagreements,
+            texts_uncertain=0 if full_text is None else full_text.uncertain,
             screening_not_started=not screening_started,
         ),
     )
@@ -253,6 +293,10 @@ def pending_items(_: Callable[[str], str], pending: Pending, language: str) -> l
             pending.texts_missing,
             _("full texts neither obtained nor declared not retrievable: {count}"),
         ),
+        (pending.texts_not_screened, _("full texts not screened by the person: {count}")),
+        (pending.texts_without_ai, _("full texts not screened by the AI: {count}")),
+        (pending.text_disagreements, _("full-text disagreements to reconcile: {count}")),
+        (pending.texts_uncertain, _("full texts left uncertain: {count}")),
     ):
         if count:
             items.append(text.format(count=integer(count, language)))

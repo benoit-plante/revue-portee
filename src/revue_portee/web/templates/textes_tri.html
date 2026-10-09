@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Full-text screening") }}{% endblock %}
+{% block content %}
+<p><a href="/textes">{{ _("Full texts") }}</a></p>
+<h1>{{ _("Full-text screening") }}</h1>
+<p>{{ _("You screen every text; the AI is the second reviewer and never excludes a text on its own. An exclusion names its criteria: the first of them, in the order of the criteria, is the reason reported in the diagram.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if not budget %}<p class="message info">{{ _("Set the AI budget of the project on the « Pilot » page before the first AI batch.") }}</p>{% endif %}
+
+{% macro ai_block(round_id, label) %}
+  {% if running[round_id] %}
+    <p role="status" hx-get="/textes/tri" hx-trigger="every 3s" hx-select="main" hx-target="main" hx-swap="outerHTML">{{ _("The AI is screening the texts…") }}</p>
+  {% else %}
+    {% if job_errors[round_id] %}<div class="message error" role="alert">{{ job_errors[round_id] }}</div>{% endif %}
+    {% set run = last_runs[round_id] %}
+    {% if run %}<p class="small">{{ _("Last AI batch: %(screened)s texts screened, %(failed)s failed.", screened=run.screened, failed=run.failed | length) }}{% if run.stopped %} {{ _("Stopped: %(why)s.", why=stopped_labels()[run.stopped]) }}{% endif %}</p>{% endif %}
+    {% if preview and preview_round == round_id %}
+      <dl class="meta">
+        <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+        <dt>{{ _("Texts") }}</dt><dd>{{ preview.items }}</dd>
+        <dt>{{ _("Tokens (estimate)") }}</dt><dd>{{ _("%(input)s in, %(output)s out", input=preview.estimate.input_tokens, output=preview.estimate.output_tokens) }}</dd>
+        <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+      </dl>
+      <p class="small">{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model, one call per text. Each text is sent without its bibliography; no call is made that would pass the ceiling or the budget of the project.", date=preview.prices_as_of.isoformat()) }}</p>
+      <form method="post" action="/textes/tri/{{ round_id }}/ia" class="inline-form">
+        {{ csrf() }}
+        <label for="plafond-{{ round_id }}">{{ _("Ceiling of the batch in US dollars") }}</label>
+        <input type="text" inputmode="decimal" id="plafond-{{ round_id }}" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+        <button type="submit">{{ _("Start the AI screening (confirm the cost)") }}</button>
+        <a href="/textes/tri">{{ _("Cancel") }}</a>
+      </form>
+    {% else %}
+      <form method="post" action="/textes/tri/{{ round_id }}/ia/estimation">
+        {{ csrf() }}
+        <button type="submit" class="secondary">{{ label }}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+<section aria-labelledby="pilote">
+  <h2 id="pilote">{{ _("1. Pilot") }}</h2>
+  <p>{{ _("Required before the AI screens the other texts: 20 texts drawn at random (every text when there are fewer than 40), screened blind by you and by the AI. It measures the AI within this review.") }}</p>
+  {% if not trial %}
+    <p>{{ ngettext("%(num)s text obtained.", "%(num)s texts obtained.", texts) }}</p>
+    <form method="post" action="/textes/tri/pilote">
+      {{ csrf() }}
+      <button type="submit" {% if not texts %}disabled{% endif %}>{{ _("Draw the pilot") }}</button>
+    </form>
+  {% else %}
+    <p>{{ _("Texts drawn: %(size)s (seed %(seed)s). Decided by you: %(human)s; by the AI: %(ai)s.", size=trial.sample_size, seed=trial.seed, human=pilot.human | length, ai=pilot.ai | length) }}{% if pilot.unreadable %} {{ _("Scanned texts, left to you: %(count)s.", count=pilot.unreadable | length) }}{% endif %}</p>
+    {% if pilot.next_reference %}<p><a href="/textes/tri/{{ trial.id }}/trier">{{ _("Screen the next text of the pilot") }}</a></p>{% endif %}
+    {{ ai_block(trial.id, _("Estimate the cost of the AI on the pilot")) }}
+    {% if pilot.metrics %}
+    {% set m = pilot.metrics %}
+    <table class="criteria">
+      <caption>{{ _("The AI against you on the pilot (keep against exclude)") }}</caption>
+      <tbody>
+        <tr><th scope="row">{{ _("Agreement") }}</th><td>{{ percent(m.agreement) }}</td></tr>
+        <tr><th scope="row">{{ _("Sensitivity") }}</th><td>{{ percent(m.sensitivity) }}</td></tr>
+        <tr><th scope="row">{{ _("Specificity") }}</th><td>{{ percent(m.specificity) }}</td></tr>
+      </tbody>
+    </table>
+    {% endif %}
+    {% if pilot_complete %}<p class="message success">{{ _("Pilot complete.") }}</p>{% endif %}
+  {% endif %}
+</section>
+
+<section aria-labelledby="principal">
+  <h2 id="principal">{{ _("2. Screening of the texts") }}</h2>
+  {% if not started %}
+    <form method="post" action="/textes/tri/commencer">
+      {{ csrf() }}
+      <fieldset>
+        <legend>{{ _("Mode of the screening, fixed for the whole round and declared in the methods section") }}</legend>
+        <label><input type="radio" name="mode" value="blind" checked> <strong>{{ _("Blind double screening (recommended)") }}</strong> — {{ _("you screen each text without seeing the AI; disagreements are reconciled with its rationale and quotes in view. The AI's performance stays measurable.") }}</label>
+        <label><input type="radio" name="mode" value="assisted"> <strong>{{ _("Assisted screening") }}</strong> — {{ _("the AI screens first; you decide with its assessment, quotes and pages in view, and your decision is final. Faster, but the AI may anchor your decision (RAISE 2).") }}</label>
+      </fieldset>
+      <button type="submit" {% if not texts %}disabled{% endif %}>{{ _("Start the screening of the texts") }}</button>
+    </form>
+  {% else %}
+    {% set mode_names = {"blind": _("blind double screening"), "assisted": _("assisted screening")} %}
+    <p>{{ _("Mode: %(mode)s.", mode=mode_names[started.mode]) }} {{ _("Texts: %(count)s; decided by you: %(human)s; screened by the AI: %(ai)s.", count=state.members | length, human=state.human | length, ai=state.ai | length) }}{% if state.unreadable %} {{ _("Scanned texts, left to you: %(count)s.", count=state.unreadable | length) }}{% endif %}</p>
+    {% if new_texts %}
+    <form method="post" action="/textes/tri/ajouter">
+      {{ csrf() }}
+      <button type="submit" class="secondary">{{ ngettext("Add %(num)s text obtained since the start", "Add %(num)s texts obtained since the start", new_texts) }}</button>
+    </form>
+    {% endif %}
+    <p><a href="/textes/tri/{{ started.id }}/trier">{{ _("Screen the next text") }}</a></p>
+    {% if pilot_complete %}
+      {{ ai_block(started.id, _("Estimate the cost of the AI on the texts")) }}
+    {% else %}
+      <p class="small">{{ _("The AI will screen these texts once the pilot is complete.") }}</p>
+    {% endif %}
+    {% if started.mode == "blind" %}
+      <p>{{ _("Disagreements: %(count)s; left to reconcile: %(left)s.", count=state.disagreements | length, left=state.queue | length) }}{% if state.queue %} <a href="/textes/tri/reconciliation">{{ _("Reconcile") }}</a>{% endif %}</p>
+    {% else %}
+      {% set followed = state.followed_ai %}
+      <p>{{ _("Decisions that keep or exclude as the AI did: %(followed)s of %(compared)s.", followed=followed[0], compared=followed[1]) }}</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

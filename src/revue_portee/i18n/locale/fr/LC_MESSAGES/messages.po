@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-08 21:58-0400\n"
+"POT-Creation-Date: 2026-10-09 06:34-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -46,6 +46,12 @@ msgstr[1] ""
 "%(num)s références retenues (inclure ou incertain), à importer dans un logiciel de gestion "
 "bibliographique (Zotero, EndNote) ou un outil de tri (Covidence, Rayyan)."
 
+#, python-format
+msgid "%(num)s text obtained."
+msgid_plural "%(num)s texts obtained."
+msgstr[0] "%(num)s texte obtenu."
+msgstr[1] "%(num)s textes obtenus."
+
 msgid "(empty query)"
 msgstr "(requête vide)"
 
@@ -76,6 +82,12 @@ msgstr ", étalonnée"
 
 msgid ", clarifications on a sample"
 msgstr ", clarifications sur un échantillon"
+
+msgid "1. Pilot"
+msgstr "1. Essai pilote"
+
+msgid "2. Screening of the texts"
+msgstr "2. Tri des textes"
 
 #, python-format
 msgid "95 % interval of the sensitivity"
@@ -196,6 +208,9 @@ msgstr "Tri par l'IA"
 msgid "AI screening running in the background: the page refreshes when it ends."
 msgstr "Tri par l'IA en cours en arrière-plan : la page s'actualise à la fin."
 
+msgid "AI screening started in the background."
+msgstr "Tri par l'IA lancé en arrière-plan."
+
 msgid "AI screening started."
 msgstr "Tri par l'IA lancé."
 
@@ -269,6 +284,12 @@ msgstr "Activer la version %(number)s"
 
 msgid "Add"
 msgstr "Ajouter"
+
+#, python-format
+msgid "Add %(num)s text obtained since the start"
+msgid_plural "Add %(num)s texts obtained since the start"
+msgstr[0] "Ajouter %(num)s texte obtenu depuis le début"
+msgstr[1] "Ajouter %(num)s textes obtenus depuis le début"
 
 msgid "Add PDFs obtained by the team"
 msgstr "Ajouter des PDF obtenus par l'équipe"
@@ -438,6 +459,25 @@ msgstr "Demander des termes à l'IA…"
 msgid "Ask the AI to qualify the changes…"
 msgstr "Demander à l'IA de qualifier les changements…"
 
+msgid "Assessment of the AI"
+msgstr "Évaluation de l'IA"
+
+msgid "Assisted screening"
+msgstr "Tri assisté"
+
+msgid "Assisted screening has no reconciliation: your decision is the final one."
+msgstr "Le tri assisté n'a pas de réconciliation : votre décision est la décision finale."
+
+msgid "Assisted screening: the AI has not screened this text yet; screen it first."
+msgstr "Tri assisté : l'IA n'a pas encore trié ce texte ; faites-le trier d'abord."
+
+msgid ""
+"Assisted screening: the AI's assessment is shown before you decide. The decision is yours: check "
+"its quotes in the text, and choose the criteria yourself."
+msgstr ""
+"Tri assisté : l'évaluation de l'IA est affichée avant votre décision. La décision vous appartient"
+" : vérifiez ses citations dans le texte et choisissez vous-même les critères."
+
 msgid "Authors"
 msgstr "Auteurs"
 
@@ -474,6 +514,12 @@ msgstr ""
 "Avant le tri, le réviseur IA est mis à l'essai sur un échantillon aléatoire des références. Vous "
 "triez l'échantillon sans voir les décisions de l'IA ; elles s'affichent une fois votre décision "
 "prise. L'accord, la sensibilité de l'IA et les seuils sont ensuite calculés à partir des deux."
+
+msgid "Blind double screening (recommended)"
+msgstr "Double tri à l'aveugle (recommandé)"
+
+msgid "Blind screening: the AI's decision is not shown."
+msgstr "Tri à l'aveugle : la décision de l'IA n'est pas affichée."
 
 msgid "Block"
 msgstr "Bloc"
@@ -595,6 +641,9 @@ msgstr "Choisissez un ou plusieurs fichiers PDF."
 msgid "Choose the kind of archive."
 msgstr "Choisissez le type d'archive."
 
+msgid "Choose the mode of the screening."
+msgstr "Choisissez le mode du tri."
+
 msgid "Cite at least one criterion to exclude a reference."
 msgstr "Citez au moins un critère pour exclure une référence."
 
@@ -652,6 +701,13 @@ msgid ""
 msgstr ""
 "Archive complète : aussi la base de données, les réponses brutes et les fichiers importés "
 "(résumés compris : pas pour un dépôt public)."
+
+msgid ""
+"Complete the full-text pilot first: every text of the pilot screened by you and by the AI. It "
+"measures the AI within this review (RAISE 3)."
+msgstr ""
+"Terminez d'abord l'essai pilote au texte intégral : chaque texte du pilote trié par vous et par "
+"l'IA. Il mesure l'IA dans cette revue (RAISE 3)."
 
 msgid "Complete the reassessment"
 msgstr "Terminer la réévaluation"
@@ -864,6 +920,10 @@ msgstr ""
 " DOI ou les PMID diffèrent, et deux versions d'un même travail (une prépublication et l'article, "
 "par exemple), ne sont jamais regroupées automatiquement."
 
+#, python-format
+msgid "Decisions that keep or exclude as the AI did: %(followed)s of %(compared)s."
+msgstr "Décisions qui conservent ou excluent comme l'IA : %(followed)s sur %(compared)s."
+
 msgid "Decisions the AI would change"
 msgstr "Décisions que l'IA changerait"
 
@@ -958,6 +1018,14 @@ msgstr "Désaccords par critère cité"
 msgid "Disagreements left: %(count)s."
 msgstr "Désaccords restants : %(count)s."
 
+#, python-format
+msgid "Disagreements: %(count)s; left to reconcile: %(left)s."
+msgstr "Désaccords : %(count)s ; à réconcilier : %(left)s."
+
+#, python-brace-format
+msgid "Disagreements: {count}; reconciled: {reconciled}, of which {with_ai} as the AI had decided."
+msgstr "Désaccords : {count} ; réconciliés : {reconciled}, dont {with_ai} comme l'IA l'avait décidé."
+
 msgid "Discard the draft"
 msgstr "Abandonner le brouillon"
 
@@ -994,6 +1062,9 @@ msgstr ""
 
 msgid "Draw a pilot sample"
 msgstr "Tirer un échantillon pilote"
+
+msgid "Draw the pilot"
+msgstr "Tirer l'essai pilote"
 
 msgid "Duplicate records removed"
 msgstr "Doublons retirés"
@@ -1107,6 +1178,16 @@ msgstr ""
 
 #, python-format
 msgid ""
+"Estimate at the prices of %(date)s, in the most expensive case for this model, one call per text."
+" Each text is sent without its bibliography; no call is made that would pass the ceiling or the "
+"budget of the project."
+msgstr ""
+"Estimation aux tarifs du %(date)s, dans le cas le plus coûteux pour ce modèle, un appel par "
+"texte. Chaque texte est envoyé sans sa bibliographie ; aucun appel n'est fait qui dépasserait le "
+"plafond ou le budget du projet."
+
+#, python-format
+msgid ""
 "Estimate at the prices of %(date)s, in the most expensive case for this model. The batch stops "
 "before a call that would pass its ceiling or the budget of the project; what is screened stays "
 "recorded."
@@ -1114,6 +1195,12 @@ msgstr ""
 "Estimation aux tarifs du %(date)s, dans le cas le plus coûteux pour ce modèle. Le lot s'arrête "
 "avant un appel qui dépasserait son plafond ou le budget du projet ; ce qui est trié reste "
 "enregistré."
+
+msgid "Estimate the cost of the AI on the pilot"
+msgstr "Estimer le coût de l'IA sur le pilote"
+
+msgid "Estimate the cost of the AI on the texts"
+msgstr "Estimer le coût de l'IA sur les textes"
 
 msgid "Estimate the cost of the AI screening"
 msgstr "Estimer le coût du tri par l'IA"
@@ -1251,6 +1338,16 @@ msgstr ""
 "DOI), un PDF en libre accès et le télécharge chez l'éditeur ou le dépôt qu'ils indiquent. Chaque "
 "réponse est conservée, avec l'adresse, la licence déclarée et la version du texte."
 
+#, python-brace-format
+msgid ""
+"For the AI screening, the text of each report, without its bibliography, was sent to the model "
+"provider ({provider}); each call is recorded with its raw response. Checking that the publishers'"
+" conditions allow this remains the responsibility of the review team."
+msgstr ""
+"Pour le tri par l'IA, le texte de chaque rapport, sans sa bibliographie, a été transmis au "
+"fournisseur du modèle ({provider}) ; chaque appel est consigné avec sa réponse brute. Vérifier "
+"que les conditions des éditeurs le permettent reste la responsabilité de l'équipe de la revue."
+
 msgid "Forbidden host."
 msgstr "Hôte refusé."
 
@@ -1303,6 +1400,12 @@ msgstr "Texte intégral obtenu en libre accès ({source}) : {pages} pages"
 msgid "Full text uploaded: {pages} pages"
 msgstr "Texte intégral téléversé : {pages} pages"
 
+msgid "Full text: pilot"
+msgstr "Texte intégral : pilote"
+
+msgid "Full text: screening"
+msgstr "Texte intégral : tri"
+
 msgid "Full texts"
 msgstr "Textes intégraux"
 
@@ -1318,6 +1421,59 @@ msgstr ""
 "Textes intégraux : {obtained} obtenus sur {sought} recherchés ({open_access} en libre accès, "
 "{share} ; {uploaded} ajoutés par l'équipe) ; non trouvés : {not_found} ; introuvables : "
 "{not_retrievable} ; jamais cherchés : {not_sought}."
+
+msgid "Full-text pilot"
+msgstr "Essai pilote au texte intégral"
+
+#, python-brace-format
+msgid "Full-text pilot {number}: texts drawn: {size} of {population} (seed {seed})"
+msgstr "Pilote au texte intégral {number} : textes tirés : {size} sur {population} (graine {seed})"
+
+#, python-brace-format
+msgid ""
+"Full-text pilot, required before the AI screened the other texts: {size} texts drawn at random "
+"(seed {seed}), screened blind by the person and by the AI, criteria version {version}; both "
+"decided {compared} of them:"
+msgstr ""
+"Essai pilote au texte intégral, obligatoire avant que l'IA trie les autres textes : {size} textes"
+" tirés au hasard (graine {seed}), triés à l'aveugle par la personne et par l'IA, version "
+"{version} des critères ; les deux en ont décidé {compared} :"
+
+msgid "Full-text screening"
+msgstr "Tri des textes intégraux"
+
+#, python-brace-format
+msgid "Full-text screening started in assisted mode: {count} texts (seed {seed})"
+msgstr "Tri des textes intégraux commencé en mode assisté : {count} textes (graine {seed})"
+
+#, python-brace-format
+msgid "Full-text screening started in blind mode: {count} texts (seed {seed})"
+msgstr "Tri des textes intégraux commencé en mode aveugle : {count} textes (graine {seed})"
+
+msgid "Full-text screening started."
+msgstr "Tri des textes intégraux commencé."
+
+msgid "Full-text screening: AI decision recorded"
+msgstr "Tri des textes intégraux : décision de l'IA consignée"
+
+#, python-brace-format
+msgid "Full-text screening: AI screening of {screened} texts ({failed} failed)"
+msgstr "Tri des textes intégraux : tri par l'IA de {screened} textes ({failed} en échec)"
+
+#, python-brace-format
+msgid "Full-text screening: disagreement reconciled (you: {human}, AI: {ai}, final: {final})"
+msgstr "Tri des textes intégraux : désaccord réconcilié (vous : {human}, IA : {ai}, finale : {final})"
+
+msgid "Full-text screening: human decision recorded"
+msgstr "Tri des textes intégraux : décision humaine consignée"
+
+#, python-brace-format
+msgid "Full-text screening: the AI could not screen a text (attempts: {n})"
+msgstr "Tri des textes intégraux : l'IA n'a pas pu trier un texte (tentatives : {n})"
+
+#, python-brace-format
+msgid "Full-text screening: {count} new texts added"
+msgstr "Tri des textes intégraux : {count} nouveaux textes ajoutés"
 
 msgid "Funding"
 msgstr "Financement"
@@ -1402,6 +1558,9 @@ msgstr "Importer un fichier RIS"
 
 msgid "Imported files"
 msgstr "Fichiers importés"
+
+msgid "In assisted screening, a text waits until the AI has screened it."
+msgstr "En tri assisté, un texte attend que l'IA l'ait trié."
 
 msgid "In force since"
 msgstr "En vigueur depuis"
@@ -1559,6 +1718,10 @@ msgid "Languages (none: every language)"
 msgstr "Langues (aucune : toutes les langues)"
 
 #, python-format
+msgid "Last AI batch: %(screened)s texts screened, %(failed)s failed."
+msgstr "Dernier lot de l'IA : %(screened)s textes triés, %(failed)s en échec."
+
+#, python-format
 msgid "Last batch: references screened: %(screened)s, failed: %(failed)s, cost: %(spent)s."
 msgstr "Dernier lot : références triées : %(screened)s, échecs : %(failed)s, coût : %(spent)s."
 
@@ -1695,6 +1858,13 @@ msgstr ""
 "votre shell (ou dans les réglages de l'environnement d'une session infonuagique), puis relancez "
 "la commande dans un nouveau terminal."
 
+msgid "Mode of the screening, fixed for the whole round and declared in the methods section"
+msgstr "Mode du tri, fixé pour tout le tour et déclaré dans la section méthode"
+
+#, python-format
+msgid "Mode: %(mode)s."
+msgstr "Mode : %(mode)s."
+
 msgid "Model"
 msgstr "Modèle"
 
@@ -1754,6 +1924,9 @@ msgstr "Nouveau bloc"
 msgid "New references added."
 msgstr "Nouvelles références ajoutées."
 
+msgid "New texts added at the end of the screening."
+msgstr "Nouveaux textes ajoutés à la fin du tri."
+
 msgid "No AI was used to screen titles and abstracts."
 msgstr "Aucune IA n'a servi au tri des titres et résumés."
 
@@ -1790,6 +1963,12 @@ msgstr "Aucun désaccord à réconcilier."
 
 msgid "No full text for this reference."
 msgstr "Aucun texte intégral pour cette référence."
+
+msgid "No full text is obtained yet: add the texts first."
+msgstr "Aucun texte intégral n'est encore obtenu : ajoutez d'abord les textes."
+
+msgid "No full-text pilot was recorded."
+msgstr "Aucun essai pilote au texte intégral n'a été consigné."
 
 msgid "No group of duplicates."
 msgstr "Aucun groupe de doublons."
@@ -1838,6 +2017,9 @@ msgstr "Aucune référence n'a été exclue par l'IA seule."
 
 msgid "No reference yet: collect or import references on the Collection page."
 msgstr "Aucune référence pour l'instant : collectez ou importez des références à la page « Collecte »."
+
+msgid "No text left to screen in this round."
+msgstr "Aucun texte à trier dans ce tour."
 
 msgid "No version of the criteria is in force yet."
 msgstr "Aucune version des critères n'est encore en vigueur."
@@ -2031,6 +2213,12 @@ msgstr "Phase"
 
 msgid "Pilot"
 msgstr "Pilote"
+
+msgid "Pilot complete."
+msgstr "Essai pilote terminé."
+
+msgid "Pilot drawn."
+msgstr "Essai pilote tiré."
 
 msgid "Pilot of the AI reviewer"
 msgstr "Pilote du réviseur IA"
@@ -2300,12 +2488,18 @@ msgstr "Réévaluations non terminées : {count}."
 msgid "Recall"
 msgstr "Rappel"
 
+msgid "Reconcile"
+msgstr "Réconcilier"
+
 msgid "Reconcile the disagreements"
 msgstr "Réconcilier les désaccords"
 
 #, python-format
 msgid "Reconcile the disagreements (%(count)s)"
 msgstr "Réconcilier les désaccords (%(count)s)"
+
+msgid "Reconcile the full-text disagreements"
+msgstr "Réconcilier les désaccords au texte intégral"
 
 msgid "Reconciled"
 msgstr "Réconciliés"
@@ -2521,6 +2715,18 @@ msgid "Reports"
 msgstr "Rapports"
 
 #, python-brace-format
+msgid "Reports excluded, by primary reason: {reasons}."
+msgstr "Rapports exclus, par motif principal : {reasons}."
+
+msgid ""
+"Required before the AI screens the other texts: 20 texts drawn at random (every text when there "
+"are fewer than 40), screened blind by you and by the AI. It measures the AI within this review."
+msgstr ""
+"Obligatoire avant que l'IA trie les autres textes : 20 textes tirés au hasard (tous les textes "
+"s'il y en a moins de 40), triés à l'aveugle par vous et par l'IA. Il mesure l'IA dans cette "
+"revue."
+
+#, python-brace-format
 msgid "Response stability of the AI: {dataset}"
 msgstr "Stabilité des réponses de l'IA : {dataset}"
 
@@ -2622,6 +2828,10 @@ msgstr ""
 "L'enregistrement commencera un brouillon de la prochaine version ; la version en vigueur reste "
 "inchangée."
 
+#, python-format
+msgid "Scanned texts, left to you: %(count)s."
+msgstr "Textes numérisés, laissés à vous : %(count)s."
+
 msgid "Scoping review (JBI, PRISMA-ScR) with AI as a traceable second reviewer."
 msgstr "Revue de portée (JBI, PRISMA-ScR) avec l'IA comme second réviseur traçable."
 
@@ -2634,8 +2844,17 @@ msgstr "Trier par priorité"
 msgid "Screen by priority (most likely inclusions first, according to the AI)"
 msgstr "Trier par priorité (d'abord les inclusions les plus probables selon l'IA)"
 
+msgid "Screen the full texts"
+msgstr "Trier les textes intégraux"
+
 msgid "Screen the next reference"
 msgstr "Trier la référence suivante"
+
+msgid "Screen the next text"
+msgstr "Trier le texte suivant"
+
+msgid "Screen the next text of the pilot"
+msgstr "Trier le texte suivant du pilote"
 
 msgid "Screening"
 msgstr "Tri"
@@ -2700,6 +2919,9 @@ msgstr ""
 msgid "Set the AI budget of the project before the first batch of screening (ENF-COU-02)."
 msgstr "Fixez le budget d'IA du projet avant le premier lot de tri (ENF-COU-02)."
 
+msgid "Set the AI budget of the project on the « Pilot » page before the first AI batch."
+msgstr "Fixez le budget de l'IA du projet à la page « Pilote » avant le premier lot de l'IA."
+
 msgid "Set the budget"
 msgstr "Fixer le budget"
 
@@ -2755,6 +2977,9 @@ msgstr "Commencer les critères"
 msgid "Start the screening"
 msgstr "Commencer le tri"
 
+msgid "Start the screening of the texts"
+msgstr "Commencer le tri des textes"
+
 msgid "Started on"
 msgstr "Lancée le"
 
@@ -2770,6 +2995,10 @@ msgstr "Arrêté par le plafond"
 #, python-format
 msgid "Stopped: %(reason)s."
 msgstr "Arrêt : %(reason)s."
+
+#, python-format
+msgid "Stopped: %(why)s."
+msgstr "Arrêté : %(why)s."
 
 msgid "Strategy saved."
 msgstr "Stratégie enregistrée."
@@ -2865,6 +3094,17 @@ msgstr "Texte déclaré introuvable."
 msgid "Text of the protocol"
 msgstr "Texte du protocole"
 
+msgid "Texts"
+msgstr "Textes"
+
+#, python-format
+msgid "Texts decided: %(done)s of %(total)s."
+msgstr "Textes décidés : %(done)s sur %(total)s."
+
+#, python-format
+msgid "Texts drawn: %(size)s (seed %(seed)s). Decided by you: %(human)s; by the AI: %(ai)s."
+msgstr "Textes tirés : %(size)s (graine %(seed)s). Décidés par vous : %(human)s ; par l'IA : %(ai)s."
+
 msgid "Texts obtained"
 msgstr "Textes obtenus"
 
@@ -2879,6 +3119,16 @@ msgstr ""
 "ci-dessous."
 
 #, python-brace-format
+msgid ""
+"Texts screened by the person: {person} of {texts}; by the AI: {ai} (texts without readable text, "
+"left to the person: {unreadable}). Quotes of the AI checked in the text: {checked}; found at the "
+"page given: {at_page}; on another page: {other}; not found: {missing}."
+msgstr ""
+"Textes triés par la personne : {person} sur {texts} ; par l'IA : {ai} (textes sans texte lisible,"
+" laissés à la personne : {unreadable}). Citations de l'IA vérifiées dans le texte : {checked} ; "
+"trouvées à la page indiquée : {at_page} ; à une autre page : {other} ; introuvables : {missing}."
+
+#, python-brace-format
 msgid "Texts still to obtain: {count}."
 msgstr "Textes encore à obtenir : {count}."
 
@@ -2888,6 +3138,13 @@ msgstr "Textes sans texte lisible (numérisés)"
 #, python-brace-format
 msgid "Texts without readable text (scanned), to read without the tool: {count}."
 msgstr "Textes sans texte lisible (numérisés), à lire sans l'outil : {count}."
+
+#, python-format
+msgid "Texts: %(count)s; decided by you: %(human)s; screened by the AI: %(ai)s."
+msgstr "Textes : %(count)s ; décidés par vous : %(human)s ; triés par l'IA : %(ai)s."
+
+msgid "The AI against you on the pilot (keep against exclude)"
+msgstr "L'IA comparée à vous sur le pilote (conserver contre exclure)"
 
 msgid ""
 "The AI batches are followed in the background: the page refreshes when they end. A batch usually "
@@ -2913,6 +3170,9 @@ msgstr ""
 "suggestion doit être acceptée, modifiée ou rejetée ; un terme accepté est ajouté à son bloc "
 "(nouvelle version de la stratégie)."
 
+msgid "The AI cannot read this text (scanned): screen it from the PDF."
+msgstr "L'IA ne peut pas lire ce texte (numérisé) : triez-le à partir du PDF."
+
 msgid "The AI does not change the decision on this reference: nothing to verify."
 msgstr "L'IA ne change pas la décision sur cette référence : rien à vérifier."
 
@@ -2924,6 +3184,9 @@ msgstr "L'IA exclut sous (de 0 à 1)"
 
 msgid "The AI includes from (0 to 1)"
 msgstr "L'IA inclut à partir de (de 0 à 1)"
+
+msgid "The AI is screening the texts…"
+msgstr "L'IA trie les textes…"
 
 msgid ""
 "The AI never excluded a reference when an inclusion criterion could not be assessed and no "
@@ -2938,6 +3201,20 @@ msgstr "Le fournisseur d'IA « {provider} » ne peut pas trier par lots."
 
 #, python-brace-format
 msgid ""
+"The AI read the text page by page and gave, for each criterion, an exact quote and its page. No "
+"calibration was done at this stage: the AI's value comes from the default thresholds (exclude "
+"below {low}, include from {high}) and the rule that a report with an inclusion criterion that "
+"cannot be told is never excluded (EF-SEL-07). An exclusion reports one primary reason, the first "
+"criterion cited in the order of the criteria."
+msgstr ""
+"L'IA a lu le texte page par page et a donné, pour chaque critère, une citation exacte et sa page."
+" Aucun étalonnage n'a été fait à cette étape : la valeur de l'IA découle des seuils par défaut "
+"(exclure sous {low}, inclure à partir de {high}) et de la règle selon laquelle un rapport dont un"
+" critère d'inclusion est indéterminable n'est jamais exclu (EF-SEL-07). Une exclusion déclare un "
+"motif principal, le premier critère cité dans l'ordre des critères."
+
+#, python-brace-format
+msgid ""
 "The AI reviewer has only been tested on its development set, made of systematic reviews in "
 "psychology: neither on held-out data nor on scoping reviews. On the smallest dataset, the "
 "sensitivity rests on {included} included references (95% CI {low} to {high})."
@@ -2949,6 +3226,13 @@ msgstr ""
 msgid "The AI screened titles and abstracts only; it did not assess full texts."
 msgstr "L'IA n'a trié que les titres et résumés ; elle n'a pas évalué les textes intégraux."
 
+msgid ""
+"The AI screened titles and abstracts, then full texts; at both stages the person screened every "
+"reference and took every final decision."
+msgstr ""
+"L'IA a trié les titres et résumés, puis les textes intégraux ; aux deux étapes, la personne a "
+"trié chaque référence et pris chaque décision finale."
+
 #, python-brace-format
 msgid "The AI task “{task}” is not enabled in the project configuration."
 msgstr "La tâche d'IA « {task} » n'est pas activée dans la configuration du projet."
@@ -2959,6 +3243,9 @@ msgid ""
 msgstr ""
 "L'IA a servi de second réviseur pour chaque référence ; toute exclusion a été décidée par une "
 "personne, aucune par l'IA seule."
+
+msgid "The AI will screen these texts once the pilot is complete."
+msgstr "L'IA triera ces textes une fois l'essai pilote terminé."
 
 #, python-brace-format
 msgid "The AI's probability of inclusion was calibrated on the pilot ({method}, {count} decisions)."
@@ -3096,6 +3383,41 @@ msgstr ""
 " Textes obtenus : {obtained}, dont {open_access} en libre accès ({share} des rapports recherchés)"
 " et {uploaded} par l'équipe. Rapports non obtenus, déclarés par la personne avec la raison : "
 "{not_retrievable}."
+
+#, python-brace-format
+msgid ""
+"The full texts were screened in assisted mode: the AI ({provider}, model {model}, prompt template"
+" screen_fulltext version {version}) screened each text first, and the person decided with its "
+"assessment of each criterion, its quotes and their pages in view; the person's decision was "
+"final. Decisions that kept or excluded as the AI did: {followed}. Seeing the AI's assessment "
+"first may anchor the person's decision (RAISE 2): the mode is declared here and its effect was "
+"not measured."
+msgstr ""
+"Les textes intégraux ont été triés en mode assisté : l'IA ({provider}, modèle {model}, gabarit "
+"d'invite screen_fulltext, version {version}) a trié chaque texte d'abord, et la personne a décidé"
+" en voyant son évaluation de chaque critère, ses citations et leurs pages ; la décision de la "
+"personne était finale. Décisions qui conservent ou excluent comme l'IA : {followed}. Voir d'abord"
+" l'évaluation de l'IA peut ancrer la décision de la personne (RAISE 2) : le mode est déclaré ici "
+"et son effet n'a pas été mesuré."
+
+#, python-brace-format
+msgid ""
+"The full texts were screened in blind double screening: the person screened every text without "
+"seeing the AI, which screened the same texts independently ({provider}, model {model}, prompt "
+"template screen_fulltext version {version}). Disagreements, keep against exclude, were reconciled"
+" by the person with the AI's rationale, quotes and pages in view."
+msgstr ""
+"Les textes intégraux ont été triés en double tri à l'aveugle : la personne a trié chaque texte "
+"sans voir l'IA, qui a trié les mêmes textes de façon indépendante ({provider}, modèle {model}, "
+"gabarit d'invite screen_fulltext, version {version}). Les désaccords, conserver contre exclure, "
+"ont été réconciliés par la personne en voyant la justification, les citations et les pages de "
+"l'IA."
+
+msgid "The full-text screening has already started."
+msgstr "Le tri des textes intégraux est déjà commencé."
+
+msgid "The full-text screening has not started."
+msgstr "Le tri des textes intégraux n'est pas commencé."
 
 msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
 msgstr "La langue doit être un code ISO 639-1 de deux lettres, par exemple fr ou en."
@@ -3709,6 +4031,15 @@ msgstr ""
 "réconciliées, avec la justification de l'IA sous les yeux. La décision finale est toujours la "
 "vôtre."
 
+msgid ""
+"You screen every text; the AI is the second reviewer and never excludes a text on its own. An "
+"exclusion names its criteria: the first of them, in the order of the criteria, is the reason "
+"reported in the diagram."
+msgstr ""
+"Vous triez chaque texte ; l'IA est le second réviseur et n'exclut jamais un texte seule. Une "
+"exclusion nomme ses critères : le premier d'entre eux, dans l'ordre des critères, est le motif "
+"déclaré dans le diagramme."
+
 msgid "Your decision"
 msgstr "Votre décision"
 
@@ -3766,11 +4097,17 @@ msgstr "toutes les références incluses et des exclues tirées avec la graine {
 msgid "as given by the AI (no calibration yet)"
 msgstr "telles que données par l'IA (pas encore d'étalonnage)"
 
+msgid "assisted screening"
+msgstr "tri assisté"
+
 msgid "audit"
 msgstr "vérification"
 
 msgid "automatic"
 msgstr "automatique"
+
+msgid "blind double screening"
+msgstr "double tri à l'aveugle"
 
 msgid "block without usable term: left out"
 msgstr "bloc sans terme utilisable : écarté"
@@ -3914,9 +4251,31 @@ msgstr "existe (%(ui)s)"
 msgid "field not available: searched in title and abstract"
 msgstr "champ indisponible : cherché dans le titre et le résumé"
 
+msgid "found at this page"
+msgstr "trouvée à cette page"
+
+msgid "found, but on another page"
+msgstr "trouvée, mais à une autre page"
+
+#, python-brace-format
+msgid "full texts left uncertain: {count}"
+msgstr "textes intégraux laissés incertains : {count}"
+
 #, python-brace-format
 msgid "full texts neither obtained nor declared not retrievable: {count}"
 msgstr "textes intégraux ni obtenus ni déclarés introuvables : {count}"
+
+#, python-brace-format
+msgid "full texts not screened by the AI: {count}"
+msgstr "textes intégraux non triés par l'IA : {count}"
+
+#, python-brace-format
+msgid "full texts not screened by the person: {count}"
+msgstr "textes intégraux non triés par la personne : {count}"
+
+#, python-brace-format
+msgid "full-text disagreements to reconcile: {count}"
+msgstr "désaccords au texte intégral à réconcilier : {count}"
 
 msgid "funding of the review and of the AI use, and conflicts of interest"
 msgstr "financement de la revue et de l'usage de l'IA, et conflits d'intérêts"
@@ -4007,6 +4366,9 @@ msgstr "non trouvé en libre accès"
 msgid "not found in the reference"
 msgstr "introuvable dans la référence"
 
+msgid "not found in the text"
+msgstr "introuvable dans le texte"
+
 msgid "not looked for yet"
 msgstr "pas encore cherché"
 
@@ -4055,6 +4417,10 @@ msgstr "libre accès (Unpaywall)"
 
 msgid "or"
 msgstr "ou"
+
+#, python-format
+msgid "page %(page)s"
+msgstr "page %(page)s"
 
 #, python-brace-format
 msgid "pairs of possible duplicates to examine: {count}"
@@ -4214,6 +4580,13 @@ msgstr "remplacée"
 msgid "the AI"
 msgstr "l'IA"
 
+msgid ""
+"the AI screens first; you decide with its assessment, quotes and pages in view, and your decision"
+" is final. Faster, but the AI may anchor your decision (RAISE 2)."
+msgstr ""
+"l'IA trie d'abord ; vous décidez en voyant son évaluation, ses citations et leurs pages, et votre"
+" décision est finale. Plus rapide, mais l'IA peut ancrer votre décision (RAISE 2)."
+
 #, python-brace-format
 msgid ""
 "the API gave {received} records for {announced} announced (records without identifier, or results"
@@ -4308,6 +4681,13 @@ msgstr "années distantes de plus d'un an"
 msgid "yes"
 msgstr "oui"
 
+msgid ""
+"you screen each text without seeing the AI; disagreements are reconciled with its rationale and "
+"quotes in view. The AI's performance stays measurable."
+msgstr ""
+"vous triez chaque texte sans voir l'IA ; les désaccords sont réconciliés en voyant sa "
+"justification et ses citations. La performance de l'IA reste mesurable."
+
 #, python-brace-format
 msgid "{code} ({kind}): {text}"
 msgstr "{code} ({kind}) : {text}"
@@ -4393,6 +4773,10 @@ msgid "{name}: right page for {rate} of {count} passages"
 msgstr "{name} : bonne page pour {rate} de {count} passages"
 
 #, python-brace-format
+msgid "{part} of {whole} ({share})"
+msgstr "{part} sur {whole} ({share})"
+
+#, python-brace-format
 msgid "{runs} runs of the same records (response stability)."
 msgstr "{runs} exécutions des mêmes notices (stabilité des réponses)."
 
@@ -4419,6 +4803,10 @@ msgstr "{template}, version {version} ({calls} appels)"
 #, python-brace-format
 msgid "{title}: a scoping review protocol"
 msgstr "{title} : protocole de revue de portée"
+
+#, python-brace-format
+msgid "{title}: use of AI in screening (methods, draft)"
+msgstr "{title} : usage de l'IA au tri (méthode, ébauche)"
 
 #, python-brace-format
 msgid "{title}: use of AI in title and abstract screening (methods, draft)"

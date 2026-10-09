@@ -8,7 +8,7 @@ requests with a foreign ``Host`` or ``Origin`` are refused (CSRF, DNS rebinding)
 import re
 import secrets
 import time
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -47,7 +47,13 @@ from revue_portee.domain.framing import Framing
 from revue_portee.domain.fulltext import FulltextDocument
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
-from revue_portee.domain.screening import DecisionValue, ScreeningRound, Thresholds
+from revue_portee.domain.screening import (
+    DecisionValue,
+    RoundKind,
+    ScreeningMode,
+    ScreeningRound,
+    Thresholds,
+)
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
@@ -67,6 +73,7 @@ from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
 from revue_portee.resources import flow_template, peters_checklist, tool_validation
 from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
+from revue_portee.screening import fulltext as fulltext_screening
 from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
 from revue_portee.screening.archive import ArchiveKind, SecretInArchiveError, export_archive
@@ -297,6 +304,14 @@ _RECONCILE_ERRORS: tuple[type[Exception], ...] = (
     main_screening.NotADisagreementError,
 )
 _VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
+_TEXT_DECISION_ERRORS: tuple[type[Exception], ...] = (
+    *_DECISION_ERRORS,
+    fulltext_screening.AIFirstError,
+)
+_TEXT_RECONCILE_ERRORS: tuple[type[Exception], ...] = (
+    *_RECONCILE_ERRORS,
+    fulltext_screening.NotBlindError,
+)
 
 
 # Archives written in exports/ (screening/archive.py), the only files served from there.
@@ -2079,6 +2094,294 @@ def create_app(
         if row is None or row.document is None:
             raise HTTPException(status_code=404, detail=_("No full text for this reference."))
         return row, row.document
+
+    # --- Full-text screening ------------------------------------------------------------
+
+    def text_job(round_id: str) -> str:
+        return f"texte-ia-{round_id}"
+
+    def fulltext_screening_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        preview: CostPreview | None = None,
+        preview_round: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        trial = fulltext_screening.pilot_round(folder)
+        started = fulltext_screening.main_round(folder)
+        pilot_state = None if trial is None else fulltext_screening.pilot_state(folder, trial.id)
+        state = None if started is None else fulltext_screening.main_state(folder)
+        texts = fulltext_screening.screenable_texts(folder)
+        new_texts = 0 if state is None else len(set(texts) - set(state.members))
+        jobs = [r.id for r in (trial, started) if r is not None]
+        with folder.engine.connect() as connection:
+            budget = screening_repo.latest_budget(connection)
+        return render(
+            request,
+            "textes_tri.html",
+            {
+                "texts": len(texts),
+                "trial": trial,
+                "pilot": pilot_state,
+                "started": started,
+                "state": state,
+                "new_texts": new_texts,
+                "pilot_complete": pilot_state is not None and pilot_state.complete,
+                "running": {r: background.running(text_job(r)) for r in jobs},
+                "job_errors": {r: background.error(text_job(r)) for r in jobs},
+                "last_runs": {r: last_batches.get(r) for r in jobs},
+                "budget": budget,
+                "preview": preview,
+                "preview_round": preview_round,
+                "ceiling": None if preview is None else pilot_view.batch_ceiling(preview.estimate),
+                "values": pilot_view.value_labels(),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/textes/tri", response_class=HTMLResponse)
+    def show_text_screening(request: Request, ok: str = "") -> HTMLResponse:
+        messages = {
+            "pilote": _("Pilot drawn."),
+            "tri": _("Full-text screening started."),
+            "ajout": _("New texts added at the end of the screening."),
+            "ia": _("AI screening started in the background."),
+        }
+        return fulltext_screening_page(request, message=messages.get(ok))
+
+    @app.post("/textes/tri/pilote")
+    def start_text_pilot(request: Request, _csrf: Csrf) -> Response:
+        try:
+            fulltext_screening.start_pilot(folder, now=now, tool_version=context.tool_version)
+        except (fulltext_screening.NoTextsError, pilot.NoActiveCriteriaError) as error:
+            return fulltext_screening_page(request, error=str(error), status_code=422)
+        return see_other("/textes/tri?ok=pilote#pilote")
+
+    @app.post("/textes/tri/commencer")
+    def start_text_screening(
+        request: Request, _csrf: Csrf, mode: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            chosen = ScreeningMode(mode)
+        except ValueError:
+            return fulltext_screening_page(
+                request, error=_("Choose the mode of the screening."), status_code=422
+            )
+        try:
+            fulltext_screening.start_main(
+                folder, chosen, now=now, tool_version=context.tool_version
+            )
+        except (
+            fulltext_screening.NoTextsError,
+            fulltext_screening.FulltextMainExistsError,
+            pilot.NoActiveCriteriaError,
+        ) as error:
+            return fulltext_screening_page(request, error=str(error), status_code=422)
+        return see_other("/textes/tri?ok=tri#principal")
+
+    @app.post("/textes/tri/ajouter")
+    def add_texts_to_screening(_csrf: Csrf) -> Response:
+        fulltext_screening.add_new_texts(folder, now=now, tool_version=context.tool_version)
+        return see_other("/textes/tri?ok=ajout#principal")
+
+    @app.post("/textes/tri/{round_id}/ia/estimation")
+    def estimate_text_ai(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        try:
+            preview = fulltext_screening.preview_ai(folder, round_id, factory=provider_factory)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except _AI_ERRORS as error:
+            return fulltext_screening_page(request, error=str(error), status_code=422)
+        return fulltext_screening_page(request, preview=preview, preview_round=round_id)
+
+    @app.post("/textes/tri/{round_id}/ia")
+    def screen_texts_with_ai(
+        request: Request, round_id: str, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            screening = fulltext_screening.round_of(folder, round_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return fulltext_screening_page(
+                request, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return fulltext_screening_page(request, error=error, status_code=422)
+        if screening.kind is RoundKind.MAIN and not fulltext_screening.pilot_complete(folder):
+            error = str(fulltext_screening.PilotRequiredError())
+            return fulltext_screening_page(request, error=error, status_code=422)
+
+        def work() -> None:
+            last_batches[round_id] = fulltext_screening.run_ai(
+                folder,
+                round_id,
+                batch_limit=limit,
+                factory=provider_factory,
+                now=now,
+                tool_version=context.tool_version,
+            )
+
+        if not background.start(text_job(round_id), work):
+            return fulltext_screening_page(
+                request, error=_("An AI batch is already running on this round."), status_code=422
+            )
+        return see_other("/textes/tri?ok=ia")
+
+    def text_decision_page(
+        request: Request,
+        round_id: str,
+        *,
+        reference_id: str | None = None,
+        skipped: Sequence[str] = (),
+        error: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        try:
+            screening = fulltext_screening.round_of(folder, round_id)
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        if screening.kind is RoundKind.MAIN:
+            state = fulltext_screening.main_state(folder)
+            chosen = reference_id or fulltext_screening.next_text(state, skip=skipped)
+            ai = None if chosen is None else state.visible_ai(chosen)
+            done, total = len(set(state.members) & state.human.keys()), len(state.members)
+            assisted = state.assisted
+        else:
+            pilot_state = fulltext_screening.pilot_state(folder, round_id)
+            members = pilot_state.round.reference_ids
+            chosen = reference_id or next(
+                (r for r in members if r not in pilot_state.human and r not in skipped), None
+            )
+            ai, assisted = None, False
+            done, total = len(pilot_state.human), len(members)
+        report = retrieval.retrieval_report(folder)
+        row = None if chosen is None else report.row(chosen)
+        pages: list[tuple[Any, bool]] = []
+        if row is not None and row.document is not None:
+            text = retrieval.paged_text(folder, row.document)
+            body = {page.number: page.text for page in text.body()}
+            pages = [(page, body[page.number] != page.text) for page in text.pages]
+        return render(
+            request,
+            "texte_trier.html",
+            {
+                "screening": screening,
+                "row": row,
+                "pages": pages,
+                "a": ai,
+                "assisted": assisted,
+                "done": done,
+                "total": total,
+                "skipped": ",".join(skipped),
+                "criteria": fulltext_screening.criteria_of_round(folder, screening),
+                "values": pilot_view.value_labels(),
+                "check_labels": fulltext_view.check_labels(),
+                "error": error,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/textes/tri/{round_id}/trier", response_class=HTMLResponse)
+    def screen_next_text(
+        request: Request, round_id: str, ref: str = "", passer: str = ""
+    ) -> HTMLResponse:
+        return text_decision_page(
+            request, round_id, reference_id=ref or None, skipped=screening_view.skip_list(passer)
+        )
+
+    @app.post("/textes/tri/{round_id}/decision")
+    async def decide_text(request: Request, round_id: str, _csrf: Csrf) -> Response:
+        reference_id, value, cited, note = decision_form(await request.form())
+        if value is None:
+            return text_decision_page(
+                request, round_id, reference_id=reference_id, error=_("Choose a decision."),
+                status_code=422,
+            )  # fmt: skip
+        try:
+            await run_in_threadpool(
+                fulltext_screening.record_decision,
+                folder,
+                round_id,
+                reference_id,
+                value,
+                criteria_cited=cited,
+                rationale=note,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except pilot.UnknownRoundError as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except _TEXT_DECISION_ERRORS as error:
+            return text_decision_page(
+                request, round_id, reference_id=reference_id, error=decision_error(error),
+                status_code=422,
+            )  # fmt: skip
+        return see_other(f"/textes/tri/{round_id}/trier")
+
+    def text_reconciliation_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        if fulltext_screening.main_round(folder) is None:
+            raise HTTPException(
+                status_code=404, detail=_("The full-text screening has not started.")
+            )
+        state = fulltext_screening.main_state(folder)
+        reference_id = state.queue[0] if state.queue else None
+        values: dict[str, Any] = {
+            "row": None,
+            "left": len(state.queue),
+            "criteria": fulltext_screening.criteria_of_round(folder, state.round),
+            "values": pilot_view.value_labels(),
+            "check_labels": fulltext_view.check_labels(),
+            "error": error,
+            "message": message,
+        }
+        if reference_id is not None:
+            values |= {
+                "row": retrieval.retrieval_report(folder).row(reference_id),
+                "human": state.human[reference_id],
+                "a": state.visible_ai(reference_id),
+            }
+        return render(request, "texte_reconciliation.html", values, status_code=status_code)
+
+    @app.get("/textes/tri/reconciliation", response_class=HTMLResponse)
+    def show_text_reconciliation(request: Request, ok: int = 0) -> HTMLResponse:
+        return text_reconciliation_page(
+            request, message=_("Final decision recorded.") if ok else None
+        )
+
+    @app.post("/textes/tri/reconciliation")
+    async def reconcile_text(request: Request, _csrf: Csrf) -> Response:
+        reference_id, value, cited, note = decision_form(await request.form())
+        if value is None:
+            return text_reconciliation_page(request, error=_("Choose a decision."), status_code=422)
+        try:
+            await run_in_threadpool(
+                fulltext_screening.reconcile,
+                folder,
+                reference_id,
+                value,
+                criteria_cited=cited,
+                rationale=note,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except _TEXT_RECONCILE_ERRORS as error:
+            return text_reconciliation_page(request, error=decision_error(error), status_code=422)
+        return see_other("/textes/tri/reconciliation?ok=1")
 
     @app.get("/textes/{reference_id}", response_class=HTMLResponse)
     def show_text(request: Request, reference_id: str) -> HTMLResponse:

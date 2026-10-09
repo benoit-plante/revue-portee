@@ -169,13 +169,40 @@ def _rows(
         not_retrieved = later(side, "not_retrieved")
     else:
         not_retrieved = Box(*side, [counted("not_retrieved", numbers.not_retrieved, bold=True)])
+    full_text = numbers.full_text
+    if full_text is None:
+        return [
+            identified_row,
+            screened_row,
+            ("screening", sought, not_retrieved),
+            ("screening", later(main, "assessed"), later(side, "reports_excluded")),
+            ("included", later(main, "included", "included_reports"), None),
+        ]
+    colon = " : " if language == "fr" else ": "
+    reasons = [
+        (_counted(code + colon + full_text.reason_labels[code], n, language), False, 14)
+        if full_text.reason_labels.get(code)
+        else (_counted(code, n, language), False, 14)
+        for code, n in full_text.excluded_by_reason.items()
+    ]
+    excluded_reports = Box(
+        *side, [counted("reports_excluded", full_text.excluded, bold=True), *reasons]
+    )
+    included = Box(
+        *main,
+        [
+            counted("included", full_text.included, bold=True),
+            counted("included_reports", full_text.included),
+        ],
+    )
     return [
         identified_row,
         screened_row,
         ("screening", sought, not_retrieved),
-        ("screening", later(main, "assessed"), later(side, "reports_excluded")),
-        ("included", later(main, "included", "included_reports"), None),
-    ]
+        ("screening", Box(*main, [counted("assessed", full_text.assessed, bold=True)]),
+         excluded_reports),
+        ("included", included, None),
+    ]  # fmt: skip
 
 
 def _reassessment_note(_: Translate, numbers: FlowNumbers, language: str) -> str:

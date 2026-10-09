@@ -191,6 +191,29 @@ def _fulltext_files(folder: ProjectFolder) -> dict[str, str]:
     return {"textes.csv": csv_text(header, rows)}
 
 
+def _fulltext_screening_files(folder: ProjectFolder) -> dict[str, str]:
+    """State of the full-text screening of each text of the main round."""
+    from revue_portee.screening import fulltext
+
+    header = ("reference_id", "final_decision_id", "ai_decision_id", "primary_reason",
+              "disagreement", "reconciled")  # fmt: skip
+    if fulltext.main_round(folder) is None:
+        return {"etat-texte-integral.csv": csv_text(header, [])}
+    state = fulltext.main_state(folder)
+    rows = [
+        (
+            ref,
+            state.final[ref].id if ref in state.final else None,
+            state.ai[ref].id if ref in state.ai else None,
+            state.reason(ref),
+            ref in state.disagreements,
+            ref in state.reconciled,
+        )
+        for ref in state.members
+    ]
+    return {"etat-texte-integral.csv": csv_text(header, rows)}
+
+
 def _exports(folder: ProjectFolder, *, now: Clock, tool_version: str) -> dict[str, bytes]:
     report = flow_report(folder, now=now, tool_version=tool_version)
     data = methods_data(folder, now=now, tool_version=tool_version)
@@ -228,6 +251,7 @@ def archive_files(
         | _dedup_files(state)
         | _screening_files(folder, state)
         | _fulltext_files(folder)
+        | _fulltext_screening_files(folder)
     )
     files |= {f"donnees/{name}": text.encode() for name, text in tables.items()}
     files |= _exports(folder, now=lambda: moment, tool_version=tool_version)

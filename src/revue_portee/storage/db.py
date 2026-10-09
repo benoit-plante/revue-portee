@@ -683,6 +683,7 @@ screening_round = Table(
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
     _journal_column(),
+    Column("mode", String(16), nullable=False, server_default="blind"),
     UniqueConstraint("stage", "kind", "number", name="uq_round_number"),
 )
 

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Full-text screening") }}{% endblock %}
+{% block content %}
+<p><a href="/textes/tri">{{ _("Full-text screening") }}</a></p>
+<h1>{% if screening.kind == "pilot" %}{{ _("Full-text pilot") }}{% else %}{{ _("Screen the full texts") }}{% endif %}</h1>
+<p class="small">{{ _("Texts decided: %(done)s of %(total)s.", done=done, total=total) }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if row %}
+{% set ref = row.reference %}
+{% if assisted %}
+<div class="message info" role="note">{{ _("Assisted screening: the AI's assessment is shown before you decide. The decision is yours: check its quotes in the text, and choose the criteria yourself.") }}</div>
+{% else %}
+<p class="small">{{ _("Blind screening: the AI's decision is not shown.") }}</p>
+{% endif %}
+<article class="pair" aria-labelledby="texte-titre">
+  <h2 id="texte-titre">{{ ref.title or _("(no title)") }}</h2>
+  <p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %}{% if ref.doi %} — DOI {{ ref.doi }}{% endif %} — <a href="/textes/{{ ref.id }}/pdf" target="_blank" rel="noopener">PDF</a></p>
+</article>
+{% if assisted and a %}
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Assessment of the AI") }}</h2>
+  {% include "_texte_ia.html" %}
+</section>
+{% elif assisted %}
+<p class="message info">{{ _("The AI cannot read this text (scanned): screen it from the PDF.") }}</p>
+{% endif %}
+<h2>{{ _("Your decision") }}</h2>
+{% with action = "/textes/tri/" ~ screening.id ~ "/decision", reference_id = ref.id, checked = [], skippable = false %}{% include "_tri_form.html" %}{% endwith %}
+<section aria-labelledby="texte-pages" class="text-pages">
+  <h2 id="texte-pages">{{ _("Text by page") }}</h2>
+  {% if row.document and row.document.needs_ocr %}<p class="message info">{{ _("This PDF has almost no text (scanned): character recognition is not done by the tool, read it in the PDF.") }}</p>{% endif %}
+  {% for page, has_bibliography in pages %}
+  <h3 id="page-{{ page.number }}">{{ _("Page %(number)s", number=page.number) }}{% if page.label %} <span class="small">({{ _("printed: %(label)s", label=page.label) }})</span>{% endif %}{% if has_bibliography %} <span class="small">— {{ _("contains bibliography") }}</span>{% endif %}</h3>
+  <pre class="page-text">{{ page.text }}</pre>
+  {% endfor %}
+</section>
+{% else %}
+<p>{{ _("No text left to screen in this round.") }}{% if screening.mode == "assisted" %} {{ _("In assisted screening, a text waits until the AI has screened it.") }}{% endif %}</p>
+{% endif %}
+{% endblock %}

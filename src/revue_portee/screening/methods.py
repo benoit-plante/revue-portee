@@ -13,14 +13,17 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
+from revue_portee.ai.tasks.fulltext import SCREEN_FULLTEXT
 from revue_portee.ai.tasks.screening import SCREEN_REFERENCE
+from revue_portee.domain.fulltext import QuoteCheck
 from revue_portee.domain.project import ReviewerKind as PersonKind
-from revue_portee.domain.screening import RoundKind, keeps, quote_counts
+from revue_portee.domain.screening import RoundKind, keeps, page_quote_counts, quote_counts
 from revue_portee.protocol.document import ExportFormat
 from revue_portee.reporting.document import Document, render_docx, render_markdown
 from revue_portee.reporting.methods import (
     ChangeSummary,
     CostLine,
+    FulltextSummary,
     MethodsData,
     ModelUse,
     PilotSummary,
@@ -29,7 +32,7 @@ from revue_portee.reporting.methods import (
     build_methods,
 )
 from revue_portee.resources import price_table, tool_validation
-from revue_portee.screening import main, pilot, settings
+from revue_portee.screening import fulltext, main, pilot, settings
 from revue_portee.screening.report import flow_report, full_text_counts
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import ai as ai_repo
@@ -96,6 +99,75 @@ def _pilot_summary(folder: ProjectFolder, based_on: str | None) -> PilotSummary 
     )
 
 
+def _fulltext_pilot(folder: ProjectFolder) -> PilotSummary | None:
+    trial = fulltext.pilot_round(folder)
+    if trial is None:
+        return None
+    state = fulltext.pilot_state(folder, trial.id)
+    metrics = state.metrics
+    with folder.engine.connect() as connection:
+        version = criteria_repo.get_version(connection, trial.criteria_version_id)
+        rounds = screening_repo.list_rounds(connection, fulltext.STAGE)
+    return PilotSummary(
+        number=trial.number,
+        sample_size=trial.sample_size,
+        seed=trial.seed,
+        criteria_version=0 if version is None else version.number,
+        compared=sum(1 for r in trial.reference_ids if r in state.human and r in state.ai),
+        agreement=None if metrics is None else metrics.agreement,
+        kappa=None if metrics is None else metrics.kappa,
+        ac1=None if metrics is None else metrics.ac1,
+        sensitivity=None if metrics is None else metrics.sensitivity,
+        sensitivity_interval=None if metrics is None else metrics.sensitivity_interval,
+        specificity=None if metrics is None else metrics.specificity,
+        specificity_interval=None if metrics is None else metrics.specificity_interval,
+        true_positives=0 if metrics is None else metrics.confusion.tp,
+        false_positives=0 if metrics is None else metrics.confusion.fp,
+        false_negatives=0 if metrics is None else metrics.confusion.fn,
+        true_negatives=0 if metrics is None else metrics.confusion.tn,
+        rounds=len(rounds),
+    )
+
+
+def _fulltext(folder: ProjectFolder, calls: list[StoredCall]) -> FulltextSummary | None:
+    """The full-text screening, once its main round has started."""
+    if fulltext.main_round(folder) is None:
+        return None
+    state = fulltext.main_state(folder)
+    config = folder.ai_settings().tasks.get(SCREEN_FULLTEXT.name)
+    thresholds = fulltext.fulltext_thresholds(folder)
+    members = set(state.members)
+    reconciled = [r for r in state.disagreements if r in state.reconciled]
+    checks = page_quote_counts(a for r in members if r in state.ai for a in state.ai[r].assessments)
+    followed, compared = state.followed_ai
+    versions = sorted(
+        {c.record.prompt_template_version for c in calls if c.task == SCREEN_FULLTEXT.name}
+    )
+    return FulltextSummary(
+        mode=state.round.mode.value,
+        provider="" if config is None else str(config.provider or ""),
+        model="" if config is None else str(config.model or ""),
+        template_version=", ".join(versions) or SCREEN_FULLTEXT.version,
+        exclude_below=thresholds.exclude_below,
+        include_above=thresholds.include_above,
+        pilot=_fulltext_pilot(folder),
+        texts=len(members),
+        by_person=len(members & state.human.keys()),
+        by_ai=len(members & state.ai.keys()),
+        unreadable=len(state.unreadable),
+        disagreements=len(state.disagreements),
+        reconciled=len(reconciled),
+        reconciled_with_ai=sum(
+            1 for r in reconciled if keeps(state.reconciled[r].value) == keeps(state.ai[r].value)
+        ),
+        followed_ai=followed,
+        assisted_compared=compared,
+        quotes_at_page=checks[QuoteCheck.AT_PAGE],
+        quotes_other_page=checks[QuoteCheck.OTHER_PAGE],
+        quotes_not_found=checks[QuoteCheck.NOT_FOUND],
+    )
+
+
 def _thresholds(folder: ProjectFolder) -> tuple[ThresholdSummary, str | None]:
     """Thresholds in force, and the pilot round they were set after."""
     thresholds, calibration = settings.thresholds_in_force(folder)
@@ -120,6 +192,10 @@ def _costs(folder: ProjectFolder, calls: list[StoredCall]) -> tuple[CostLine, ..
             r.id: kind.value
             for kind in RoundKind
             for r in screening_repo.list_screening_rounds(connection, main.STAGE, kind)
+        } | {
+            r.id: f"full_text_{kind.value}"
+            for kind in (RoundKind.PILOT, RoundKind.MAIN)
+            for r in screening_repo.list_screening_rounds(connection, fulltext.STAGE, kind)
         }
         phase_of_call = {
             d.ai_call_id: kinds.get(d.round_id or "", "unlinked")
@@ -152,7 +228,7 @@ def _costs(folder: ProjectFolder, calls: list[StoredCall]) -> tuple[CostLine, ..
             output_tokens=written[phase],
         )
         for phase in (RoundKind.PILOT.value, RoundKind.MAIN.value, RoundKind.REASSESSMENT.value,
-                      "unlinked")
+                      "full_text_pilot", "full_text_main", "unlinked")
     )  # fmt: skip
 
 
@@ -196,7 +272,8 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         versions = {v.id: v for v in criteria_repo.list_versions(connection)}
         impacts = [] if started is None else screening_repo.list_impacts(connection, started.id)
     calls = [c for c in every_call if c.task == TASK]
-    others = [c for c in every_call if c.task != TASK]
+    screening_calls = [c for c in every_call if c.task in (TASK, SCREEN_FULLTEXT.name)]
+    others = [c for c in every_call if c.task not in (TASK, SCREEN_FULLTEXT.name)]
     templates = Counter(
         (c.record.prompt_template_id, c.record.prompt_template_version) for c in calls
     )
@@ -226,7 +303,8 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         flow=report.numbers,
         retrieval=full_text_counts(folder),
         changes=changes,
-        costs=_costs(folder, calls),
+        costs=_costs(folder, screening_calls),
+        full_text=_fulltext(folder, every_call),
         other_costs=CostLine(
             phase="other",
             calls=len(others),

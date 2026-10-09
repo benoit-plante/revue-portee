@@ -159,6 +159,32 @@ class ChangeSummary(BaseModel):
     counts: ReassessmentCounts
 
 
+class FulltextSummary(BaseModel):
+    """The full-text screening (tranche 2.2), as the methods section reports it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    mode: Literal["blind", "assisted"]
+    provider: str
+    model: str
+    template_version: str
+    exclude_below: float
+    include_above: float
+    pilot: PilotSummary | None
+    texts: int
+    by_person: int
+    by_ai: int
+    unreadable: int  # scanned: left to the person
+    disagreements: int = 0
+    reconciled: int = 0
+    reconciled_with_ai: int = 0
+    followed_ai: int = 0  # assisted decisions that keep or exclude as the AI did
+    assisted_compared: int = 0
+    quotes_at_page: int = 0
+    quotes_other_page: int = 0
+    quotes_not_found: int = 0
+
+
 class CostLine(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -194,6 +220,7 @@ class MethodsData(BaseModel):
     prices_as_of: str
     validation: ToolValidation
     retrieval: RetrievalCounts | None = None  # full texts of the reports sought
+    full_text: FulltextSummary | None = None  # the full-text screening, once started
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -407,34 +434,7 @@ def _pilot(_: Translate, pilot: PilotSummary | None, language: str) -> list[Bloc
                 compared=integer(pilot.compared, language),
             )
         ),
-        Table(
-            header=(_("Measure"), _("Value")),
-            rows=(
-                (_("Agreement"), _share(_, pilot.agreement, None, language)),
-                (_("Cohen's kappa"), _optional(pilot.kappa, language)),
-                (_("Gwet's AC1"), _optional(pilot.ac1, language)),
-                (
-                    _("Sensitivity (95% CI)"),
-                    _share(_, pilot.sensitivity, pilot.sensitivity_interval, language),
-                ),
-                (
-                    _("Specificity (95% CI)"),
-                    _share(_, pilot.specificity, pilot.specificity_interval, language),
-                ),
-                (
-                    _("Confusion matrix"),
-                    _(
-                        "both keep: {tp}; AI keeps, person excludes: {fp}; AI excludes, person "
-                        "keeps: {fn}; both exclude: {tn}"
-                    ).format(
-                        tp=pilot.true_positives,
-                        fp=pilot.false_positives,
-                        fn=pilot.false_negatives,
-                        tn=pilot.true_negatives,
-                    ),
-                ),
-            ),
-        ),
+        _pilot_table(_, pilot, language),
     ]
     if pilot.calibration_method is not None:
         blocks.append(
@@ -446,6 +446,38 @@ def _pilot(_: Translate, pilot: PilotSummary | None, language: str) -> list[Bloc
             )
         )
     return blocks
+
+
+def _pilot_table(_: Translate, pilot: PilotSummary, language: str) -> Table:
+    """The AI against the person on a pilot, keep against exclude."""
+    return Table(
+        header=(_("Measure"), _("Value")),
+        rows=(
+            (_("Agreement"), _share(_, pilot.agreement, None, language)),
+            (_("Cohen's kappa"), _optional(pilot.kappa, language)),
+            (_("Gwet's AC1"), _optional(pilot.ac1, language)),
+            (
+                _("Sensitivity (95% CI)"),
+                _share(_, pilot.sensitivity, pilot.sensitivity_interval, language),
+            ),
+            (
+                _("Specificity (95% CI)"),
+                _share(_, pilot.specificity, pilot.specificity_interval, language),
+            ),
+            (
+                _("Confusion matrix"),
+                _(
+                    "both keep: {tp}; AI keeps, person excludes: {fp}; AI excludes, person "
+                    "keeps: {fn}; both exclude: {tn}"
+                ).format(
+                    tp=pilot.true_positives,
+                    fp=pilot.false_positives,
+                    fn=pilot.false_negatives,
+                    tn=pilot.true_negatives,
+                ),
+            ),
+        ),
+    )
 
 
 def _thresholds(_: Translate, thresholds: ThresholdSummary, language: str) -> list[Block]:
@@ -527,8 +559,11 @@ def _costs(_: Translate, data: MethodsData, language: str) -> list[Block]:
         "main": _("Main screening"),
         "reassessment": _("Reassessments"),
         "unlinked": _("Failed calls not linked to a round"),
+        "full_text_pilot": _("Full text: pilot"),
+        "full_text_main": _("Full text: screening"),
     }
-    lines = [c for c in data.costs if c.calls or c.phase != "unlinked"]
+    optional = {"unlinked", "full_text_pilot", "full_text_main"}
+    lines = [c for c in data.costs if c.calls or c.phase not in optional]
     total = sum((c.amount for c in lines), Decimal(0))
     rows = [
         (
@@ -718,10 +753,133 @@ def _retrieval(_: Translate, data: MethodsData, language: str) -> list[Block]:
     return blocks
 
 
+def _fulltext(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Full-text screening (EF-SEL-16, D-102), once its main round has started."""
+    ft = data.full_text
+    if ft is None:
+        return []
+    if ft.mode == "assisted":
+        mode = _(
+            "The full texts were screened in assisted mode: the AI ({provider}, model "
+            "{model}, prompt template screen_fulltext version {version}) screened each text "
+            "first, and the person decided with its assessment of each criterion, its "
+            "quotes and their pages in view; the person's decision was final. Decisions "
+            "that kept or excluded as the AI did: {followed}. Seeing the AI's assessment "
+            "first may anchor the person's decision (RAISE 2): the mode is declared here and "
+            "its effect was not measured."
+        )
+    else:
+        mode = _(
+            "The full texts were screened in blind double screening: the person screened "
+            "every text without seeing the AI, which screened the same texts independently "
+            "({provider}, model {model}, prompt template screen_fulltext version {version}). "
+            "Disagreements, keep against exclude, were reconciled by the person with the "
+            "AI's rationale, quotes and pages in view."
+        )
+    blocks: list[Block] = [
+        Heading(level=2, text=_("Full-text screening")),
+        Paragraph(
+            text=mode.format(
+                provider=ft.provider,
+                model=ft.model,
+                version=ft.template_version,
+                followed=_("{part} of {whole} ({share})").format(
+                    part=integer(ft.followed_ai, language),
+                    whole=integer(ft.assisted_compared, language),
+                    share=_ratio(ft.followed_ai, ft.assisted_compared, language),
+                ),
+            )
+        ),
+        Paragraph(
+            text=_(
+                "For the AI screening, the text of each report, without its bibliography, "
+                "was sent to the model provider ({provider}); each call is recorded with its "
+                "raw response. Checking that the publishers' conditions allow this remains "
+                "the responsibility of the review team."
+            ).format(provider=ft.provider)
+        ),
+        Paragraph(
+            text=_(
+                "The AI read the text page by page and gave, for each criterion, an exact "
+                "quote and its page. No calibration was done at this stage: the AI's value "
+                "comes from the default thresholds (exclude below {low}, include from {high}) "
+                "and the rule that a report with an inclusion criterion that cannot be told "
+                "is never excluded (EF-SEL-07). An exclusion reports one primary reason, the "
+                "first criterion cited in the order of the criteria."
+            ).format(
+                low=fixed(ft.exclude_below, 2, language),
+                high=fixed(ft.include_above, 2, language),
+            )
+        ),
+    ]
+    if ft.pilot is None:
+        blocks.append(Paragraph(text=_("No full-text pilot was recorded.")))
+    else:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Full-text pilot, required before the AI screened the other texts: {size} "
+                    "texts drawn at random (seed {seed}), screened blind by the person and by "
+                    "the AI, criteria version {version}; both decided {compared} of them:"
+                ).format(
+                    size=integer(ft.pilot.sample_size, language),
+                    seed=ft.pilot.seed,
+                    version=ft.pilot.criteria_version,
+                    compared=integer(ft.pilot.compared, language),
+                )
+            )
+        )
+        blocks.append(_pilot_table(_, ft.pilot, language))
+    checked = ft.quotes_at_page + ft.quotes_other_page + ft.quotes_not_found
+    results = _(
+        "Texts screened by the person: {person} of {texts}; by the AI: {ai} (texts without "
+        "readable text, left to the person: {unreadable}). Quotes of the AI checked in the "
+        "text: {checked}; found at the page given: {at_page}; on another page: {other}; not "
+        "found: {missing}."
+    ).format(
+        person=integer(ft.by_person, language),
+        texts=integer(ft.texts, language),
+        ai=integer(ft.by_ai, language),
+        unreadable=integer(ft.unreadable, language),
+        checked=integer(checked, language),
+        at_page=_ratio(ft.quotes_at_page, checked, language),
+        other=_ratio(ft.quotes_other_page, checked, language),
+        missing=_ratio(ft.quotes_not_found, checked, language),
+    )
+    if ft.mode == "blind":
+        results += " " + _(
+            "Disagreements: {count}; reconciled: {reconciled}, of which {with_ai} as the AI "
+            "had decided."
+        ).format(
+            count=integer(ft.disagreements, language),
+            reconciled=integer(ft.reconciled, language),
+            with_ai=integer(ft.reconciled_with_ai, language),
+        )
+    blocks.append(Paragraph(text=results))
+    counts = data.flow.full_text
+    if counts is not None and counts.excluded_by_reason:
+        blocks.append(
+            Paragraph(
+                text=_("Reports excluded, by primary reason: {reasons}.").format(
+                    reasons=separator(language).join(
+                        f"{code} ({integer(n, language)})"
+                        for code, n in counts.excluded_by_reason.items()
+                    )
+                )
+            )
+        )
+    return blocks
+
+
 def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
-        _("The AI screened titles and abstracts only; it did not assess full texts."),
+        _(
+            "The AI screened titles and abstracts, then full texts; at both stages the person "
+            "screened every reference and took every final decision."
+        )
+        if data.full_text is not None
+        else _("The AI screened titles and abstracts only; it did not assess full texts."),
         (
             _(
                 "The AI reviewer has only been tested on its development set, made of "
@@ -777,9 +935,11 @@ _REFERENCES = (
 def build_methods(data: MethodsData, *, language: str) -> Document:
     """The draft methods section in ``language`` (fr or en)."""
     _ = translator(language)
-    title = _("{title}: use of AI in title and abstract screening (methods, draft)").format(
-        title=data.project_title
-    )
+    if data.full_text is None:
+        title = _("{title}: use of AI in title and abstract screening (methods, draft)")
+    else:
+        title = _("{title}: use of AI in screening (methods, draft)")
+    title = title.format(title=data.project_title)
     blocks: list[Block] = [
         Heading(level=1, text=title),
         Paragraph(
@@ -801,6 +961,7 @@ def build_methods(data: MethodsData, *, language: str) -> Document:
     blocks += _validation(_, data, language)
     blocks += _results(_, data, language)
     blocks += _retrieval(_, data, language)
+    blocks += _fulltext(_, data, language)
     blocks += _limitations(_, data, language)
     blocks += _funding(_)
     blocks += [Heading(level=2, text=_("References")), BulletList(items=_REFERENCES)]

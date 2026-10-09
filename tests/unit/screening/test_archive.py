@@ -47,6 +47,32 @@ class Archive:
         return list(csv.DictReader(io.StringIO(self.text(name))))
 
 
+def _full_text(
+    archive: Archive, decisions: dict[str, dict[str, str]], order: dict[str, int]
+) -> dict[str, object]:
+    """The full-text boxes, following LISEZMOI.md."""
+    finals = []
+    for row in archive.rows("donnees/etat-texte-integral.csv"):
+        if not row["final_decision_id"]:
+            continue
+        final = decisions[row["final_decision_id"]]
+        human = [
+            d
+            for d in decisions.values()
+            if d["reference_id"] == row["reference_id"]
+            and d["reviewer_kind"] == "human"
+            and d["stage"] == "full_text"
+        ]
+        assert final["id"] == max(human, key=lambda d: order[d["id"]])["id"]
+        finals.append((final, row["primary_reason"]))
+    reasons = Counter(reason for final, reason in finals if final["value"] == "exclude")
+    return {
+        "assessed": len(finals),
+        "reports_excluded": dict(reasons),
+        "included": sum(1 for final, _reason in finals if final["value"] == "include"),
+    }
+
+
 def recount(archive: Archive) -> dict[str, object]:
     """The numbers of the diagram, following LISEZMOI.md."""
     dedup = archive.rows("donnees/dedoublonnage.csv")
@@ -64,7 +90,9 @@ def recount(archive: Archive) -> dict[str, object]:
         human = [
             d
             for d in decisions.values()
-            if d["reference_id"] == row["reference_id"] and d["reviewer_kind"] == "human"
+            if d["reference_id"] == row["reference_id"]
+            and d["reviewer_kind"] == "human"
+            and d["stage"] == "title_abstract"
         ]
         assert final["id"] == max(human, key=lambda d: order[d["id"]])["id"]
         finals.append(final)
@@ -104,6 +132,7 @@ def recount(archive: Archive) -> dict[str, object]:
         "not_retrieved": sum(
             1 for t in archive.rows("donnees/textes.csv") if t["status"] == "not_retrievable"
         ),
+        **_full_text(archive, decisions, order),
         "reassessments": reassessments,
         "disagreements_open": sum(
             1 for s in state if s["disagreement"] == "1" and s["reconciled"] == "0"
@@ -153,6 +182,9 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
         "excluded_by_automation": 0,
         "sought": 3,
         "not_retrieved": 1,
+        "assessed": 2,
+        "reports_excluded": {"P1": 1},
+        "included": 1,
         "reassessments": [
             {
                 "from_version": 1,
@@ -172,6 +204,11 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
                 "excluded", "excluded_by_person", "excluded_by_automation", "sought",
                 "not_retrieved", "reassessments"):  # fmt: skip
         assert declared[key] == counted[key], key
+    full_text = declared["full_text"]
+    assert full_text["assessed"] == counted["assessed"]
+    assert full_text["excluded_by_reason"] == counted["reports_excluded"]
+    assert full_text["included"] == counted["included"]
+    assert {r["mode"] for r in archive.rows("donnees/tours.csv")} == {"blind"}
     assert check_journal(archive) == len(entries) - 1  # the export is recorded afterwards
     # nothing copyrighted, no database in the public archive
     names = archive.names()
