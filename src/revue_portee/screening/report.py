@@ -113,6 +113,9 @@ def full_text_screening(folder: ProjectFolder) -> FulltextCounts | None:
             reasons[reason] = reasons.get(reason, 0) + 1
     ordered = dict(sorted(reasons.items(), key=lambda item: state.order.index(item[0])
                           if item[0] in state.order else len(state.order)))  # fmt: skip
+    from revue_portee.screening import studies  # see above
+
+    grouped = studies.study_state(folder)
     return FulltextCounts(
         assessed=len(final),
         included=sum(1 for d in final.values() if d.value is DecisionValue.INCLUDE),
@@ -122,6 +125,8 @@ def full_text_screening(folder: ProjectFolder) -> FulltextCounts | None:
         not_screened=len(members - set(state.human)),
         without_ai=len(members - set(state.ai) - set(state.unreadable)),
         disagreements=len(state.queue),
+        studies=len(grouped.studies),
+        study_pairs=len(grouped.pending),
     )
 
 

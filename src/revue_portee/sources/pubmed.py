@@ -37,6 +37,7 @@ __all__ = [
     "MeshCheck",
     "PubMed",
     "TooManyRecordsError",
+    "databank_accessions",
     "parse_pubmed_xml",
 ]
 
@@ -349,3 +350,26 @@ def parse_pubmed_xml(text: str) -> tuple[FetchedRecord, ...]:
             )
         )
     return tuple(r for r in records if r.original_id)
+
+
+def databank_accessions(
+    text: str, databank: str = "ClinicalTrials.gov"
+) -> dict[str, frozenset[str]]:
+    """Accession numbers of ``databank`` (the trial registry) given by PubMed for each
+    record of an EFetch answer (``DataBankList``), by PMID."""
+    try:
+        root = ET.fromstring(text)  # noqa: S314 - NCBI answer; expat guards entity expansion
+    except ET.ParseError as error:
+        raise SourceInvalidAnswerError(SERVICE) from error
+    found: dict[str, frozenset[str]] = {}
+    for article in root.iter("PubmedArticle"):
+        pmid = _text(article.find("MedlineCitation/PMID"))
+        numbers = {
+            _text(number).upper()
+            for bank in article.iterfind("MedlineCitation/Article/DataBankList/DataBank")
+            if _text(bank.find("DataBankName")) == databank
+            for number in bank.iterfind("AccessionNumberList/AccessionNumber")
+        }
+        if pmid:
+            found[pmid] = frozenset(n for n in numbers if n)
+    return found

@@ -18,8 +18,10 @@ come. Every number comes from the project:
 - full-text screening (tranche 2.2): once its main round has started, the reports
   assessed are the texts with a decision in force (the latest human decision), the
   reports excluded are counted by primary reason (the first criterion cited, in the
-  order of the criteria), and the sources of evidence included are the reports
-  included, until the reports of one study are grouped (tranche 2.3).
+  order of the criteria);
+- studies (tranche 2.3): the sources of evidence included are the studies, groups of
+  included reports joined by the person's « same study » decisions; the reports of
+  included sources are the reports included.
 
 The diagram is provisional while something is left to do: references not yet screened
 by the person or by the AI, disagreements to reconcile, pairs of possible duplicates
@@ -129,6 +131,7 @@ class Pending(BaseModel):
     texts_without_ai: int = 0  # full texts the AI has not screened (scanned ones aside)
     text_disagreements: int = 0  # full-text disagreements not reconciled
     texts_uncertain: int = 0  # full texts whose decision in force is « uncertain »
+    study_pairs: int = 0  # pairs of reports proposed as one study, not decided yet
     screening_not_started: bool = False
 
     @property
@@ -145,6 +148,7 @@ class Pending(BaseModel):
                 self.texts_without_ai,
                 self.text_disagreements,
                 self.texts_uncertain,
+                self.study_pairs,
             )
         )
 
@@ -162,6 +166,8 @@ class FulltextCounts(BaseModel):
     not_screened: int
     without_ai: int
     disagreements: int  # not reconciled
+    studies: int | None = None  # included reports grouped by study; None: not grouped
+    study_pairs: int = 0  # pairs of reports proposed as one study, not decided yet
 
     @property
     def excluded(self) -> int:
@@ -273,6 +279,7 @@ def flow_numbers(
             texts_without_ai=0 if full_text is None else full_text.without_ai,
             text_disagreements=0 if full_text is None else full_text.disagreements,
             texts_uncertain=0 if full_text is None else full_text.uncertain,
+            study_pairs=0 if full_text is None else full_text.study_pairs,
             screening_not_started=not screening_started,
         ),
     )
@@ -297,6 +304,7 @@ def pending_items(_: Callable[[str], str], pending: Pending, language: str) -> l
         (pending.texts_without_ai, _("full texts not screened by the AI: {count}")),
         (pending.text_disagreements, _("full-text disagreements to reconcile: {count}")),
         (pending.texts_uncertain, _("full texts left uncertain: {count}")),
+        (pending.study_pairs, _("pairs of reports of a possible same study to decide: {count}")),
     ):
         if count:
             items.append(text.format(count=integer(count, language)))

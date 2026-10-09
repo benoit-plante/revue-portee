@@ -85,6 +85,9 @@ class EntryType:
     FULLTEXT_NOT_FOUND = "fulltext.not_found"
     FULLTEXT_NOT_RETRIEVABLE = "fulltext.not_retrievable"
     FULLTEXT_CONVERTED = "fulltext.converted"
+    STUDY_LINK_ASSESSED = "study.link_assessed"
+    STUDY_LINK_DECIDED = "study.link_decided"
+    STUDY_PRIMARY_CHOSEN = "study.primary_chosen"
 
 
 class JournalEntry(BaseModel):
