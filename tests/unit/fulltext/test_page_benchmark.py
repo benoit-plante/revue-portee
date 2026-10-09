@@ -34,7 +34,9 @@ def test_score_counts_by_hand() -> None:
         score.add(check)
     assert (score.checked, score.at_page, score.other_page, score.not_found) == (4, 2, 1, 1)
     assert score.rate == 0.5
+    assert score.found_rate == 2 / 3
     assert ExtractorScore().rate is None
+    assert ExtractorScore().found_rate is None
 
 
 def test_benchmark_on_generated_pdfs(tmp_path: Path) -> None:
@@ -53,7 +55,7 @@ def test_benchmark_on_generated_pdfs(tmp_path: Path) -> None:
         assert total.checked == 12  # 3 passages a page, 2 pages, from each of 2 others
         assert total.rate == 1.0
     report = report_markdown(result)
-    assert "| pymupdf | 12 | 12 | 0 | 0 | 100.0% |" in report
+    assert "| pymupdf | 12 | 12 | 0 | 0 | 100.0% | 100.0% |" in report
     assert "graine 7" in report
     assert "alpha" not in report  # no text of the PDFs
 

@@ -15,6 +15,7 @@ the PDFs by their SHA-256 digest only and quotes no text (copyright).
 
 import hashlib
 import io
+import logging
 import random
 import statistics
 from collections.abc import Callable, Sequence
@@ -52,6 +53,7 @@ def _pymupdf(data: bytes) -> list[str]:
 def _pypdf(data: bytes) -> list[str]:
     import pypdf  # development dependency, used only by this test
 
+    logging.getLogger("pypdf").setLevel(logging.ERROR)  # font warnings, one per font
     reader = pypdf.PdfReader(io.BytesIO(data))
     return [page.extract_text() or "" for page in reader.pages]
 
@@ -107,6 +109,12 @@ class ExtractorScore:
     @property
     def rate(self) -> float | None:
         return self.at_page / self.checked if self.checked else None
+
+    @property
+    def found_rate(self) -> float | None:
+        """Right page among the passages found (a wrong page, not a reading order)."""
+        found = self.at_page + self.other_page
+        return self.at_page / found if found else None
 
 
 @dataclass
@@ -188,14 +196,15 @@ def report_markdown(result: BenchmarkResult) -> str:
         f"- Critère de la tranche 2.1 : bon numéro de page pour au moins {TARGET:.0%} des "
         "passages vérifiés",
         "",
-        "| Bibliothèque | Passages | Bonne page | Autre page | Introuvables | Taux |",
-        "|---|---|---|---|---|---|",
+        "| Bibliothèque | Passages | Bonne page | Autre page | Introuvables | Taux | "
+        "Bonne page parmi les trouvés |",
+        "|---|---|---|---|---|---|---|",
     ]
     for name in EXTRACTORS:
         t = result.total(name)
         lines.append(
             f"| {name} | {t.checked} | {t.at_page} | {t.other_page} | {t.not_found} "
-            f"| {_percent(t.rate)} |"
+            f"| {_percent(t.rate)} | {_percent(t.found_rate)} |"
         )
     rates = [s.rate for p in read for s in [p.scores["pymupdf"]] if s.rate is not None]
     lines += [
