@@ -32,7 +32,7 @@ from revue_portee.reporting.methods import (
     build_methods,
 )
 from revue_portee.resources import price_table, tool_validation
-from revue_portee.screening import fulltext, main, pilot, settings
+from revue_portee.screening import fulltext, main, pilot, reassessment, settings
 from revue_portee.screening.report import flow_report, full_text_counts
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import ai as ai_repo
@@ -140,6 +140,11 @@ def _fulltext(folder: ProjectFolder, calls: list[StoredCall]) -> FulltextSummary
     reconciled = [r for r in state.disagreements if r in state.reconciled]
     checks = page_quote_counts(a for r in members if r in state.ai for a in state.ai[r].assessments)
     followed, compared = state.followed_ai
+    reassessments = [
+        reassessment.reassessment_state(folder, i.id)
+        for i in reassessment.impacts(folder, state.round.id)
+        if i.reassessment_round_id is not None
+    ]
     versions = sorted(
         {c.record.prompt_template_version for c in calls if c.task == SCREEN_FULLTEXT.name}
     )
@@ -165,6 +170,14 @@ def _fulltext(folder: ProjectFolder, calls: list[StoredCall]) -> FulltextSummary
         quotes_at_page=checks[QuoteCheck.AT_PAGE],
         quotes_other_page=checks[QuoteCheck.OTHER_PAGE],
         quotes_not_found=checks[QuoteCheck.NOT_FOUND],
+        changes=len(reassessment.impacts(folder, state.round.id)),
+        reassessed=sum(len(r.members) for r in reassessments),
+        changed=sum(
+            1
+            for r in reassessments
+            for ref, d in r.verified.items()
+            if ref in r.previous and keeps(d.value) != keeps(r.previous[ref].value)
+        ),
     )
 
 

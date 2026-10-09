@@ -1,7 +1,8 @@
 """Impact of a criteria change on the main screening, and reassessment (EF-VER-04, 05, 07).
 
-When a new criteria version is activated during the main screening, the references it
-touches are found from the current state (``domain.impact``). They form a reassessment
+At the title and abstract stage as at the full-text stage (tranche 2.2, docs/10 §3.4),
+when a new criteria version is activated during the main round, the references it
+touches are found from the current state of that round (``domain.impact``). They form a reassessment
 round with the new version: the AI screens them again (``screening.batch_ai``), and the
 human verifies only those whose decision would change (one keeps, the other excludes).
 Old decisions are never changed: the human's verification is a new decision that
@@ -33,6 +34,7 @@ from revue_portee.domain.screening import (
     ReviewerKind,
     RoundKind,
     ScreeningRound,
+    Stage,
     keeps,
 )
 from revue_portee.i18n import french
@@ -86,10 +88,47 @@ def impacts(folder: ProjectFolder, main_round_id: str) -> list[ImpactAssessment]
         return screening_repo.list_impacts(connection, main_round_id)
 
 
+def _main_round(folder: ProjectFolder, main_round_id: str) -> ScreeningRound:
+    """The main round of a stage (title and abstract, or full text)."""
+    with folder.engine.connect() as connection:
+        found = screening_repo.get_screening_round(connection, main_round_id)
+    if found is None or found.kind is not RoundKind.MAIN:
+        raise UnknownRoundError
+    return found
+
+
+def _decided_in(folder: ProjectFolder, screening: ScreeningRound) -> list[str]:
+    """Rounds whose human decisions count for a main round (its pilots included)."""
+    if screening.stage is Stage.FULL_TEXT:
+        # Imported here: the full-text use cases import the reports, which import this.
+        from revue_portee.screening import fulltext
+
+        return fulltext.decided_in(folder, screening)
+    with folder.engine.connect() as connection:
+        return main.decided_in(connection, screening)
+
+
+def _current(folder: ProjectFolder, screening: ScreeningRound) -> dict[str, ReferenceState]:
+    """The decision in force on each member of a main round."""
+    if screening.stage is Stage.FULL_TEXT:
+        from revue_portee.screening import fulltext  # see _decided_in
+
+        state = fulltext.main_state(folder, screening.id)
+        members, final = state.members, state.final
+    else:
+        ta = main.main_state(folder, screening.id)
+        members, final = ta.members, ta.final
+    return {
+        ref: ReferenceState(reference_id=ref, value=d.value, criteria_cited=d.criteria_cited)
+        for ref, d in final.items()
+        if ref in set(members)
+    }
+
+
 def next_version_to_assess(folder: ProjectFolder, main_round_id: str) -> CriteriaVersion | None:
-    """The oldest version activated after the one the main screening started with, and
-    not yet assessed: versions are assessed one after the other."""
-    screening = main.get_main_round(folder, main_round_id)
+    """The oldest version activated after the one the main round started with, and not
+    yet assessed: versions are assessed one after the other."""
+    screening = _main_round(folder, main_round_id)
     with folder.engine.connect() as connection:
         start = criteria_repo.get_version(connection, screening.criteria_version_id)
         assessed = {i.to_version_id for i in screening_repo.list_impacts(connection, screening.id)}
@@ -101,14 +140,6 @@ def next_version_to_assess(folder: ProjectFolder, main_round_id: str) -> Criteri
         if v.number > start.number and v.status is not VersionStatus.DRAFT and v.id not in assessed
     ]
     return min(candidates, key=lambda v: v.number) if candidates else None
-
-
-def _states(state: main.MainState) -> dict[str, ReferenceState]:
-    return {
-        ref: ReferenceState(reference_id=ref, value=d.value, criteria_cited=d.criteria_cited)
-        for ref, d in state.final.items()
-        if ref in set(state.members)
-    }
 
 
 def assess(
@@ -126,8 +157,8 @@ def assess(
     if version is None:
         raise NothingToAssessError
     changes = version_changes(folder, version.id)
-    state = main.main_state(folder, main_round_id)
-    impact = assess_impact([(c.code, c.change_type) for c in changes], _states(state))
+    screening = _main_round(folder, main_round_id)
+    impact = assess_impact([(c.code, c.change_type) for c in changes], _current(folder, screening))
     drawn_seed = secrets.randbelow(2**31) if seed is None else seed
     targets = reassessment_set(impact, seed=drawn_seed, sample_clarifications=sample_clarifications)
     from_version_id = changes[0].from_version_id if changes else str(version.parent_id)
@@ -137,7 +168,9 @@ def assess(
         assert from_version is not None  # noqa: S101 - a change points to its versions
         number = (
             len(
-                screening_repo.list_screening_rounds(connection, main.STAGE, RoundKind.REASSESSMENT)
+                screening_repo.list_screening_rounds(
+                    connection, screening.stage, RoundKind.REASSESSMENT
+                )
             )
             + 1
         )
@@ -146,7 +179,7 @@ def assess(
             reassessment = ScreeningRound(
                 id=new_ulid(moment),
                 number=number,
-                stage=main.STAGE,
+                stage=screening.stage,
                 kind=RoundKind.REASSESSMENT,
                 criteria_version_id=version.id,
                 seed=drawn_seed,
@@ -158,7 +191,7 @@ def assess(
             id=new_ulid(moment),
             from_version_id=from_version.id,
             to_version_id=version.id,
-            main_round_id=state.round.id,
+            main_round_id=screening.id,
             impact=impact,
             reassessment_round_id=None if reassessment is None else reassessment.id,
             seed=drawn_seed,
@@ -193,6 +226,7 @@ def assess(
             ),
             tool_version=tool_version,
             payload={
+                "stage": screening.stage.value,
                 "from_version": from_version.number,
                 "to_version": version.number,
                 "justification": version.rationale,
@@ -263,9 +297,9 @@ def _completed(folder: ProjectFolder, impact_id: str) -> bool:
 
 def reassessment_state(folder: ProjectFolder, impact_id: str) -> ReassessmentState:
     assessment, screening = _get(folder, impact_id)
+    main_round = _main_round(folder, assessment.main_round_id)
+    decided_in = _decided_in(folder, main_round)
     with folder.engine.connect() as connection:
-        main_round = screening_repo.get_screening_round(connection, assessment.main_round_id)
-        assert main_round is not None  # noqa: S101
         earlier = [
             i.reassessment_round_id
             for i in screening_repo.list_impacts(connection, assessment.main_round_id)
@@ -275,7 +309,7 @@ def reassessment_state(folder: ProjectFolder, impact_id: str) -> ReassessmentSta
         ]
         members = screening_repo.member_ids(connection, screening.id)
         previous_all = screening_repo.latest_by_reference(
-            connection, [*main.decided_in(connection, main_round), *earlier], reviewer_kind="human"
+            connection, [*decided_in, *earlier], reviewer_kind="human"
         )
         ai = screening_repo.latest_by_reference(connection, [screening.id], reviewer_kind="ai")
         verified = screening_repo.latest_by_reference(
@@ -330,7 +364,7 @@ def verify(
         decision = Decision(
             id=new_ulid(moment),
             reference_id=reference_id,
-            stage=main.STAGE,
+            stage=state.round.stage,
             round_id=state.round.id,
             reviewer_id=folder.reviewer_id,
             reviewer_kind=ReviewerKind.HUMAN,

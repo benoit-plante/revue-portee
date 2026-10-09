@@ -52,6 +52,7 @@ from revue_portee.domain.screening import (
     RoundKind,
     ScreeningMode,
     ScreeningRound,
+    Stage,
     Thresholds,
 )
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
@@ -1457,12 +1458,17 @@ def create_app(
 
     def round_page_url(round_id: str) -> str:
         """Page of a round: the screening, or the reassessment of an impact."""
-        screening = main_screening.main_round(folder)
-        if screening is not None and screening.id == round_id:
-            return "/tri"
-        for impact in [] if screening is None else reassessment.impacts(folder, screening.id):
-            if impact.reassessment_round_id == round_id:
-                return f"/tri/reevaluation/{impact.id}"
+        for screening, home in (
+            (main_screening.main_round(folder), "/tri"),
+            (fulltext_screening.main_round(folder), "/textes/tri"),
+        ):
+            if screening is None:
+                continue
+            if screening.id == round_id:
+                return home
+            for impact in reassessment.impacts(folder, screening.id):
+                if impact.reassessment_round_id == round_id:
+                    return f"/tri/reevaluation/{impact.id}"
         raise HTTPException(status_code=404, detail=_("Unknown round."))
 
     def version_numbers() -> dict[str, int]:
@@ -1820,6 +1826,10 @@ def create_app(
                 "previous": state.previous[reference_id],
                 "a": state.ai[reference_id],
             }
+        values |= {
+            "full_text": state.round.stage is Stage.FULL_TEXT,
+            "check_labels": fulltext_view.check_labels(),
+        }
         return render(request, "tri_reevaluation.html", values, status_code=status_code)
 
     @app.get("/tri/reevaluation/{impact_id}", response_class=HTMLResponse)
@@ -2118,6 +2128,13 @@ def create_app(
         jobs = [r.id for r in (trial, started) if r is not None]
         with folder.engine.connect() as connection:
             budget = screening_repo.latest_budget(connection)
+        impact_values: dict[str, Any] = {}
+        if started is not None:
+            impact_values = {
+                "to_assess": reassessment.next_version_to_assess(folder, started.id),
+                "impacts": reassessment.impacts(folder, started.id),
+                "versions": version_numbers(),
+            }
         return render(
             request,
             "textes_tri.html",
@@ -2139,7 +2156,8 @@ def create_app(
                 "values": pilot_view.value_labels(),
                 "error": error,
                 "message": message,
-            },
+            }
+            | impact_values,
             status_code=status_code,
         )
 
@@ -2182,6 +2200,29 @@ def create_app(
         ) as error:
             return fulltext_screening_page(request, error=str(error), status_code=422)
         return see_other("/textes/tri?ok=tri#principal")
+
+    @app.post("/textes/tri/impact")
+    def assess_text_impact(
+        request: Request, _csrf: Csrf, toutes: Annotated[str, Form()] = ""
+    ) -> Response:
+        started = fulltext_screening.main_round(folder)
+        if started is None:
+            raise HTTPException(
+                status_code=404, detail=_("The full-text screening has not started.")
+            )
+        try:
+            impact = reassessment.assess(
+                folder,
+                started.id,
+                sample_clarifications=not toutes,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except reassessment.NothingToAssessError as error:
+            return fulltext_screening_page(request, error=str(error), status_code=422)
+        if impact.reassessment_round_id is None:
+            return see_other("/textes/tri#changements")
+        return see_other(f"/tri/reevaluation/{impact.id}")
 
     @app.post("/textes/tri/ajouter")
     def add_texts_to_screening(_csrf: Csrf) -> Response:

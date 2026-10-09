@@ -103,4 +103,27 @@
     {% endif %}
   {% endif %}
 </section>
+
+{% if started %}
+<section aria-labelledby="changements">
+  <h2 id="changements">{{ _("3. Criteria changes") }}</h2>
+  {% if to_assess %}
+  <p>{{ _("Version %(number)s of the criteria came into force during the screening: its impact on the decisions already taken must be analysed.", number=to_assess.number) }}</p>
+  <form method="post" action="/textes/tri/impact">
+    {{ csrf() }}
+    <label class="inline"><input type="checkbox" name="toutes" value="1"> {{ _("Reassess every reference touched by a clarification (by default, a random sample of 20 %%, at least 20)") }}</label>
+    <button type="submit">{{ _("Analyse the impact of version %(number)s", number=to_assess.number) }}</button>
+  </form>
+  {% endif %}
+  {% if impacts %}
+  <ul>
+    {% for i in impacts %}
+    <li>{{ _("Version %(source)s to %(to)s: references touched: %(touched)s", source=versions[i.from_version_id], to=versions[i.to_version_id], touched=i.impact.touched | length) }}{% if i.reassessment_round_id %} — <a href="/tri/reevaluation/{{ i.id }}">{{ _("Reassessment") }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% elif not to_assess %}
+  <p>{{ _("No criteria change since the start of the screening of the texts.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}

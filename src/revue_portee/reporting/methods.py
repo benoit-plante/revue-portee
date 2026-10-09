@@ -183,6 +183,9 @@ class FulltextSummary(BaseModel):
     quotes_at_page: int = 0
     quotes_other_page: int = 0
     quotes_not_found: int = 0
+    changes: int = 0  # criteria versions assessed during the full-text screening
+    reassessed: int = 0  # texts reassessed after them
+    changed: int = 0  # decisions changed, keep against exclude
 
 
 class CostLine(BaseModel):
@@ -856,6 +859,20 @@ def _fulltext(_: Translate, data: MethodsData, language: str) -> list[Block]:
             with_ai=integer(ft.reconciled_with_ai, language),
         )
     blocks.append(Paragraph(text=results))
+    if ft.changes:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Criteria changes during the full-text screening: {changes}; texts "
+                    "reassessed (AI, then the person for the decisions it would change): "
+                    "{reassessed}; decisions changed: {changed}."
+                ).format(
+                    changes=integer(ft.changes, language),
+                    reassessed=integer(ft.reassessed, language),
+                    changed=integer(ft.changed, language),
+                )
+            )
+        )
     counts = data.flow.full_text
     if counts is not None and counts.excluded_by_reason:
         blocks.append(

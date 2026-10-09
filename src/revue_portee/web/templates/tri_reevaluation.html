@@ -3,7 +3,7 @@
 {% block title %}{{ _("Reassessment") }}{% endblock %}
 {% block content %}
 {% set values = value_labels() %}{% set types = change_type_labels() %}
-<p><a href="/tri">{{ _("Screening") }}</a></p>
+{% if full_text %}<p><a href="/textes/tri">{{ _("Full-text screening") }}</a></p>{% else %}<p><a href="/tri">{{ _("Screening") }}</a></p>{% endif %}
 <h1>{{ _("Reassessment %(number)s: criteria version %(source)s to %(to)s", number=state.round.number, source=versions[state.assessment.from_version_id], to=versions[state.assessment.to_version_id]) }}</h1>
 {% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
 <table class="criteria">
@@ -26,7 +26,14 @@
   <h2 id="verif-titre">{{ _("Decisions the AI would change") }}</h2>
   <p class="small">{{ _("To verify: %(left)s of %(count)s.", left=state.queue | length, count=state.changed | length) }}</p>
   {% if ref %}
+  {% if full_text %}
+  <article class="pair" aria-labelledby="texte-titre">
+    <h3 id="texte-titre">{{ ref.title or _("(no title)") }}</h3>
+    <p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %} — <a href="/textes/{{ ref.id }}" target="_blank" rel="noopener">{{ _("Text by page") }}</a> · <a href="/textes/{{ ref.id }}/pdf" target="_blank" rel="noopener">PDF</a></p>
+  </article>
+  {% else %}
   {% include "_tri_notice.html" %}
+  {% endif %}
   <div class="two-columns">
     <section aria-labelledby="avant-titre">
       <h3 id="avant-titre">{{ _("Decision before the change") }}</h3>
@@ -34,7 +41,7 @@
     </section>
     <section aria-labelledby="ia-dec-titre">
       <h3 id="ia-dec-titre">{{ _("Decision of the AI with the new version") }}</h3>
-      {% include "_tri_ai_decision.html" %}
+      {% if full_text %}{% include "_texte_ia.html" %}{% else %}{% include "_tri_ai_decision.html" %}{% endif %}
     </section>
   </div>
   {% with action = "/tri/reevaluation/" ~ state.assessment.id, reference_id = ref.id, checked = [] %}{% include "_tri_form.html" %}{% endwith %}

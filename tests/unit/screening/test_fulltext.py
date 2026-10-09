@@ -21,18 +21,22 @@ from demo import (
     screen,
 )
 from revue_portee.ai.tasks.fulltext import ScreenFulltextOutput
+from revue_portee.domain.changes import ChangeType
+from revue_portee.domain.criteria import CriterionKind
 from revue_portee.domain.fulltext import QuoteCheck
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.screening import (
     DecisionContext,
     DecisionValue,
     ScreeningMode,
+    Stage,
     page_quote_counts,
 )
-from revue_portee.protocol import notes
-from revue_portee.screening import batch_ai, fulltext, settings
+from revue_portee.protocol import criteria, notes
+from revue_portee.screening import batch_ai, fulltext, reassessment, settings
 from revue_portee.screening.ai_screening import AIBatchResult, UnusableAnswerError
 from revue_portee.screening.main import NotADisagreementError
+from revue_portee.screening.methods import methods_data
 from revue_portee.screening.pilot import NotInRoundError, UnknownCriterionError, UnknownRoundError
 from support import TOOL_VERSION, make_pdf
 
@@ -326,3 +330,56 @@ def test_batches_of_the_main_round_need_the_pilot(tmp_path: Path) -> None:
     finally:
         demo.folder.close()
     assert (preview.task, preview.items) == ("screen_fulltext", 2)
+
+
+def test_criteria_change_reassessed_at_the_full_text(tmp_path: Path) -> None:
+    """Version 3 broadens P1 to any age: the housing study, excluded for P1 at the full
+    text, is touched; the AI screens it again and would now include it; the person
+    verifies it and includes it. The other text keeps its decision."""
+    demo = build(tmp_path)
+    folder, clock = demo.folder, demo.clock
+    try:
+        ids = demo.ids()
+        criteria.update_criterion(
+            folder, "P1", kind=CriterionKind.INCLUSION, text="People of any age.", now=clock,
+            tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        criteria.activate_draft(
+            folder, rationale="Population élargie à tous les âges.",
+            qualifications={"P1": ChangeType.BROADENING}, now=clock, tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        main_id = demo.fulltext_round_id
+        assert reassessment.next_version_to_assess(folder, main_id) is not None
+        impact = reassessment.assess(folder, main_id, seed=4, now=clock, tool_version=TOOL_VERSION)
+        assert impact.reassessment_round_id is not None
+        state = reassessment.reassessment_state(folder, impact.id)
+        assert state.round.stage is Stage.FULL_TEXT
+        assert state.members == [ids["housing"]]
+        v3 = AI_FT | {
+            "housing": AI_FT["loneliness"] | {"rationale": "P1 satisfait : tous les âges."}
+        }
+        chosen = _factory(v3)
+        batch_ai.submit(
+            folder, impact.reassessment_round_id, batch_limit=Decimal(5), factory=chosen,
+            now=clock, tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        batch_ai.follow(
+            folder, impact.reassessment_round_id, factory=chosen, now=clock,
+            tool_version=TOOL_VERSION, wait=lambda _: None,
+        )  # fmt: skip
+        state = reassessment.reassessment_state(folder, impact.id)
+        assert state.queue == [ids["housing"]]
+        verified = reassessment.verify(
+            folder, impact.id, ids["housing"], IN, now=clock, tool_version=TOOL_VERSION
+        )
+        reassessment.complete(folder, impact.id, now=clock, tool_version=TOOL_VERSION)
+        after = fulltext.main_state(folder)
+        summary = methods_data(folder, now=clock, tool_version=TOOL_VERSION).full_text
+    finally:
+        folder.close()
+    assert verified.stage is Stage.FULL_TEXT
+    assert after.final[ids["housing"]].value is IN
+    assert after.reason(ids["housing"]) is None
+    assert fulltext.kept(after) == [r for r in after.members]
+    assert summary is not None
+    assert (summary.changes, summary.reassessed, summary.changed) == (1, 1, 1)

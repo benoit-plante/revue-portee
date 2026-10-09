@@ -123,7 +123,8 @@ def pending_batches(folder: ProjectFolder, round_id: str) -> list[AIBatch]:
 
 def waiting_for_ai(folder: ProjectFolder, round_id: str) -> list[str]:
     """Members of the round, in order, that the AI has not decided, that no running
-    batch holds, and that have had fewer than ``MAX_ATTEMPTS`` calls."""
+    batch holds, and that have had fewer than ``MAX_ATTEMPTS`` calls (at the full-text
+    stage, texts it can read)."""
     screening = _round(folder, round_id)
     with folder.engine.connect() as connection:
         members = screening_repo.member_ids(connection, screening.id)
@@ -136,10 +137,18 @@ def waiting_for_ai(folder: ProjectFolder, round_id: str) -> list[str]:
             if screening_repo.batch_end(connection, batch.id) is None
             for item in batch.item_ids
         }
+    unreadable: set[str] = set()
+    if screening.stage is Stage.FULL_TEXT:  # texts without readable text: the person only
+        from revue_portee.screening import fulltext  # see _stage_task
+
+        unreadable = fulltext.unreadable_texts(folder)
     return [
         ref
         for ref in members
-        if ref not in decided and ref not in running and attempts.get(ref, 0) < MAX_ATTEMPTS
+        if ref not in decided
+        and ref not in running
+        and ref not in unreadable
+        and attempts.get(ref, 0) < MAX_ATTEMPTS
     ]
 
 
@@ -256,7 +265,7 @@ def submit(
         raise BudgetNotSetError
     stage = _stage_task(screening)
     if screening.stage is Stage.FULL_TEXT:
-        from revue_portee.screening import fulltext
+        from revue_portee.screening import fulltext  # see _stage_task
 
         if not fulltext.pilot_complete(folder):
             raise fulltext.PilotRequiredError

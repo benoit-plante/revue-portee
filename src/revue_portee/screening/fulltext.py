@@ -116,6 +116,7 @@ __all__ = [
     "ai_inputs",
     "check_answer",
     "criteria_of_round",
+    "decided_in",
     "fulltext_thresholds",
     "kept",
     "main_round",
@@ -134,6 +135,7 @@ __all__ = [
     "start_main",
     "start_pilot",
     "store_batch_decision",
+    "unreadable_texts",
 ]
 
 Clock = Callable[[], datetime]
@@ -192,6 +194,11 @@ def _documents(folder: ProjectFolder) -> dict[str, tuple[Reference, FulltextDocu
 def screenable_texts(folder: ProjectFolder) -> list[str]:
     """References sought whose full text is obtained, sorted by identifier."""
     return sorted(_documents(folder))
+
+
+def unreadable_texts(folder: ProjectFolder) -> set[str]:
+    """Texts without readable text (scanned or not decodable): the person only."""
+    return {ref for ref, (_reference, doc) in _documents(folder).items() if doc.needs_ocr}
 
 
 def fulltext_thresholds(folder: ProjectFolder) -> Thresholds:
@@ -777,10 +784,22 @@ def replay_decision(folder: ProjectFolder, decision_id: str) -> Decision:
 # --- The person ---------------------------------------------------------------------
 
 
-def _decided_in(folder: ProjectFolder, screening: ScreeningRound) -> list[str]:
+def decided_in(folder: ProjectFolder, screening: ScreeningRound) -> list[str]:
+    """Rounds whose human decisions count for ``screening``: a main round counts the
+    decisions of its pilots with the same criteria version."""
     if screening.kind is RoundKind.MAIN:
         return [screening.id, *_carried(folder, screening)]
     return [screening.id]
+
+
+def _reassessed(folder: ProjectFolder, screening: ScreeningRound) -> list[str]:
+    """Reassessment rounds of a main round (criteria changes, EF-VER-05)."""
+    with folder.engine.connect() as connection:
+        return [
+            impact.reassessment_round_id
+            for impact in screening_repo.list_impacts(connection, screening.id)
+            if impact.reassessment_round_id is not None
+        ]
 
 
 def record_decision(
@@ -814,7 +833,7 @@ def record_decision(
         ).get(reference_id):
             raise AIFirstError
         previous = screening_repo.latest_by_reference(
-            connection, _decided_in(folder, screening), reviewer_kind=HUMAN,
+            connection, decided_in(folder, screening), reviewer_kind=HUMAN,
             contexts=[context.value],
         ).get(reference_id)  # fmt: skip
         moment = now()
@@ -964,7 +983,8 @@ def main_state(folder: ProjectFolder, round_id: str | None = None) -> FulltextSt
     main = main_round(folder) if round_id is None else _any_round(folder, round_id)
     if main is None or main.kind is not RoundKind.MAIN:
         raise UnknownRoundError
-    rounds = _decided_in(folder, main)
+    rounds = decided_in(folder, main)
+    reassessed = _reassessed(folder, main)
     with folder.engine.connect() as connection:
         members = screening_repo.member_ids(connection, main.id)
         human = screening_repo.latest_by_reference(
@@ -974,7 +994,9 @@ def main_state(folder: ProjectFolder, round_id: str | None = None) -> FulltextSt
         reconciled = screening_repo.latest_by_reference(
             connection, [main.id], reviewer_kind=HUMAN, contexts=["reconciliation"]
         )
-        final = screening_repo.latest_by_reference(connection, rounds, reviewer_kind=HUMAN)
+        final = screening_repo.latest_by_reference(
+            connection, [*rounds, *reassessed], reviewer_kind=HUMAN
+        )
     documents = _documents(folder)
     blind = main.mode is ScreeningMode.BLIND
     disagreements = [
