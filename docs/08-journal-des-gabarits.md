@@ -79,9 +79,9 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Tâche | Tri des textes intégraux par le réviseur IA, un rapport par appel (EF-SEL-16, D-102) |
 | Date | 2026-10-09, tranche 2.2 |
 | Rédaction | Écrit d'un seul jet à partir de `screen_reference` v1 et de la conception du tri au texte intégral ([10](10-conception-texte-integral.md), §3.2) : même évaluation par critère et même règle EF-SEL-07, mais sur le texte page par page (« [p. N] »), sans la bibliographie; chaque citation donne sa page, que l'outil vérifie (trouvée à la page, ailleurs, introuvable); citation d'au plus 40 mots environ, recopiée telle quelle. Les critères vont dans l'invite système, mise en cache (ENF-COU-04) |
-| Données de mise au point | **Aucune.** Le gabarit n'a été exécuté qu'avec le fournisseur factice des tests |
+| Données de mise au point | **Désignées le 2026-10-09, avant tout appel réel** : 10 textes tirés avec la graine 2026 parmi les 97 PDF en libre accès d'Oud_2018 (SYNERGY), obtenus à l'essai de la tranche 2.1 ([resultats/README.md](resultats/README.md)); empreintes SHA-256 dans [resultats/essai-screen-fulltext-v1.md](resultats/essai-screen-fulltext-v1.md). Critères : `resultats/synergy/Oud_2018.yaml`. Ces 10 textes ne pourront plus servir à mesurer le tri du texte intégral. Aucun des 97 n'est une étude incluse dans Oud_2018 : l'essai vérifie le fonctionnement (réponses utilisables, citations et pages, coût), pas la sensibilité |
 | Versions essayées | Aucune autre |
-| Appels réels | Aucun |
+| Appels réels | 2026-10-09, avec l'accord de Benoit, plafond 1 $ US : voir [resultats/essai-screen-fulltext-v1.md](resultats/essai-screen-fulltext-v1.md) |
 | Données de test | Aucune à ce jour. L'objectif secondaire de l'étude de validation (protocole en préparation) le mesurera sur des revues mises de côté; toute mise au point devra se faire sur d'autres textes, désignés ici avant |
 | Résultats | Aucun |
 
