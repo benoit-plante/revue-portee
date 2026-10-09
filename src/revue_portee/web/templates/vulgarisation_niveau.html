@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Plain-language summaries") }}{% endblock %}
+{% block content %}
+{% set lv = target.level.value %}
+<p><a href="/synthese/vulgarisation">{{ _("Plain-language summaries") }}</a></p>
+<h1>{{ _("Summary for %(level)s", level=level_name) }}</h1>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if job_error %}<div class="message error" role="alert">{{ job_error }}</div>{% endif %}
+<p>{{ _("Readability target: an index of %(target)s or more (Kandel-Moles in French, Flesch in English).", target=goal | int) }} {{ _("It rests on the revised synthesis of %(count)s fields.", count=state.sources | length) }}</p>
+
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Draft by the AI") }}</h2>
+  {% if running %}
+    <p role="status">{{ _("The AI is drafting the summary…") }} <a href="/synthese/vulgarisation/{{ lv }}">{{ _("Refresh") }}</a></p>
+  {% elif preview %}
+    <dl class="meta">
+      <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+      <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+    </dl>
+    <form method="post" action="/synthese/vulgarisation/{{ lv }}/ia" class="inline-form">
+      {{ csrf() }}
+      <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+      <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+      <button type="submit">{{ _("Ask the AI for a draft (confirm the cost)") }}</button>
+      <a href="/synthese/vulgarisation/{{ lv }}">{{ _("Cancel") }}</a>
+    </form>
+  {% elif state.sources %}
+    <form method="post" action="/synthese/vulgarisation/{{ lv }}/ia/estimation">{{ csrf() }}<button type="submit" class="secondary">{{ _("Estimate the cost of a draft") }}</button></form>
+  {% endif %}
+  {% if target.to_revise %}<p class="message info">{{ _("Draft of the AI, not revised: it is not used anywhere until you revise it below.") }}</p>{% endif %}
+  {% if target.outdated %}<p class="message info">{{ _("To review: the narrative synthesis was revised since this summary.") }}</p>{% endif %}
+</section>
+
+{% if target.current %}
+<section aria-labelledby="actuel-titre">
+  <h2 id="actuel-titre">{% if target.to_revise %}{{ _("Draft to revise") }}{% else %}{{ _("Your summary") }}{% endif %}</h2>
+  {% if readability %}
+  <p><strong>{{ _("Readability index (%(formula)s): %(index)s, %(band)s", formula=readability.formula, index=decimal_fr(readability.index, 1), band=band_name) }}</strong> — {% if reached %}{{ _("target reached") }}{% else %}{{ _("target not reached") }}{% endif %}. <span class="small">{{ _("%(words)s words, %(sentences)s sentences, %(syllables)s syllables.", words=readability.words, sentences=readability.sentences, syllables=readability.syllables) }}</span></p>
+  {% endif %}
+  <h3>{{ target.current.title }}</h3>
+  {% for p in target.current.paragraphs %}<p>{{ p }}</p>{% endfor %}
+</section>
+{% endif %}
+
+<section aria-labelledby="revision-titre">
+  <h2 id="revision-titre">{{ _("Revision") }}</h2>
+  <p>{{ _("Separate the paragraphs with a blank line. The readability index is computed when you record.") }}</p>
+  <form method="post" action="/synthese/vulgarisation/{{ lv }}">
+    {{ csrf() }}
+    <label for="titre">{{ _("Title") }}</label>
+    <input type="text" id="titre" name="titre" value="{{ target.current.title if target.current else '' }}">
+    <label for="texte">{{ _("Text") }}</label>
+    <textarea id="texte" name="texte" rows="14">{{ target.current.text if target.current else '' }}</textarea>
+    <button type="submit">{{ _("Record my summary") }}</button>
+  </form>
+  {% if target.revised %}
+  <form method="post" action="/synthese/vulgarisation/{{ lv }}/export">{{ csrf() }}<button type="submit" class="secondary">{{ _("Export the revised summary (Markdown and Word)") }}</button></form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+Review: {{ review_title }}
+{% if review_question %}Question: {{ review_question }}
+{% endif %}Included studies: {{ studies }}
+
+Synthesis of the results, field by field (revised by the reviewers):
+{% for s in sections %}
+## {{ s.label }}
+{{ s.text }}
+{% endfor %}

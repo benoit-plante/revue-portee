@@ -106,3 +106,14 @@ tasks:
       effort: medium
       fallbacks: default
     expected_output_tokens: 2000
+  # Plain-language summaries (tranche 4.1): one call per language level, from the
+  # narrative synthesis revised by the person. A writing task: the capable model.
+  draft_lay_summary:
+    status: enabled
+    provider: anthropic
+    model: claude-opus-5-5
+    params:
+      max_tokens: 16000
+      effort: medium
+      fallbacks: default
+    expected_output_tokens: 1500

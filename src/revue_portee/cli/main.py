@@ -306,6 +306,45 @@ def export_extracted(
 
 
 @app.command(
+    "vulgarisation",
+    help=_(
+        "Write the plain-language summary revised by the person for a level (Markdown and "
+        "Word), with its readability index, in the exports folder."
+    ),
+)
+def export_lay_summary(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    niveau: Annotated[
+        str, typer.Option(help=_("Level: general, informed or professional."))
+    ] = "general",
+) -> None:
+    from revue_portee.domain.lay_summary import LayLevel
+    from revue_portee.extraction.prefill import NoGridError
+    from revue_portee.stakeholders import lay_summary
+
+    try:
+        level = LayLevel(niveau)
+    except ValueError as error:
+        raise _fail(_("Unknown level: {level}.").format(level=niveau)) from error
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        written = lay_summary.export_summary(
+            folder, level, now=utc_now, tool_version=tool_version()
+        )
+    except NoGridError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    for path in written:
+        typer.echo(str(path))
+
+
+@app.command(
     "narratif",
     help=_(
         "Write the narrative synthesis revised by the person (Markdown and Word) in the "

@@ -52,6 +52,7 @@ from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import fulltext as fulltext_repo
 from revue_portee.storage.repositories import grid as grid_repo
 from revue_portee.storage.repositories import journal, projects
+from revue_portee.storage.repositories import lay_summary as summary_repo
 from revue_portee.storage.repositories import narrative as narrative_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.storage.repositories import synthesis as synthesis_repo
@@ -243,6 +244,7 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
         versions = grid_repo.list_versions(connection)
         comments = synthesis_repo.list_comments(connection)
         drafts = narrative_repo.list_drafts(connection)
+        summaries = summary_repo.list_summaries(connection)
     grid = csv_text(
         ("version", "version_id", "status", "activated_at", "code", "label", "type",
          "definition", "guidance", "choices"),
@@ -272,8 +274,21 @@ def _extraction_files(folder: ProjectFolder) -> dict[str, str]:
             for number, s in enumerate(d.sentences, start=1)
         ),
     )  # fmt: skip
+    lay = csv_text(
+        ("summary_id", "level", "language", "status", "reviewer_kind", "ai_call_id",
+         "supersedes_id", "created_at", "title", "text", "readability_formula",
+         "readability_index", "words", "sentences", "syllables"),
+        (
+            (s.id, s.level.value, s.language, s.status.value, s.reviewer_kind.value,
+             s.ai_call_id or "", s.supersedes_id or "", s.created_at.isoformat(), s.title,
+             s.text, *(("", "", "", "", "") if (r := s.readability) is None
+                       else (r.formula, r.index, r.words, r.sentences, r.syllables)))
+            for s in summaries
+        ),
+    )  # fmt: skip
     kept, _count = validation.extraction_tables(folder)
     return kept | {
+        "syntheses-vulgarisees.csv": lay,
         "syntheses-narratives.csv": narratives,
         "grille.csv": grid,
         "valeurs-extraites.csv": validation.history_table(folder),
