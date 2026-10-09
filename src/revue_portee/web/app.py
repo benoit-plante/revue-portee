@@ -57,6 +57,7 @@ from revue_portee.domain.screening import (
 )
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
+from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
@@ -73,7 +74,7 @@ from revue_portee.reporting.protocol import change_labels as report_change_label
 from revue_portee.reporting.protocol import checklist_status
 from revue_portee.reporting.retained import write_csv, write_ris
 from revue_portee.resources import flow_template, peters_checklist, tool_validation
-from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment
+from revue_portee.screening import ai_screening, batch_ai, pilot, reassessment, studies
 from revue_portee.screening import fulltext as fulltext_screening
 from revue_portee.screening import main as main_screening
 from revue_portee.screening import settings as screening_settings
@@ -320,6 +321,8 @@ ARCHIVE_NAME = re.compile(r"archive-(publique|complete)-\d{8}T\d{6}Z\.zip")
 
 # Key of the background job that compares the references (one at a time).
 DEDUP_JOB = "dedoublonnage"
+# Key of the background job where the AI examines pairs of reports (one at a time).
+STUDY_JOB = "etudes-ia"
 
 
 def create_app(
@@ -2104,6 +2107,119 @@ def create_app(
         if row is None or row.document is None:
             raise HTTPException(status_code=404, detail=_("No full text for this reference."))
         return row, row.document
+
+    # --- Studies and their reports -------------------------------------------------
+
+    def studies_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        preview: CostPreview | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        state = studies.study_state(folder)
+        reports = {
+            ref: reference for ref, (reference, _doc) in studies.included_reports(folder).items()
+        }
+        return render(
+            request,
+            "etudes.html",
+            {
+                "state": state,
+                "reports": reports,
+                "pending": [same_pair(c.reference_a_id, c.reference_b_id) for c in state.pending],
+                "running": background.running(STUDY_JOB),
+                "job_error": background.error(STUDY_JOB),
+                "last_run": last_batches.get(STUDY_JOB),
+                "preview": preview,
+                "ceiling": None if preview is None else pilot_view.batch_ceiling(preview.estimate),
+                "verdict_labels": fulltext_view.verdict_labels(),
+                "check_labels": fulltext_view.check_labels(),
+                "rule_labels": fulltext_view.rule_labels(),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/textes/etudes", response_class=HTMLResponse)
+    def show_studies(request: Request, ok: str = "") -> HTMLResponse:
+        messages = {
+            "decision": _("Decision recorded."),
+            "principal": _("Primary report chosen."),
+            "ia": _("AI examination started in the background."),
+        }
+        return studies_page(request, message=messages.get(ok))
+
+    @app.post("/textes/etudes/ia/estimation")
+    def estimate_studies_ai(request: Request, _csrf: Csrf) -> Response:
+        try:
+            preview = studies.preview_ai(folder, factory=provider_factory)
+        except _AI_ERRORS as error:
+            return studies_page(request, error=str(error), status_code=422)
+        return studies_page(request, preview=preview)
+
+    @app.post("/textes/etudes/ia")
+    def examine_pairs_with_ai(
+        request: Request, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return studies_page(
+                request, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return studies_page(request, error=error, status_code=422)
+
+        def work() -> None:
+            last_batches[STUDY_JOB] = studies.run_ai(
+                folder,
+                batch_limit=limit,
+                factory=provider_factory,
+                now=now,
+                tool_version=context.tool_version,
+            )
+
+        if not background.start(STUDY_JOB, work):
+            return studies_page(
+                request, error=_("An AI batch is already running."), status_code=422
+            )
+        return see_other("/textes/etudes?ok=ia")
+
+    @app.post("/textes/etudes/decision")
+    def decide_study_link(
+        request: Request,
+        _csrf: Csrf,
+        a: Annotated[str, Form()] = "",
+        b: Annotated[str, Form()] = "",
+        issue: Annotated[str, Form()] = "",
+        note: Annotated[str, Form()] = "",
+    ) -> Response:
+        try:
+            outcome = LinkOutcome(issue)
+        except ValueError:
+            return studies_page(request, error=_("Choose a decision."), status_code=422)
+        try:
+            studies.decide(
+                folder, a, b, outcome, note=note, now=now, tool_version=context.tool_version
+            )
+        except studies.NotIncludedError as error:
+            return studies_page(request, error=str(error), status_code=422)
+        return see_other("/textes/etudes?ok=decision")
+
+    @app.post("/textes/etudes/principal")
+    def choose_primary_report(
+        request: Request, _csrf: Csrf, reference: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            studies.choose_primary(folder, reference, now=now, tool_version=context.tool_version)
+        except studies.NotIncludedError as error:
+            return studies_page(request, error=str(error), status_code=422)
+        return see_other("/textes/etudes?ok=principal")
 
     # --- Full-text screening ------------------------------------------------------------
 

@@ -69,6 +69,7 @@ __all__ = [
     "key_article_set_version",
     "metadata",
     "pair_decision",
+    "primary_report_choice",
     "project",
     "protocol_registration",
     "protocol_text_version",
@@ -83,6 +84,8 @@ __all__ = [
     "search_run",
     "search_strategy_version",
     "sensitivity_check",
+    "study_link_assessment",
+    "study_link_decision",
     "suggestion_review",
     "term_suggestion",
     "term_suggestion_review",
@@ -857,6 +860,48 @@ retrieval_note = Table(
     _journal_column(),
     CheckConstraint("status IN ('not_found', 'not_retrievable')", name="ck_retrieval_status"),
     Index("ix_retrieval_note_reference", "reference_id"),
+)
+
+study_link_assessment = Table(
+    "study_link_assessment",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_a_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("reference_b_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("rule", String(16), nullable=False),
+    Column("verdict", String(16), nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("evidence_json", Text, nullable=False),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+    Index("ix_study_link_assessment_pair", "reference_a_id", "reference_b_id"),
+)
+
+study_link_decision = Table(
+    "study_link_decision",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_a_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("reference_b_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("outcome", String(16), nullable=False),
+    Column("note", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+    CheckConstraint("outcome IN ('same', 'different')", name="ck_study_link_outcome"),
+    Index("ix_study_link_decision_pair", "reference_a_id", "reference_b_id"),
+)
+
+primary_report_choice = Table(
+    "primary_report_choice",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
 )
 
 Index(

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Studies and their reports") }}{% endblock %}
+{% block content %}
+<p><a href="/textes/tri">{{ _("Full-text screening") }}</a></p>
+<h1>{{ _("Studies and their reports") }}</h1>
+<p>{{ _("A study may be reported in several included articles (main results, protocol, secondary analyses). Rules propose the pairs of included reports that may report one study; the AI examines each pair in the two texts; you decide. The diagram counts the studies, and their reports.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+<section aria-labelledby="etudes-titre">
+  <h2 id="etudes-titre">{{ _("Studies included: %(studies)s, from %(reports)s reports", studies=state.studies | length, reports=state.reports | length) }}</h2>
+  {% if state.studies %}
+  <ul>
+    {% for s in state.studies %}
+    <li>
+      {% for ref in s.reports %}
+        {% set r = reports[ref] %}
+        {{ r.title or _("(no title)") }} <span class="small">({{ r.year or "?" }})</span>
+        {% if ref == s.primary %}<strong class="small">{{ _("primary report") }}</strong>
+        {% elif s.reports | length > 1 %}
+        <form method="post" action="/textes/etudes/principal" class="inline-form">
+          {{ csrf() }}<input type="hidden" name="reference" value="{{ ref }}">
+          <button type="submit" class="secondary">{{ _("Make it the primary report") }}</button>
+        </form>
+        {% endif %}
+        {% if not loop.last %}<br>{% endif %}
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ _("No report is included at the full text yet.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="paires-titre">
+  <h2 id="paires-titre">{{ _("Pairs proposed by the rules") }}</h2>
+  <p class="small">{{ _("To decide: %(left)s of %(count)s.", left=pending | length, count=state.candidates | length) }}</p>
+  {% if running %}
+    <p role="status">{{ _("The AI is examining the pairs…") }}</p>
+  {% else %}
+    {% if job_error %}<div class="message error" role="alert">{{ job_error }}</div>{% endif %}
+    {% if last_run %}<p class="small">{{ _("Last AI batch: %(screened)s pairs examined, %(failed)s failed.", screened=last_run.screened, failed=last_run.failed | length) }}</p>{% endif %}
+    {% if preview %}
+      <dl class="meta">
+        <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+        <dt>{{ _("Pairs") }}</dt><dd>{{ preview.items }}</dd>
+        <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+      </dl>
+      <form method="post" action="/textes/etudes/ia" class="inline-form">
+        {{ csrf() }}
+        <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+        <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+        <button type="submit">{{ _("Start the AI screening (confirm the cost)") }}</button>
+        <a href="/textes/etudes">{{ _("Cancel") }}</a>
+      </form>
+    {% elif state.without_ai %}
+      <form method="post" action="/textes/etudes/ia/estimation">
+        {{ csrf() }}
+        <button type="submit" class="secondary">{{ _("Estimate the cost of the AI on the pairs") }}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  {% for c in state.candidates %}
+  {% set pair = (c.reference_a_id, c.reference_b_id) %}
+  {% set a = state.assessments.get(pair) %}{% set d = state.decisions.get(pair) %}
+  <article class="pair" id="paire-{{ c.reference_a_id }}-{{ c.reference_b_id }}">
+    <p><strong>A</strong> — {{ reports[c.reference_a_id].title }} ({{ reports[c.reference_a_id].year or "?" }})<br>
+       <strong>B</strong> — {{ reports[c.reference_b_id].title }} ({{ reports[c.reference_b_id].year or "?" }})</p>
+    <p class="small">{{ _("Proposed for: %(rule)s.", rule=rule_labels[c.rule]) }}{% if c.shared_registrations %} {{ c.shared_registrations | join(", ") }}.{% endif %}{% if c.shared_authors %} {{ _("Shared authors: %(names)s.", names=c.shared_authors | join(", ")) }}{% endif %}</p>
+    {% if a %}
+      <p>{{ _("AI: %(verdict)s.", verdict=verdict_labels[a.verdict]) }} {{ a.rationale }}</p>
+      <ul class="small">
+      {% for e in a.evidence %}
+        <li>{{ e.aspect }}&nbsp;: A {% if e.quote_a %}«&nbsp;{{ e.quote_a }}&nbsp;»{% if e.page_a %} ({{ _("page %(page)s", page=e.page_a) }}){% endif %}{% if e.check_a %} — {{ check_labels[e.check_a] }}{% endif %}{% else %}—{% endif %}; B {% if e.quote_b %}«&nbsp;{{ e.quote_b }}&nbsp;»{% if e.page_b %} ({{ _("page %(page)s", page=e.page_b) }}){% endif %}{% if e.check_b %} — {{ check_labels[e.check_b] }}{% endif %}{% else %}—{% endif %}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+    {% if d %}<p class="small">{{ _("Your decision: %(outcome)s.", outcome=_("same study") if d.outcome == "same" else _("different studies")) }}</p>{% endif %}
+    <form method="post" action="/textes/etudes/decision" class="inline-form">
+      {{ csrf() }}
+      <input type="hidden" name="a" value="{{ c.reference_a_id }}"><input type="hidden" name="b" value="{{ c.reference_b_id }}">
+      <button type="submit" name="issue" value="same">{{ _("One study") }}</button>
+      <button type="submit" name="issue" value="different" class="secondary">{{ _("Two studies") }}</button>
+    </form>
+  </article>
+  {% else %}
+  <p>{{ _("The rules propose no pair.") }}</p>
+  {% endfor %}
+</section>
+
+{% if state.reports | length > 1 %}
+<section aria-labelledby="joindre-titre">
+  <h2 id="joindre-titre">{{ _("Join two reports yourself") }}</h2>
+  <form method="post" action="/textes/etudes/decision">
+    {{ csrf() }}
+    <input type="hidden" name="issue" value="same">
+    <label for="rapport-a">{{ _("Report") }}</label>
+    <select id="rapport-a" name="a">{% for ref in state.reports %}<option value="{{ ref }}">{{ reports[ref].title }}</option>{% endfor %}</select>
+    <label for="rapport-b">{{ _("Same study as") }}</label>
+    <select id="rapport-b" name="b">{% for ref in state.reports %}<option value="{{ ref }}">{{ reports[ref].title }}</option>{% endfor %}</select>
+    <button type="submit">{{ _("Join") }}</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

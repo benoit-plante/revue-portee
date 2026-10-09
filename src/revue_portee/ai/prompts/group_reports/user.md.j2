@@ -1,0 +1,18 @@
+{% for name, r in (("A", report_a), ("B", report_b)) %}
+Report {{ name }}:
+- Title: {{ r.title or "(no title)" }}
+- Authors: {{ r.authors | join("; ") or "(unknown)" }}
+- Year: {{ r.year or "(unknown)" }}
+- Journal or book: {{ r.container_title or "(unknown)" }}
+- Registration numbers found: {{ r.registrations | join(", ") or "(none)" }}
+{% if r.pages %}
+Text of report {{ name }} (first pages):
+{% for page in r.pages %}
+[p. {{ page.number }}]
+{{ page.text }}
+{% endfor %}
+{% else %}
+(No text available for report {{ name }}.)
+{% endif %}
+
+{% endfor %}

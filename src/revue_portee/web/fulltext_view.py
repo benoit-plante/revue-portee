@@ -3,7 +3,7 @@
 from revue_portee.i18n import gettext as _
 
 __all__ = ["JOB", "check_labels", "match_labels", "mode_labels", "origin_labels",
-           "status_labels"]  # fmt: skip
+           "rule_labels", "status_labels", "verdict_labels"]  # fmt: skip
 
 # Key of the background job that looks for open access versions (one at a time).
 JOB = "textes-libres"
@@ -32,6 +32,24 @@ def check_labels() -> dict[str, str]:
         "at_page": _("found at this page"),
         "other_page": _("found, but on another page"),
         "not_found": _("not found in the text"),
+    }
+
+
+def verdict_labels() -> dict[str, str]:
+    """The AI's verdict on a pair of reports."""
+    return {
+        "same": _("same study"),
+        "different": _("different studies"),
+        "uncertain": _("cannot tell"),
+    }
+
+
+def rule_labels() -> dict[str, str]:
+    """Why the rules proposed a pair of reports."""
+    return {
+        "registration": _("same trial registration number"),
+        "authors": _("shared authors and words"),
+        "title": _("close titles"),
     }
 
 

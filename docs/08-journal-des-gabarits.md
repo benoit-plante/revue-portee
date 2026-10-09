@@ -85,8 +85,21 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | Aucune à ce jour. L'objectif secondaire de l'étude de validation (protocole en préparation) le mesurera sur des revues mises de côté; toute mise au point devra se faire sur d'autres textes, désignés ici avant |
 | Résultats | Aucun |
 
+### group_reports v1
+
+| Élément | Description |
+|---|---|
+| Tâche | Deux rapports inclus sont-ils des rapports d'une même étude? Un appel par paire proposée par les règles (EF-SEL-17, tranche 2.3) |
+| Date | 2026-10-09, tranche 2.3 |
+| Rédaction | Écrit d'un seul jet : verdict (même étude, études différentes, incertain), éléments comparés avec une citation et sa page dans chaque rapport, que l'outil vérifie; mise en garde contre les équipes qui publient plusieurs études. Le modèle reçoit les métadonnées, les numéros d'enregistrement trouvés par l'outil et les premières pages de chaque texte |
+| Données de mise au point | **Aucune.** Exécuté seulement avec le fournisseur factice des tests |
+| Versions essayées | Aucune autre |
+| Appels réels | Aucun |
+| Données de test | Aucune à ce jour. Le rappel des regroupements se mesure sur les règles (jeu PubMed par numéro ClinicalTrials.gov); le gabarit ne fait qu'éclairer la décision de la personne |
+| Résultats | Aucun |
+
 ## Bilan
 
-Aucun des cinq gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
+Aucun des six gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
 
 Seul `screen_reference` sert à une performance déclarée. Sa v2 devra suivre la règle ci-dessus, avec un jeu de mise au point distinct des jeux SYNERGY et de l'ensemble de test de l'étude de validation (05). Faute de quoi, les résultats SYNERGY ne pourront plus servir de point de comparaison.

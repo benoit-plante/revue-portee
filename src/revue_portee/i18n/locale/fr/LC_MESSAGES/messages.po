@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 08:31-0400\n"
+"POT-Creation-Date: 2026-10-09 09:44-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -149,6 +149,16 @@ msgstr ""
 msgid "A secret was found in the archive, which was not written: {findings}"
 msgstr "Un secret a été trouvé dans l'archive, qui n'a pas été écrite : {findings}"
 
+msgid ""
+"A study may be reported in several included articles (main results, protocol, secondary "
+"analyses). Rules propose the pairs of included reports that may report one study; the AI examines"
+" each pair in the two texts; you decide. The diagram counts the studies, and their reports."
+msgstr ""
+"Une étude peut être rapportée dans plusieurs articles inclus (résultats principaux, protocole, "
+"analyses secondaires). Des règles proposent les paires de rapports inclus qui peuvent rapporter "
+"une même étude ; l'IA examine chaque paire dans les deux textes ; vous décidez. Le diagramme "
+"compte les études, et leurs rapports."
+
 #, python-format
 msgid "A word: %(example)s; truncation with an asterisk: %(truncated)s."
 msgstr "Un mot : %(example)s ; troncature par un astérisque : %(truncated)s."
@@ -180,6 +190,9 @@ msgstr "Configuration de l'IA consignée pour la tâche {task} : {model}"
 
 msgid "AI decisions"
 msgstr "Décisions de l'IA"
+
+msgid "AI examination started in the background."
+msgstr "Examen par l'IA lancé en arrière-plan."
 
 msgid "AI excludes"
 msgstr "L'IA exclut"
@@ -244,6 +257,10 @@ msgstr "Suggestion de terme de l'IA rejetée"
 #, python-brace-format
 msgid "AI term suggestions received: {count}"
 msgstr "Suggestions de termes reçues de l'IA : {count}"
+
+#, python-format
+msgid "AI: %(verdict)s."
+msgstr "IA : %(verdict)s."
 
 msgid "ASySD files *_duplicates_labelled.csv."
 msgstr "Fichiers ASySD *_duplicates_labelled.csv."
@@ -375,6 +392,9 @@ msgstr "Chercher de nouveau les références non trouvées auparavant"
 
 msgid "An AI batch is already running on this round."
 msgstr "Un lot d'IA est déjà en cours sur ce tour."
+
+msgid "An AI batch is already running."
+msgstr "Un lot de l'IA est déjà en cours."
 
 #, python-format
 msgid "An APA Thesaurus descriptor (PsycINFO): %(plain)s, or %(exploded)s with narrower headings."
@@ -557,8 +577,21 @@ msgstr "Budget atteint : le lot d'IA s'est arrêté avant l'appel suivant"
 msgid "Budget saved."
 msgstr "Budget enregistré."
 
+msgid ""
+"Build a set of PubMed records labelled by their ClinicalTrials.gov number, to test the grouping "
+"of reports of a same study (calls PubMed)."
+msgstr ""
+"Constituer un jeu de notices PubMed étiquetées par leur numéro ClinicalTrials.gov, pour tester le"
+" regroupement des rapports d'une même étude (appelle PubMed)."
+
 msgid "By criterion"
 msgstr "Par critère"
+
+msgid "CSV file built by jeu-etudes."
+msgstr "Fichier CSV constitué par jeu-etudes."
+
+msgid "CSV file to write."
+msgstr "Fichier CSV à écrire."
 
 msgid "CSV file: title, abstract, label_included."
 msgstr "Fichier CSV : title, abstract, label_included."
@@ -1225,6 +1258,9 @@ msgstr ""
 "avant un appel qui dépasserait son plafond ou le budget du projet ; ce qui est trié reste "
 "enregistré."
 
+msgid "Estimate the cost of the AI on the pairs"
+msgstr "Estimer le coût de l'IA sur les paires"
+
 msgid "Estimate the cost of the AI on the pilot"
 msgstr "Estimer le coût de l'IA sur le pilote"
 
@@ -1657,6 +1693,12 @@ msgstr "Élément"
 msgid "JSON Lines file of the raw answers (outside the repository)."
 msgstr "Fichier JSON Lines des réponses brutes (hors du dépôt)."
 
+msgid "Join"
+msgstr "Joindre"
+
+msgid "Join two reports yourself"
+msgstr "Joindre vous-même deux rapports"
+
 msgid "Journal"
 msgstr "Journal"
 
@@ -1749,6 +1791,10 @@ msgstr "Langue du protocole : fr ou en."
 
 msgid "Languages (none: every language)"
 msgstr "Langues (aucune : toutes les langues)"
+
+#, python-format
+msgid "Last AI batch: %(screened)s pairs examined, %(failed)s failed."
+msgstr "Dernier lot de l'IA : %(screened)s paires examinées, %(failed)s en échec."
 
 #, python-format
 msgid "Last AI batch: %(screened)s texts screened, %(failed)s failed."
@@ -1848,6 +1894,9 @@ msgstr "Tri principal : décision humaine enregistrée"
 msgid "Main screening: {count} new references added"
 msgstr "Tri principal : {count} nouvelles références ajoutées"
 
+msgid "Make it the primary report"
+msgstr "En faire le rapport principal"
+
 msgid "MeSH descriptors"
 msgstr "Descripteurs MeSH"
 
@@ -1865,6 +1914,11 @@ msgid "Measure the deduplication on held-out annotated sets (ASySD CSV files); l
 msgstr ""
 "Mesurer le dédoublonnage sur des jeux annotés mis de côté (fichiers CSV d'ASySD) ; en local, sans"
 " appel au modèle."
+
+msgid "Measure the rules that propose reports of a same study on a labelled set; local, no model call."
+msgstr ""
+"Mesurer les règles qui proposent les rapports d'une même étude sur un jeu étiqueté ; local, sans "
+"appel au modèle."
 
 msgid "Methodological framework"
 msgstr "Cadre méthodologique"
@@ -2054,6 +2108,9 @@ msgstr "Aucune référence n'a été exclue par l'IA seule."
 msgid "No reference yet: collect or import references on the Collection page."
 msgstr "Aucune référence pour l'instant : collectez ou importez des références à la page « Collecte »."
 
+msgid "No report is included at the full text yet."
+msgstr "Aucun rapport n'est encore inclus au texte intégral."
+
 msgid "No text left to screen in this round."
 msgstr "Aucun texte à trier dans ce tour."
 
@@ -2113,8 +2170,14 @@ msgstr "Dont justes"
 msgid "Of which wrong"
 msgstr "Dont erronées"
 
+msgid "One study"
+msgstr "Une même étude"
+
 msgid "Only published literature was sent to the model; no participant data."
 msgstr "Seule de la littérature publiée a été transmise au modèle ; aucune donnée de participants."
+
+msgid "Only reports included at the full text can be grouped into studies."
+msgstr "Seuls les rapports inclus au texte intégral peuvent être regroupés en études."
 
 msgid "Open access versions"
 msgstr "Versions en libre accès"
@@ -2197,6 +2260,9 @@ msgstr "Pages"
 msgid "Pages of groups"
 msgstr "Pages des groupes"
 
+msgid "Pairs"
+msgstr "Paires"
+
 msgid "Pairs from this score are grouped automatically (0 to 1)"
 msgstr "Paires regroupées automatiquement à partir de ce score (de 0 à 1)"
 
@@ -2214,6 +2280,9 @@ msgstr "Paires gardées séparées"
 
 msgid "Pairs left to a person"
 msgstr "Paires laissées à une personne"
+
+msgid "Pairs proposed by the rules"
+msgstr "Paires proposées par les règles"
 
 #, python-format
 msgid ""
@@ -2317,6 +2386,9 @@ msgstr "Nombre préliminaire de notices retrouvées par les requêtes de l'annex
 msgid "Preliminary search for existing reviews"
 msgstr "Recherche préliminaire de revues existantes"
 
+msgid "Primary report chosen."
+msgstr "Rapport principal choisi."
+
 msgid "Primary:"
 msgstr "Principale :"
 
@@ -2358,6 +2430,10 @@ msgstr "Gabarit d'invite"
 #, python-format
 msgid "Proposed by %(model)s on %(date)s UTC"
 msgstr "Proposée par %(model)s le %(date)s UTC"
+
+#, python-format
+msgid "Proposed for: %(rule)s."
+msgstr "Proposée pour : %(rule)s."
 
 msgid "Protocol"
 msgstr "Protocole"
@@ -2426,6 +2502,9 @@ msgid ""
 msgstr ""
 "PubMed annonce {count} notices, mais en donne au plus 10 000 par requête : divisez la recherche "
 "(par exemple par années de publication) avant de collecter."
+
+msgid "PubMed query."
+msgstr "Requête PubMed."
 
 msgid "Public (to deposit)"
 msgstr "Publique (à déposer)"
@@ -2571,11 +2650,18 @@ msgstr "Références incluses dans le jeu"
 msgid "Records matching the following blocks are removed with NOT: {blocks}."
 msgstr "Les notices qui répondent aux blocs suivants sont retirées par NOT : {blocks}."
 
+msgid "Records read at most."
+msgstr "Notices lues au plus."
+
 msgid "Records screened"
 msgstr "Références triées"
 
 msgid "Records to screen: every inclusion, the rest drawn among exclusions."
 msgstr "Références à trier : toutes les inclusions, le reste tiré parmi les exclusions."
+
+#, python-brace-format
+msgid "Records with one trial number: {count}; written: {path}"
+msgstr "Notices avec un seul numéro d'essai : {count} ; écrites : {path}"
 
 msgid "Reference"
 msgstr "Référence"
@@ -2739,6 +2825,9 @@ msgstr "Retiré : %(code)s"
 msgid "Replace with another version"
 msgstr "Remplacer par une autre version"
 
+msgid "Report"
+msgstr "Rapport"
+
 #, python-brace-format
 msgid "Report written: {path}"
 msgstr "Rapport écrit : {path}"
@@ -2753,6 +2842,31 @@ msgstr "Rapports"
 #, python-brace-format
 msgid "Reports excluded, by primary reason: {reasons}."
 msgstr "Rapports exclus, par motif principal : {reasons}."
+
+#, python-brace-format
+msgid "Reports of a same study: pair examined by the AI ({verdict})"
+msgstr "Rapports d'une même étude : paire examinée par l'IA ({verdict})"
+
+msgid "Reports of a same study: primary report chosen"
+msgstr "Rapports d'une même étude : rapport principal choisi"
+
+#, python-brace-format
+msgid ""
+"Reports of a same study: rules proposed {pairs} pairs of included reports (same trial "
+"registration number, shared authors and words, or close titles); the AI examined {ai} of them, "
+"quoting each report with its page; the person decided {decided} pairs. Studies included: "
+"{studies}, from {reports} reports."
+msgstr ""
+"Rapports d'une même étude : des règles ont proposé {pairs} paires de rapports inclus (même numéro"
+" d'enregistrement d'essai, auteurs et mots en commun, ou titres proches) ; l'IA en a examiné "
+"{ai}, en citant chaque rapport avec sa page ; la personne a décidé {decided} paires. Études "
+"incluses : {studies}, à partir de {reports} rapports."
+
+msgid "Reports of a same study: two reports joined"
+msgstr "Rapports d'une même étude : deux rapports joints"
+
+msgid "Reports of a same study: two reports kept apart"
+msgstr "Rapports d'une même étude : deux rapports gardés séparés"
 
 msgid ""
 "Required before the AI screens the other texts: 20 texts drawn at random (every text when there "
@@ -2794,6 +2908,9 @@ msgstr "Équipe de revue"
 msgid "Role"
 msgstr "Rôle"
 
+msgid "Role of the set: development or test."
+msgstr "Rôle du jeu : développement ou test."
+
 #, python-format
 msgid "Round %(number)s"
 msgstr "Tour %(number)s"
@@ -2825,6 +2942,9 @@ msgstr "Banc SYNERGY : {dataset}"
 
 msgid "Same outcome in every run (keep or exclude)"
 msgstr "Même issue à chaque exécution (conserver ou exclure)"
+
+msgid "Same study as"
+msgstr "Même étude que"
 
 msgid "Same value in every run (include, uncertain, exclude)"
 msgstr "Même valeur à chaque exécution (inclure, incertain, exclure)"
@@ -2961,6 +3081,19 @@ msgstr "Fixez le budget de l'IA du projet à la page « Pilote » avant le pre
 msgid "Set the budget"
 msgstr "Fixer le budget"
 
+msgid "Shared authors at least."
+msgstr "Auteurs en commun, au moins."
+
+#, python-format
+msgid "Shared authors: %(names)s."
+msgstr "Auteurs en commun : %(names)s."
+
+msgid "Shared words at least (0 to 1)."
+msgstr "Mots en commun, au moins (de 0 à 1)."
+
+msgid "Shared words at least with one author (0 to 1)."
+msgstr "Mots en commun, au moins, avec un seul auteur (de 0 à 1)."
+
 msgid "Short description."
 msgstr "Courte description."
 
@@ -3038,6 +3171,13 @@ msgstr "Arrêté : %(why)s."
 
 msgid "Strategy saved."
 msgstr "Stratégie enregistrée."
+
+msgid "Studies and their reports"
+msgstr "Études et rapports"
+
+#, python-format
+msgid "Studies included: %(studies)s, from %(reports)s reports"
+msgstr "Études incluses : %(studies)s, à partir de %(reports)s rapports"
 
 #, python-format
 msgid ""
@@ -3224,6 +3364,9 @@ msgstr "L'IA exclut sous (de 0 à 1)"
 
 msgid "The AI includes from (0 to 1)"
 msgstr "L'IA inclut à partir de (de 0 à 1)"
+
+msgid "The AI is examining the pairs…"
+msgstr "L'IA examine les paires…"
 
 msgid "The AI is screening the texts…"
 msgstr "L'IA trie les textes…"
@@ -3609,6 +3752,9 @@ msgstr ""
 "vérifier les conditions des éditeurs avant le tri des textes intégraux reste la responsabilité de"
 " l'équipe."
 
+msgid "The rules propose no pair."
+msgstr "Les règles ne proposent aucune paire."
+
 msgid "The screening has not started."
 msgstr "Le tri n'est pas commencé."
 
@@ -3797,6 +3943,9 @@ msgstr "Tri des titres et résumés"
 msgid "Title of the review."
 msgstr "Titre de la revue."
 
+msgid "Title similarity at least (0 to 1)."
+msgstr "Similarité des titres, au moins (de 0 à 1)."
+
 #, python-brace-format
 msgid ""
 "Titles and abstracts were screened with revue-portee {version}, free software (AGPL-3.0-or-"
@@ -3826,6 +3975,10 @@ msgstr ""
 #, python-brace-format
 msgid "To be completed: {hint}"
 msgstr "À compléter : {hint}"
+
+#, python-format
+msgid "To decide: %(left)s of %(count)s."
+msgstr "À décider : %(left)s sur %(count)s."
 
 msgid "To the year"
 msgstr "Jusqu'à l'année"
@@ -3859,6 +4012,9 @@ msgstr ""
 "modèle renvoyée par l'API, la version du gabarit d'invite, une empreinte de l'invite, les "
 "paramètres, les jetons consommés et le coût ; les réponses brutes sont conservées avec le projet."
 " Les versions exactes des modèles seront déclarées avec les résultats."
+
+msgid "Two studies"
+msgstr "Deux études"
 
 msgid "Two versions of one work?"
 msgstr "Deux versions d'un même travail ?"
@@ -4083,6 +4239,10 @@ msgstr ""
 msgid "Your decision"
 msgstr "Votre décision"
 
+#, python-format
+msgid "Your decision: %(outcome)s."
+msgstr "Votre décision : %(outcome)s."
+
 msgid "Your decisions"
 msgstr "Vos décisions"
 
@@ -4179,6 +4339,9 @@ msgstr "modifié : %(fields)s"
 msgid "clarification"
 msgstr "clarification"
 
+msgid "close titles"
+msgstr "titres proches"
+
 msgid "comma removed (not allowed in OpenAlex filters)"
 msgstr "virgule retirée (interdite dans les filtres OpenAlex)"
 
@@ -4243,6 +4406,9 @@ msgstr "nombres différents dans les titres"
 
 msgid "different or missing first author"
 msgstr "premier auteur différent ou absent"
+
+msgid "different studies"
+msgstr "études différentes"
 
 #, python-brace-format
 msgid "disagreements to reconcile: {count}"
@@ -4466,6 +4632,10 @@ msgstr "page %(page)s"
 msgid "pairs of possible duplicates to examine: {count}"
 msgstr "paires de doublons possibles à examiner : {count}"
 
+#, python-brace-format
+msgid "pairs of reports of a possible same study to decide: {count}"
+msgstr "paires de rapports d'une même étude possible à décider : {count}"
+
 msgid "people and organizations to thank"
 msgstr "personnes et organismes à remercier"
 
@@ -4474,6 +4644,9 @@ msgstr "prévue"
 
 msgid "population of interest (Framing and Criteria pages)"
 msgstr "population d'intérêt (pages « Cadrage » et « Critères »)"
+
+msgid "primary report"
+msgstr "rapport principal"
 
 #, python-format
 msgid "printed: %(label)s"
@@ -4588,6 +4761,12 @@ msgstr "même PMID, mais titres différents"
 msgid "same PMID, but other identifiers differ"
 msgstr "même PMID, mais autres identifiants différents"
 
+msgid "same study"
+msgstr "même étude"
+
+msgid "same trial registration number"
+msgstr "même numéro d'enregistrement d'essai"
+
 #, python-format
 msgid "score %(score)s"
 msgstr "score : %(score)s"
@@ -4600,6 +4779,9 @@ msgstr "voir la référence"
 
 msgid "set the publication years with the limiter of the interface"
 msgstr "fixez les années de publication avec le limiteur de l'interface"
+
+msgid "shared authors and words"
+msgstr "auteurs et mots en commun"
 
 msgid "similar fields"
 msgstr "champs semblables"

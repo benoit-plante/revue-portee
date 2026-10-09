@@ -32,7 +32,7 @@ from revue_portee.reporting.methods import (
     build_methods,
 )
 from revue_portee.resources import price_table, tool_validation
-from revue_portee.screening import fulltext, main, pilot, reassessment, settings
+from revue_portee.screening import fulltext, main, pilot, reassessment, settings, studies
 from revue_portee.screening.report import flow_report, full_text_counts
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import ai as ai_repo
@@ -140,6 +140,7 @@ def _fulltext(folder: ProjectFolder, calls: list[StoredCall]) -> FulltextSummary
     reconciled = [r for r in state.disagreements if r in state.reconciled]
     checks = page_quote_counts(a for r in members if r in state.ai for a in state.ai[r].assessments)
     followed, compared = state.followed_ai
+    grouped = studies.study_state(folder)
     reassessments = [
         reassessment.reassessment_state(folder, i.id)
         for i in reassessment.impacts(folder, state.round.id)
@@ -170,6 +171,15 @@ def _fulltext(folder: ProjectFolder, calls: list[StoredCall]) -> FulltextSummary
         quotes_at_page=checks[QuoteCheck.AT_PAGE],
         quotes_other_page=checks[QuoteCheck.OTHER_PAGE],
         quotes_not_found=checks[QuoteCheck.NOT_FOUND],
+        study_pairs=len(grouped.candidates),
+        study_pairs_ai=sum(
+            1
+            for c in grouped.candidates
+            if (c.reference_a_id, c.reference_b_id) in grouped.assessments
+        ),
+        study_pairs_decided=len(grouped.decisions),
+        studies=len(grouped.studies),
+        included_reports=len(grouped.reports),
         changes=len(reassessment.impacts(folder, state.round.id)),
         reassessed=sum(len(r.members) for r in reassessments),
         changed=sum(

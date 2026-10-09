@@ -66,10 +66,13 @@ def _full_text(
         assert final["id"] == max(human, key=lambda d: order[d["id"]])["id"]
         finals.append((final, row["primary_reason"]))
     reasons = Counter(reason for final, reason in finals if final["value"] == "exclude")
+    reports = archive.rows("donnees/etudes.csv")
     return {
         "assessed": len(finals),
         "reports_excluded": dict(reasons),
         "included": sum(1 for final, _reason in finals if final["value"] == "include"),
+        "studies": len({r["study"] for r in reports}),
+        "study_reports": len(reports),
     }
 
 
@@ -185,6 +188,8 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
         "assessed": 2,
         "reports_excluded": {"P1": 1},
         "included": 1,
+        "studies": 1,
+        "study_reports": 1,
         "reassessments": [
             {
                 "from_version": 1,
@@ -207,7 +212,8 @@ def test_public_archive_recounted_by_hand(tmp_path: Path) -> None:
     full_text = declared["full_text"]
     assert full_text["assessed"] == counted["assessed"]
     assert full_text["excluded_by_reason"] == counted["reports_excluded"]
-    assert full_text["included"] == counted["included"]
+    assert full_text["included"] == counted["included"] == counted["study_reports"]
+    assert full_text["studies"] == counted["studies"]
     assert {r["mode"] for r in archive.rows("donnees/tours.csv")} == {"blind"}
     assert check_journal(archive) == len(entries) - 1  # the export is recorded afterwards
     # nothing copyrighted, no database in the public archive

@@ -214,6 +214,22 @@ def _fulltext_screening_files(folder: ProjectFolder) -> dict[str, str]:
     return {"etat-texte-integral.csv": csv_text(header, rows)}
 
 
+def _study_files(folder: ProjectFolder) -> dict[str, str]:
+    """Studies of the included reports, and the person's decisions on pairs of reports."""
+    from revue_portee.screening import studies  # imported here: import cycle with the reports
+
+    state = studies.study_state(folder)
+    reports = csv_text(
+        ("reference_id", "study", "primary"),
+        ((ref, s.primary, ref == s.primary) for s in state.studies for ref in s.reports),
+    )
+    links = csv_text(
+        ("reference_a_id", "reference_b_id", "outcome", "decision_id"),
+        ((a, b, d.outcome.value, d.id) for (a, b), d in sorted(state.decisions.items())),
+    )
+    return {"etudes.csv": reports, "liens-etudes.csv": links}
+
+
 def _exports(folder: ProjectFolder, *, now: Clock, tool_version: str) -> dict[str, bytes]:
     report = flow_report(folder, now=now, tool_version=tool_version)
     data = methods_data(folder, now=now, tool_version=tool_version)
@@ -252,6 +268,7 @@ def archive_files(
         | _screening_files(folder, state)
         | _fulltext_files(folder)
         | _fulltext_screening_files(folder)
+        | _study_files(folder)
     )
     files |= {f"donnees/{name}": text.encode() for name, text in tables.items()}
     files |= _exports(folder, now=lambda: moment, tool_version=tool_version)

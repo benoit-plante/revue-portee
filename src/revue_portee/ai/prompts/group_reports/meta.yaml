@@ -1,0 +1,7 @@
+id: group_reports
+version: "1"
+task: group_reports
+changelog:
+  - version: "1"
+    date: "2026-10-09"
+    change: First version (tranche 2.3), one call per pair of reports proposed by the rules.

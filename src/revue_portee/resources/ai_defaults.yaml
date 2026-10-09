@@ -75,3 +75,13 @@ tasks:
       max_tokens: 12000
       effort: low
     expected_output_tokens: 2500
+  # Reports of a same study (tranche 2.3): one call per pair proposed by the rules,
+  # the first pages of both texts.
+  group_reports:
+    status: enabled
+    provider: anthropic
+    model: claude-haiku-5-5
+    params:
+      max_tokens: 8000
+      effort: low
+    expected_output_tokens: 1500

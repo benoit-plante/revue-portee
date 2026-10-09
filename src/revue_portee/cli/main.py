@@ -486,6 +486,97 @@ def reconvert_texts(
 
 
 @app.command(
+    "jeu-etudes",
+    help=_(
+        "Build a set of PubMed records labelled by their ClinicalTrials.gov number, to test "
+        "the grouping of reports of a same study (calls PubMed)."
+    ),
+)
+def study_set(
+    requete: Annotated[str, typer.Argument(help=_("PubMed query."))],
+    sortie: Annotated[Path, typer.Option("--sortie", help=_("CSV file to write."))],
+    limite: Annotated[int, typer.Option("--limite", help=_("Records read at most."))] = 3000,
+) -> None:
+    from revue_portee.collect import study_benchmark as bench
+    from revue_portee.config.secrets import MissingSecretError, SecretName, get_secret
+    from revue_portee.sources import SourceError
+    from revue_portee.sources.http import make_client
+    from revue_portee.sources.pubmed import PubMed
+
+    try:
+        pubmed = PubMed(make_client(), email=get_secret(SecretName.CONTACT_EMAIL), owns_client=True)
+        try:
+            records = bench.build_set(
+                pubmed, requete, limit=limite, progress=lambda n: typer.echo(str(n), err=True)
+            )
+        finally:
+            pubmed.close()
+    except (MissingSecretError, SourceError) as error:
+        raise _fail(str(error)) from error
+    sortie.parent.mkdir(parents=True, exist_ok=True)
+    sortie.write_text(bench.write_set(records), encoding="utf-8")
+    typer.echo(
+        _("Records with one trial number: {count}; written: {path}").format(
+            count=len(records), path=sortie
+        )
+    )
+
+
+@app.command(
+    "banc-etudes",
+    help=_(
+        "Measure the rules that propose reports of a same study on a labelled set; local, no "
+        "model call."
+    ),
+)
+def study_benchmark(
+    fichier: Annotated[Path, typer.Argument(help=_("CSV file built by jeu-etudes."))],
+    role: Annotated[
+        str, typer.Option("--role", help=_("Role of the set: development or test."))
+    ] = "développement",
+    auteurs: Annotated[int, typer.Option("--auteurs", help=_("Shared authors at least."))] = 2,
+    mots: Annotated[
+        float, typer.Option("--mots", help=_("Shared words at least (0 to 1)."))
+    ] = 0.03,
+    mots_un_auteur: Annotated[
+        float,
+        typer.Option("--mots-un-auteur", help=_("Shared words at least with one author (0 to 1).")),
+    ] = 0.12,
+    titre: Annotated[
+        float, typer.Option("--titre", help=_("Title similarity at least (0 to 1)."))
+    ] = 0.85,
+    sortie: Annotated[Path, typer.Option("--sortie", help=_("Folder of the reports."))] = Path(
+        "docs/resultats"
+    ),
+) -> None:
+    from revue_portee.collect import study_benchmark as bench
+    from revue_portee.dedup.reports import ReportLinkSettings
+
+    if not fichier.is_file():
+        raise _fail(_("File not found: {path}").format(path=fichier))
+    settings = ReportLinkSettings(
+        min_shared_authors=auteurs,
+        min_text_overlap=mots,
+        single_author_overlap=mots_un_auteur,
+        min_title_similarity=titre,
+    )
+    name = fichier.stem
+    test = bench.run_test(name, bench.read_set(fichier), now=utc_now(), settings=settings)
+    sortie.mkdir(parents=True, exist_ok=True)
+    report = sortie / f"etudes-{name}.md"
+    report.write_text(bench.report_markdown(test, role=role), encoding="utf-8")
+    e = test.evaluation
+    typer.echo(
+        _("{name}: recall {recall}, precision {precision}; report: {path}").format(
+            name=name,
+            recall="—" if e.recall is None else f"{e.recall:.3f}",
+            precision="—" if e.precision is None else f"{e.precision:.3f}",
+            path=report,
+        )
+    )
+
+
+@app.command(
     "banc-pages",
     help=_(
         "Compare the text extraction by page of PyMuPDF, pypdf and pdfplumber on test PDFs; "

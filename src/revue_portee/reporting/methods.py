@@ -186,6 +186,11 @@ class FulltextSummary(BaseModel):
     changes: int = 0  # criteria versions assessed during the full-text screening
     reassessed: int = 0  # texts reassessed after them
     changed: int = 0  # decisions changed, keep against exclude
+    study_pairs: int = 0  # pairs of included reports proposed by the rules
+    study_pairs_ai: int = 0  # examined by the AI
+    study_pairs_decided: int = 0  # decided by the person (proposed or not)
+    studies: int = 0
+    included_reports: int = 0
 
 
 class CostLine(BaseModel):
@@ -870,6 +875,24 @@ def _fulltext(_: Translate, data: MethodsData, language: str) -> list[Block]:
                     changes=integer(ft.changes, language),
                     reassessed=integer(ft.reassessed, language),
                     changed=integer(ft.changed, language),
+                )
+            )
+        )
+    if ft.included_reports:
+        blocks.append(
+            Paragraph(
+                text=_(
+                    "Reports of a same study: rules proposed {pairs} pairs of included reports "
+                    "(same trial registration number, shared authors and words, or close "
+                    "titles); the AI examined {ai} of them, quoting each report with its page; "
+                    "the person decided {decided} pairs. Studies included: {studies}, from "
+                    "{reports} reports."
+                ).format(
+                    pairs=integer(ft.study_pairs, language),
+                    ai=integer(ft.study_pairs_ai, language),
+                    decided=integer(ft.study_pairs_decided, language),
+                    studies=integer(ft.studies, language),
+                    reports=integer(ft.included_reports, language),
                 )
             )
         )

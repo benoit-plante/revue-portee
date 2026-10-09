@@ -191,7 +191,11 @@ def _rows(
     included = Box(
         *main,
         [
-            counted("included", full_text.included, bold=True),
+            counted(
+                "included",
+                full_text.included if full_text.studies is None else full_text.studies,
+                bold=True,
+            ),
             counted("included_reports", full_text.included),
         ],
     )

@@ -107,6 +107,24 @@ uv run revue-portee banc-pages ~/revue-portee-donnees/essai-textes/essai-complet
 
 Essai de mise au point sur 10 textes d'Oud_2018 (pas une mesure de performance) : 10 réponses utilisables sur 10, 0,0198 $ US, 24 citations sur 28 trouvées à la page indiquée et aucune à une autre page. Les 4 citations introuvables étaient exactes mais coupées par un PDF qui dessine son texte deux fois; après la conversion 2, 27 sur 28 sont trouvées à la page indiquée, 1 à une autre page (vraie erreur du modèle), aucune introuvable, et un texte indéchiffrable est signalé. Une inclusion de l'IA, étiquetée exclue par SYNERGY, est à vérifier par une personne. [Rapport](essai-screen-fulltext-v1.md).
 
+## Rapports d'une même étude (tranche 2.3) — exécuté le 2026-10-09
+
+Règles qui proposent les paires de rapports d'une même étude (`dedup/reports.py`), mesurées sur des notices PubMed étiquetées par leur numéro ClinicalTrials.gov (champ `DataBankList`, jamais montré aux règles). Métadonnées et résumés seulement, sans texte intégral : dans une revue, les numéros d'essai trouvés dans le texte intégral s'ajoutent.
+
+| Jeu | Rôle | Notices | Études à plusieurs rapports | Paires vraies | Rappel | Précision | Rapport |
+|---|---|---|---|---|---|---|---|
+| Psychothérapie, 2015-2019 | développement (réglages choisis ici) | 1 798 | 211 | 388 | 96,9 % | 29,5 % | [rapport](etudes-dev-psychotherapie.md) |
+| Exercice thérapeutique, 2015-2019 | **test**, mesuré une seule fois | 1 221 | 135 | 304 | **97,7 %** | 37,7 % | [rapport](etudes-test-exercice.md) |
+
+**Critère d'acceptation atteint** : rappel d'au moins 0,95 des regroupements proposés sur un jeu annoté mis de côté. Réglages retenus sur le jeu de développement : au moins 2 auteurs en commun et 3 % de mots en commun, ou 1 auteur et 12 % de mots; titres proches à 0,85; même numéro d'enregistrement toujours proposé, numéros différents jamais. Premiers réglages (2 auteurs et 15 % de mots, titres à 0,60) : rappel 68,0 % sur le développement, d'où leur révision. La précision mesure la charge de travail : chaque paire proposée est examinée par l'IA, puis décidée par une personne.
+
+### Relancer
+
+```bash
+uv run revue-portee jeu-etudes "psychotherapy[mh] AND clinicaltrials.gov[si] AND 2015:2019[dp]" --sortie ~/revue-portee-donnees/etudes/dev-psychotherapie.csv   # réseau : PubMed
+uv run revue-portee banc-etudes ~/revue-portee-donnees/etudes/dev-psychotherapie.csv --role développement   # local
+```
+
 ## Test du dédoublonnage sur des données mises de côté (ASySD) — exécuté le 2026-10-08
 
 Règles de dédoublonnage version 1 (D-062), seuils par défaut : examen à partir de 0,75, regroupement automatique à partir de 0,93. Les règles ont été mises au point sur le jeu annoté de la tranche 1.5 (D-060). Les jeux ci-dessous **n'ont jamais servi** à les construire ni à les ajuster, et les règles n'ont pas été modifiées après cette exécution : ce sont des **résultats de test** au sens de RAISE 2 (liste RAISE 2, point 2.10).
