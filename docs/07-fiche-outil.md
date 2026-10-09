@@ -69,7 +69,7 @@ Deux réponses sur 14 624 sont restées inutilisables après une nouvelle tentat
 - **Limites** :
   - résultats de développement seulement, sur trois revues systématiques en psychologie clinique, en anglais;
   - aucune mesure sur des revues de portée, ni sur des références en français;
-  - stabilité des réponses entre exécutions non mesurée;
+  - variabilité entre exécutions : sur 500 notices d'Oud_2018 triées trois fois, 9,6 % changent d'issue, toutes entre « exclure » et « incertain » près du seuil d'exclusion, et la sensibilité varie de 95 à 100 % (une inclusion sur 20 bascule) ([résultats](resultats/README.md));
   - contamination possible : ces revues publiées peuvent figurer dans les données d'entraînement du modèle;
   - norme de référence au texte intégral, qui ne correspond pas exactement au tri des titres et résumés;
   - le modèle est un service tiers dont le comportement peut changer d'une version à l'autre.

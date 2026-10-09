@@ -46,6 +46,30 @@ uv run revue-portee banc-synergy jeu.csv --criteres jeu.yaml --plafond 5 --nom <
 
 Les seuils appliqués sont ceux par défaut de `resources/ai_defaults.yaml` (`supervision`), avec la règle EF-SEL-07 : une référence dont un critère d'inclusion est indéterminable, et qu'aucun critère n'écarte, n'est jamais exclue.
 
+## Stabilité des réponses de l'IA (Oud_2018) — exécuté le 2026-10-09
+
+Même configuration que le banc (`screen_reference` v1, `claude-haiku-5-5`, effort `low`, seuils 0,10 et 0,60, règle EF-SEL-07). Échantillon de 500 notices d'Oud_2018 : les 20 inclusions et 480 exclusions tirées avec la graine 2026. Les 500 notices ont été triées **trois fois**, chaque fois par de nouveaux appels au modèle. Coût : 0,54 $ US, avec l'accord de Benoit (plafond de 1,20 $ US). Rapport : [banc-stabilite-Oud_2018.md](banc-stabilite-Oud_2018.md).
+
+| Mesure | Résultat |
+|---|---|
+| Notices décidées aux trois exécutions | 498 sur 500 |
+| Même valeur aux trois exécutions | 438 (88,0 %) |
+| Même issue (conserver ou exclure) aux trois exécutions | 450 (90,4 %) |
+| Notices conservées par certaines exécutions et exclues par d'autres | 48 (9,6 %) |
+| AC1 de Gwet entre deux exécutions | 0,888 à 0,909 |
+| Sensibilité des trois exécutions | 95,0 %, 100,0 %, 95,0 % |
+| Spécificité des trois exécutions | 76,8 %, 76,2 %, 77,7 % |
+
+**Analyse des 48 notices qui basculent**, faite à partir des réponses brutes :
+- **Toutes basculent entre « exclure » et « incertain »**, jamais vers « inclure » : 24 sont exclues une fois sur trois, 24 deux fois sur trois.
+- Elles se trouvent **près du seuil d'exclusion** (0,10). La probabilité d'inclusion la plus haute donnée par le modèle a une médiane de 0,12 (au plus 0,55), et la plus basse est d'au plus 0,08.
+- **Une seule est une inclusion** (sur 20) : la notice manquée au banc, conservée par la 2ᵉ exécution seulement. D'où une sensibilité de 95 % ou de 100 % selon l'exécution.
+
+**Conséquences** :
+- En V1, la variabilité ne fait perdre aucune étude, puisque la personne trie toutes les références. Elle peut en revanche changer la file de réconciliation : une notice que la personne conserve forme un désaccord si l'IA l'exclut, pas si elle la juge incertaine.
+- Une seule exécution peut varier de quelques points de sensibilité sur un petit jeu. Une **exclusion par l'IA seule** (V2, tranche 2.5) devrait en tenir compte, par exemple en rejouant les notices proches du seuil ou en exigeant plusieurs exécutions concordantes.
+- Les résultats du banc SYNERGY (une exécution par jeu) portent cette incertitude de plus, en plus de celle de l'échantillonnage.
+
 ## Test du dédoublonnage sur des données mises de côté (ASySD) — exécuté le 2026-10-08
 
 Règles de dédoublonnage version 1 (D-062), seuils par défaut : examen à partir de 0,75, regroupement automatique à partir de 0,93. Les règles ont été mises au point sur le jeu annoté de la tranche 1.5 (D-060). Les jeux ci-dessous **n'ont jamais servi** à les construire ni à les ajuster, et les règles n'ont pas été modifiées après cette exécution : ce sont des **résultats de test** au sens de RAISE 2 (liste RAISE 2, point 2.10).
