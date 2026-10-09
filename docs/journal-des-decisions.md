@@ -1596,3 +1596,23 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - les 48 bascules se font toutes entre « exclure » et « incertain », près du seuil d'exclusion; une seule touche une inclusion, ce qui fait varier la sensibilité de 95 à 100 %;
   - sans effet en V1, où la personne trie tout. Une exclusion par l'IA seule (tranche 2.5) devra en tenir compte (notices proches du seuil, exécutions concordantes).
 - **Renvois** : D-074, D-076; [resultats/README.md](resultats/README.md); [06-liste-raise2.md](06-liste-raise2.md).
+
+### D-102 — Tri au texte intégral : deux modes, sans déclaration préalable
+
+- **Date** : 2026-10-09
+- **Statut** : décidée par Benoit
+- **Décision** : le tri au texte intégral (tranches 2.1 et 2.2) suit les recommandations de [10-conception-texte-integral.md](10-conception-texte-integral.md), avec deux choix de Benoit :
+  1. **deux modes de tri développés** : le double tri à l'aveugle (par défaut) et le tri assisté, où la personne voit l'évaluation de l'IA et ses citations paginées avant de décider; le mode est choisi au début de chaque tour, consigné et déclaré; l'essai pilote reste toujours à l'aveugle;
+  2. **aucune déclaration** avant l'envoi des textes au modèle : chaque envoi est consigné comme tout appel à l'IA et la section méthode déclare la transmission au fournisseur; la bibliographie n'est jamais envoyée.
+- **Contexte** : RAISE 3 (l'IA appuie et double-vérifie; le droit de lire un article ne vaut pas droit de le faire traiter par une IA) et RAISE 2 (risque qu'une IA vue d'avance rende le travail humain moins exact).
+- **Options envisagées** :
+  1. Double tri à l'aveugle seulement.
+  2. **Les deux modes, avec garde-fous pour le mode assisté.**
+  3. Déclaration de la personne avant le premier envoi, ou **consignation de chaque envoi sans déclaration**.
+- **Justification** : choix de Benoit; le mode assisté fait gagner du temps, et ses garde-fous (pilote à l'aveugle, mode fixé et déclaré, aucun champ présélectionné) en limitent les risques.
+- **Conséquences** :
+  - nouveau contexte de décision `assisted`; pas de réconciliation en mode assisté; la proportion de décisions qui suivent l'IA est rapportée;
+  - la performance de l'IA n'est mesurable en mode assisté que sur le pilote;
+  - la vérification des conditions des éditeurs reste la responsabilité de l'équipe, ce que la documentation rappelle;
+  - l'étude de validation (09) trie les revues de test en mode aveugle.
+- **Renvois** : D-079, D-080, D-092; [10-conception-texte-integral.md](10-conception-texte-integral.md); [01-etat-de-l-art.md](01-etat-de-l-art.md).
