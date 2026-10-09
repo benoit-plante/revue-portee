@@ -1,6 +1,7 @@
 # 09 — Préenregistrement de l'étude de validation (ébauche)
 
 > **Statut** : ébauche du 9 octobre 2026, tirée de [05-plan-de-validation.md](05-plan-de-validation.md), à déposer sur OSF **avant** le repérage et le tirage de l'ensemble de test. Rédigée en anglais, langue d'OSF et des revues visées, selon le gabarit « OSF Preregistration ». Une fois déposée, elle ne se modifie plus : tout changement devient un amendement daté.
+> **Écarts au plan 05, choisis par Benoit le 2026-10-09** : **15 revues** au lieu de 24 à 30 (précision de ± 0,025 sur la sensibilité au lieu de ± 0,02); critères transcrits **par des personnes seulement**, sans brouillon d'un modèle d'IA. En conséquence : au moins 5 revues francophones et 5 postérieures à la fin d'entraînement du modèle, comparaison des stratégies d'invite sur 6 revues, sous-groupes descriptifs.
 > **Renvois** : [06-liste-raise2.md](06-liste-raise2.md) (RAISE 2, §2 et §4), [07-fiche-outil.md](07-fiche-outil.md), [08-journal-des-gabarits.md](08-journal-des-gabarits.md), [resultats/](resultats/README.md).
 
 ## À décider par Benoit avant le dépôt
@@ -11,7 +12,7 @@ Chaque point est marqué **[TO DECIDE]** dans le texte anglais.
 2. **Version gelée du gabarit.** Le test se fait sur `screen_reference` v1, la version mesurée au banc, ou sur une v2 qui corrigerait le problème connu (évaluer tous les critères). Une v2 devrait d'abord être mise au point sur des données distinctes, puis consignée au journal des gabarits (08).
 3. **Ensemble de développement.** Le plan prévoit 3 jeux SYNERGY **et** 4 à 5 revues de portée admissibles (§5.3). Les revues de portée de développement n'existent pas encore. Faut-il les constituer avant le gel, ou déclarer que le développement s'est fait sur SYNERGY seulement ?
 4. **Condition principale et stabilité.** Le test de stabilité (D-099) montre que 9,6 % des notices changent d'issue d'une exécution à l'autre. Je propose de garder comme condition principale **une seule exécution**, comme dans l'usage réel de l'outil, et de mesurer la reproductibilité en analyse secondaire, comme le plan le prévoit.
-5. **Budget.** Le plan demande de fixer un budget au préenregistrement. Estimation ci-dessous : environ **45 $ US**; je propose un plafond de **75 $ US**.
+5. **Budget.** Le plan demande de fixer un budget au préenregistrement. Estimation ci-dessous, pour 15 revues : environ **25 $ US**; je propose un plafond de **40 $ US**.
 6. **Date de fin des données d'entraînement du modèle**, à relever dans la documentation du fournisseur et à consigner (sous-groupe de contamination).
 7. **Références** : STARD 2015 et Cohen et al. (2006) sont à revérifier, comme le note 05.
 8. **Réponses inutilisables** (choix ajouté, absent de 05) : je propose de les compter comme **conservées** dans l'analyse principale, puisque la personne les trierait de toute façon, et comme manquées dans une analyse de sensibilité (§5.5 du texte).
@@ -55,7 +56,7 @@ Methodological study using existing data: retrospective diagnostic accuracy stud
 
 ### 2.2 Blinding
 
-- The criteria of each review are transcribed into the tool's format by two team members **blind to the list of included studies**, independently, then reconciled. They use only the eligibility criteria and examples given in the article. No rewording is allowed after the results are seen.
+- The criteria of each review are transcribed into the tool's format by two team members **blind to the list of included studies**, independently, then reconciled. They use only the eligibility criteria and examples given in the article. No language model drafts or edits the criteria: the transcription is entirely human, so that no knowledge of the included studies can enter it. No rewording is allowed after the results are seen.
 - The tool never sees the reference standard.
 - Missed included studies are classified by two assessors, at least one of whom did not take part in the tool's development.
 
@@ -68,7 +69,7 @@ The units of analysis are references (records) within reviews (clusters).
 1. **Default (primary)**: one AI run on every reference, default thresholds, no calibration.
 2. **Simulated pilot**: 100 references drawn at random with a recorded seed. Their reference-standard decisions serve as pilot human decisions to fit the isotonic calibration and choose the exclusion threshold with the tool's pre-specified rule (target sensitivity 0.95 on the pilot). The evaluation is on the remaining references. This condition reuses the AI outputs of condition 1: no new model calls.
 3. **Reproducibility**: two further runs on a random 10% of the references of each review (at least 200).
-4. **Prompt strategy**: on at least 8 test reviews drawn at random, one call per reference against one call per criterion.
+4. **Prompt strategy**: on 6 test reviews drawn at random, one call per reference against one call per criterion.
 5. **Other providers** (fast classifier, local model): only if available in the frozen version; otherwise not run.
 
 ### 2.4 Randomization
@@ -110,8 +111,8 @@ Exclusion:
 **Identification.**
 1. Search OpenAlex, PubMed and PsycINFO for scoping reviews; search OSF for scoping review projects that share their screening data; contact authors for screening decisions (stratum A).
 2. Draw at random from the eligible reviews, stratified as in 2.4.
-3. Over-sample French: at least 6 reviews in which at least 20% of screened references are in French.
-4. Contamination: at least one third of the test reviews published after the model's training data cut-off. **[TO DECIDE: record the cut-off date declared by the provider.]**
+3. Over-sample French: at least 5 reviews in which at least 20% of screened references are in French.
+4. Contamination: at least 5 test reviews published after the model's training data cut-off. **[TO DECIDE: record the cut-off date declared by the provider.]**
 
 **Reconstruction (stratum B).** The published strategy is rerun with a date limit equal to the original search date. Subscription databases are imported in RIS, and the tool deduplicates (rules version 1, tested on held-out ASySD data: recall 0.998–1.000, precision 0.994–0.998). The gap between the reconstructed and reported numbers is reported. A review with a gap above 20% is left out of the primary analysis and kept for a sensitivity analysis.
 
@@ -127,27 +128,29 @@ Nothing may change afterwards; any further run is declared exploratory.
 
 ### 3.4 Sample size
 
-24 to 30 test reviews, at least 6 with a large share of French literature, plus the development set.
+15 test reviews: at least 5 with a large share of French literature and at least 5 published after the model's training data cut-off (a review may count for both), plus the development set. This is fewer than the 24 to 30 reviews of the original plan; the precision target was relaxed accordingly (3.5).
 
 ### 3.5 Sample size rationale
 
-- Estimating a sensitivity of 0.95 with a half-width of 0.02 needs about 456 positive references without clustering (n = 1.96² × 0.95 × 0.05 / 0.02²).
-- With about 40 included studies per review and an assumed intraclass correlation of 0.025, the design effect is about 2, hence about 900 positive references, or 24 to 30 reviews.
+- With about 40 included studies per review, 15 reviews give about 600 positive references.
+- With an assumed intraclass correlation of 0.025, the design effect is about 2 (1 + 39 × 0.025 = 1.975), hence about 304 effective positives.
+- For a sensitivity of 0.95, the half-width of the 95% interval is then about 0.025 (1.96 × √(0.95 × 0.05 / 304)). This is enough to test H1, whose criterion is a lower bound of at least 0.90.
+- 15 reviews also keep enough clusters to estimate the between-review variance of the mixed model; fewer than 10 to 12 would make it unstable.
 - The final number is fixed once the eligible reviews have been identified (median number of inclusions), before the draw, and recorded as an amendment.
 
 ### 3.6 Stopping rule
 
-Data collection stops when the planned number of reviews has been drawn and run, or when the budget ceiling is reached. **[TO DECIDE: ceiling, proposed at 75 USD.]**
+Data collection stops when the planned number of reviews has been drawn and run, or when the budget ceiling is reached. **[TO DECIDE: ceiling, proposed at 40 USD.]**
 
 Budget estimate, at the batch price measured at about 0.18 USD per 1,000 references (half the 0.36 USD measured with individual calls):
 
 | Condition | Assumption | Estimate |
 |---|---|---|
-| 1, default | 30 reviews × about 4,000 references | about 22 USD |
+| 1, default | 15 reviews × about 4,000 references | about 11 USD |
 | 2, simulated pilot | reuses the outputs of condition 1 | 0 USD |
-| 3, reproducibility | 2 more runs on 10% | about 4 USD |
-| 4, prompt strategy | 8 reviews, one call per criterion | about 15 to 20 USD |
-| **Total** | | **about 45 USD** |
+| 3, reproducibility | 2 more runs on 10% | about 2 USD |
+| 4, prompt strategy | 6 reviews, one call per criterion | about 11 to 15 USD |
+| **Total** | | **about 25 USD** |
 
 If the ceiling is reached, the reviews already run are analysed, and the shortfall is reported.
 
@@ -229,6 +232,9 @@ Every missed included study is classified by two assessors, at least one indepen
 Inter-assessor agreement is reported, and disagreements are resolved by discussion.
 
 ### 5.7 Pre-specified subgroups
+
+With 15 reviews, subgroups are **descriptive**: estimates with intervals, without hypothesis tests.
+
 
 - domain;
 - language of the reference (French against English);
