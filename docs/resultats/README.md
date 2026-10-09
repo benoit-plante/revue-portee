@@ -107,6 +107,17 @@ uv run revue-portee banc-pages ~/revue-portee-donnees/essai-textes/essai-complet
 
 Essai de mise au point sur 10 textes d'Oud_2018 (pas une mesure de performance) : 10 réponses utilisables sur 10, 0,0198 $ US, 24 citations sur 28 trouvées à la page indiquée et aucune à une autre page. Les 4 citations introuvables étaient exactes mais coupées par un PDF qui dessine son texte deux fois; après la conversion 2, 27 sur 28 sont trouvées à la page indiquée, 1 à une autre page (vraie erreur du modèle), aucune introuvable, et un texte indéchiffrable est signalé. Une inclusion de l'IA, étiquetée exclue par SYNERGY, est à vérifier par une personne. [Rapport](essai-screen-fulltext-v1.md).
 
+## Essai réel du pré-remplissage de la grille (`extract_fields` v1 et v2) — exécuté le 2026-10-09
+
+L'essai porte sur les 11 études en libre accès des 22 incluses par Seunanden et al. 2025 (BMC Public Health), comparées au tableau d'extraction des auteurs, figé avant les appels.
+
+- **v1 (résultat de test)** : 7 études pré-remplies sur 11. Concordance : 37 valeurs sur 49 (75,5 %), ou 35 sur 42 (83,3 %) sans le champ dont la définition est trop vague. 41 citations retrouvées sur 43. Coût : 0,030 $ US.
+- **Refus de la v1** : 4 études, parce qu'un choix unique était rangé parmi les choix multiples.
+- **v2, qui corrige ce défaut (résultat de développement)** : 4 études sur 4, concordance de 23 valeurs sur 28. Coût : 0,008 $ US.
+- **Les 12 désaccords de la v1** : 4 erreurs de l'IA, 2 erreurs de la référence, 6 écarts de convention.
+
+[Rapport](essai-extract-fields.md).
+
 ## Rapports d'une même étude (tranche 2.3) — exécuté le 2026-10-09
 
 Règles qui proposent les paires de rapports d'une même étude (`dedup/reports.py`), mesurées sur des notices PubMed étiquetées par leur numéro ClinicalTrials.gov (champ `DataBankList`, jamais montré aux règles). Métadonnées et résumés seulement, sans texte intégral : dans une revue, les numéros d'essai trouvés dans le texte intégral s'ajoutent.

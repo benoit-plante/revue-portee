@@ -61,11 +61,14 @@ class ExtractedValueOutput(TaskOutput):
     reported: bool = Field(description="False when the report does not give this information.")
     value: str = Field(
         default="",
-        description="The value: text, a number, yes or no, a date YYYY[-MM[-DD]], or one of "
-        "the choices copied exactly; empty when not reported or for a multiple choice.",
+        description="The value: text, a number, yes or no, a date YYYY[-MM[-DD]], or, for a "
+        "single choice or hierarchical category, exactly one of the choices copied exactly; "
+        "empty when not reported or for a multiple choice.",
     )
     selected: tuple[str, ...] = Field(
-        default=(), description="For a multiple choice field: the choices that apply."
+        default=(),
+        description="Only for a multiple choice field: the choices that apply. Always empty "
+        "for any other field, a single choice included.",
     )
     quote: str = Field(
         default="", description="Exact words of the text the value rests on (at most 40 words)."
@@ -79,7 +82,7 @@ class ExtractFieldsOutput(TaskOutput):
 
 EXTRACT_FIELDS: TaskSpec[ExtractFieldsInput, ExtractFieldsOutput] = TaskSpec(
     name="extract_fields",
-    version="1",
+    version="2",
     input_model=ExtractFieldsInput,
     output_model=ExtractFieldsOutput,
     prompt=prompt_ref("extract_fields"),
