@@ -1612,3 +1612,22 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - certaines revues ou certains réviseurs pourraient ne pas tenir un historique Git pour un préenregistrement : un dépôt OSF reste possible plus tard, avant le gel, sans changer le contenu;
   - 15 revues donnent une précision d'environ ± 0,025 sur la sensibilité groupée, suffisante pour l'hypothèse principale; les sous-groupes deviennent descriptifs.
 - **Renvois** : [05-plan-de-validation.md](05-plan-de-validation.md), [06-liste-raise2.md](06-liste-raise2.md) (points 2.4, 3.1, 3.2), [07-fiche-outil.md](07-fiche-outil.md).
+
+### D-101 — Un seul codeur des critères dans l'étude de validation
+
+- **Date** : 2026-10-09
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : Benoit transcrit seul les critères des 15 revues de test, au lieu de deux codeurs indépendants (plan 05, §6.2). Garde-fous fixés au protocole ([09](09-protocole-validation.md), §2.2) :
+  - aveugle de la liste des études incluses;
+  - règle de transcription écrite d'avance (texte de l'article presque mot pour mot, rien d'ajouté, reformulations notées et justifiées);
+  - aucune aide d'un modèle de langage;
+  - transcriptions gelées par un commit daté avant le passage de l'IA;
+  - seconde transcription indépendante sur 5 revues tirées au hasard, avec la sensibilité calculée selon les deux versions;
+  - publication de chaque transcription à côté du texte de l'article.
+- **Contexte** : la sensibilité de l'IA dépend beaucoup de la rédaction des critères, et le codeur est aussi le développeur de l'outil, qui sait comment l'outil y réagit.
+- **Options envisagées** :
+  1. **Un codeur, avec garde-fous et une seconde transcription partielle** : effort réduit, effet du codeur mesuré sur un tiers des revues.
+  2. Deux codeurs indépendants sur toutes les revues : plus robuste, mais demande une seconde personne pour les 15 revues.
+- **Justification** : choix de Benoit.
+- **Conséquences** : le codeur unique, qui est aussi le développeur, est déclaré comme limite; un écart important de sensibilité entre les deux versions des critères serait rapporté comme une limite majeure. Coût supplémentaire d'environ 4 $ US pour retrier les 5 revues.
+- **Renvois** : D-100; [05-plan-de-validation.md](05-plan-de-validation.md), §6.2; [09-protocole-validation.md](09-protocole-validation.md).

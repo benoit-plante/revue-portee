@@ -1,18 +1,18 @@
 # 09 — Protocole de l'étude de validation
 
 > **Statut** : ébauche du 9 octobre 2026, détaillée à partir de [05-plan-de-validation.md](05-plan-de-validation.md). **Pas de dépôt OSF** (choix de Benoit, D-100) : ce protocole est versionné dans le dépôt public, et l'historique Git en date chaque version. Il sera **gelé** par un commit daté avant le repérage et le tirage de l'ensemble de test; après le gel, tout changement est un **amendement** daté, ajouté à la fin du document.
-> **Écarts au plan 05, choisis par Benoit le 2026-10-09** : **15 revues** au lieu de 24 à 30 (précision d'environ ± 0,025 sur la sensibilité au lieu de ± 0,02); critères transcrits **par des personnes seulement**, sans brouillon d'un modèle d'IA. En conséquence : au moins 5 revues francophones et 5 postérieures à la fin d'entraînement du modèle, comparaison des stratégies d'invite sur 6 revues, sous-groupes descriptifs.
+> **Écarts au plan 05, choisis par Benoit le 2026-10-09** : **15 revues** au lieu de 24 à 30 (précision d'environ ± 0,025 sur la sensibilité au lieu de ± 0,02); critères transcrits **par des personnes seulement**, sans brouillon d'un modèle d'IA; **un seul codeur (Benoit)** au lieu de deux, avec une règle de transcription écrite d'avance, une seconde transcription indépendante sur 5 revues et la publication de chaque transcription (§2.2). En conséquence : au moins 5 revues francophones et 5 postérieures à la fin d'entraînement du modèle, comparaison des stratégies d'invite sur 6 revues, sous-groupes descriptifs.
 > **Renvois** : [06-liste-raise2.md](06-liste-raise2.md) (RAISE 2, §2 et §4), [07-fiche-outil.md](07-fiche-outil.md), [08-journal-des-gabarits.md](08-journal-des-gabarits.md), [resultats/](resultats/README.md).
 
 ## À décider avant le gel
 
 Chaque point est marqué **[À DÉCIDER]** dans le texte.
 
-1. **Équipe.** Il faut nommer deux personnes qui transcrivent les critères sans connaître les études incluses (§2.2), et au moins une personne qui n'a pas participé au développement de l'outil pour l'analyse des erreurs (§5.6).
+1. **Équipe.** Le codeur des critères est Benoit (§2.2). Il reste à nommer la **seconde personne** qui transcrit indépendamment les critères de 5 revues, et au moins une personne qui n'a pas participé au développement de l'outil pour l'**analyse des erreurs** (§5.6).
 2. **Version gelée du gabarit.** Le test se fait sur `screen_reference` v1, la version mesurée au banc, ou sur une v2 qui corrigerait le problème connu (évaluer tous les critères). Une v2 devrait d'abord être mise au point sur des données distinctes, puis consignée au journal des gabarits (08).
 3. **Ensemble de développement.** Le plan 05 prévoit 3 jeux SYNERGY **et** 4 à 5 revues de portée admissibles. Les revues de portée de développement n'existent pas encore. Faut-il les constituer avant le gel, ou déclarer que le développement s'est fait sur SYNERGY seulement ?
 4. **Condition principale.** Le test de stabilité (D-099) montre que 9,6 % des notices changent d'issue d'une exécution à l'autre. Je propose de garder comme condition principale **une seule exécution**, comme dans l'usage réel de l'outil, et de mesurer la reproductibilité en analyse secondaire.
-5. **Budget.** Estimation pour 15 revues : environ **25 $ US** (§3.6). Plafond proposé : **40 $ US**.
+5. **Budget.** Estimation pour 15 revues, seconde transcription comprise : environ **30 $ US** (§3.6). Plafond proposé : **40 $ US**.
 6. **Date de fin des données d'entraînement du modèle**, à relever dans la documentation du fournisseur (sous-groupe de contamination).
 7. **Références** : STARD 2015 et Cohen et al. (2006) sont à revérifier, comme le note 05.
 8. **Réponses inutilisables** (choix ajouté, absent de 05) : je propose de les compter comme **conservées** dans l'analyse principale, puisque la personne les trierait de toute façon, et comme manquées dans une analyse de sensibilité (§5.5).
@@ -28,7 +28,7 @@ Chaque point est marqué **[À DÉCIDER]** dans le texte.
 
 ### 1.2 Équipe
 
-Benoit Plante, développeur de l'outil. **[À DÉCIDER : deux personnes pour la transcription des critères, à l'aveugle des études incluses; au moins une personne indépendante du développement pour l'analyse des erreurs.]**
+Benoit Plante, développeur de l'outil et codeur des critères. **[À DÉCIDER : la seconde personne qui transcrit les critères de 5 revues; au moins une personne indépendante du développement pour l'analyse des erreurs.]**
 
 ### 1.3 Contexte
 
@@ -61,10 +61,26 @@ Les objectifs secondaires (§4.3) sont estimés sans test d'hypothèse, sauf les
 
 ### 2.2 Aveugle
 
-- Les critères de chaque revue sont transcrits dans le format de l'outil par deux membres de l'équipe **à l'aveugle de la liste des études incluses**, indépendamment, puis réconciliés.
-- Ils n'utilisent que les critères d'admissibilité et les exemples de l'article.
-- **Aucun modèle de langage ne rédige ni ne modifie les critères** : la transcription est entièrement humaine, pour qu'aucune connaissance des études incluses ne puisse s'y glisser.
-- Aucune reformulation n'est permise après avoir vu les résultats.
+**Transcription des critères par un seul codeur.** Benoit transcrit les critères de chaque revue dans le format de l'outil. Comme il est aussi le développeur de l'outil, et qu'il sait donc comment l'outil réagit aux critères, la transcription suit les garde-fous ci-dessous.
+
+1. **Aveugle** : le codeur ne consulte jamais la liste des études incluses. Il travaille seulement à partir de la section de l'article qui énonce la question et les critères d'admissibilité, sans les tableaux ni les résultats.
+2. **Règle de transcription**, fixée avant le gel :
+   - chaque critère reprend le texte de l'article presque mot pour mot;
+   - un critère n'est découpé en plusieurs que si l'article énumère des conditions distinctes;
+   - aucune consigne, aucun exemple ni contre-exemple n'est ajouté s'il ne figure pas dans l'article;
+   - toute reformulation (traduction, précision d'un terme, regroupement) est notée dans un journal de transcription, avec sa justification;
+   - les critères du cadre PCC sans critère explicite sont repris du texte de la question, sans les élargir ni les restreindre.
+3. **Aucun modèle de langage ne rédige ni ne modifie les critères** : la transcription est entièrement humaine, pour qu'aucune connaissance des études incluses ne puisse s'y glisser.
+4. **Gel des transcriptions** : toutes les transcriptions sont consignées par un commit daté **avant** le premier passage de l'IA sur l'ensemble de test. Aucune reformulation n'est permise ensuite.
+5. **Seconde transcription sur 5 revues** : une seconde personne, aussi à l'aveugle des études incluses, transcrit indépendamment, selon la même règle, les critères de 5 des 15 revues, tirées au hasard avec une graine consignée. Elle ne voit pas les transcriptions de Benoit. On rapporte :
+   - l'accord entre les deux transcriptions, critère par critère, sur l'étendue de chaque critère (même portée, plus large, plus étroite), jugé par les deux codeurs après coup;
+   - la sensibilité et la spécificité de l'IA sur ces 5 revues avec chacune des deux versions des critères (§5.4).
+
+   La version de Benoit reste celle de l'analyse principale.
+6. **Transparence** : chaque transcription est publiée à côté du texte d'origine de l'article, avec le journal de transcription.
+
+**Autres éléments d'aveugle.**
+
 - L'outil ne voit jamais la norme de référence.
 - Les études incluses manquées sont classées par deux évaluateurs, dont au moins un n'a pas participé au développement de l'outil.
 
@@ -163,7 +179,8 @@ Estimation, au prix des lots mesuré à environ 0,18 $ US pour 1 000 référence
 | 2, pilote simulé | réutilise les sorties de la condition 1 | 0 $ US |
 | 3, reproductibilité | 2 exécutions de plus sur 10 % | environ 2 $ US |
 | 4, stratégie d'invite | 6 revues, un appel par critère | environ 11 à 15 $ US |
-| **Total** | | **environ 25 $ US** |
+| Seconde transcription | 5 revues triées de nouveau avec les critères de la seconde personne | environ 4 $ US |
+| **Total** | | **environ 30 $ US** |
 
 Si le plafond est atteint, les revues déjà traitées sont analysées, et ce qui manque est rapporté.
 
@@ -203,6 +220,7 @@ Si le plafond est atteint, les revues déjà traitées sont analysées, et ce qu
 - calibration (score de Brier, ECE sur 10 classes, pente et ordonnée d'étalonnage, diagramme de fiabilité), avant et après étalonnage;
 - reproductibilité : décisions identiques d'une exécution à l'autre, AC1 de Gwet entre exécutions;
 - qualité des justifications, sur un échantillon aléatoire stratifié de 300 décisions : bon critère cité; passage cité présent mot pour mot et à l'appui de la décision. L'outil rapporte aussi automatiquement la proportion de citations retrouvées;
+- effet du codeur, sur les 5 revues transcrites deux fois : accord entre les transcriptions, et écart de sensibilité et de spécificité entre les deux versions des critères;
 - coût et jetons pour 1 000 références, et durée.
 
 ## 5. Plan d'analyse
@@ -226,6 +244,7 @@ Aucune hormis le lien logit. Les décisions sont rendues binaires : conservée c
 
 - Les revues dont l'écart de reconstitution dépasse 20 % sont retirées de l'analyse principale (analyse de sensibilité).
 - Les études manquées classées comme erreurs probables de la norme de référence (catégorie c, §5.6) restent dans l'analyse principale, et sont retirées dans une analyse de sensibilité.
+- **Effet du codeur** : sur les 5 revues transcrites deux fois, la sensibilité est aussi calculée avec les critères de la seconde personne. Un écart important serait rapporté comme une limite majeure de l'analyse principale.
 
 ### 5.5 Données manquantes
 
@@ -271,10 +290,13 @@ Avec 15 revues, les sous-groupes sont **descriptifs** : estimations avec interva
 
   Pour les références, seulement des identifiants (DOI, PMID, identifiant OpenAlex), sans titres ni résumés, sauf sous licence ouverte. Prépublication, puis soumission à une revue méthodologique (*Research Synthesis Methods*, *JBI Evidence Synthesis*, *Systematic Reviews*).
 - **Déclaration** : STARD 2015 adaptée au contexte, les éléments de déclaration de RAISE 2 (§4), et l'extension de PRISMA sur l'IA si elle paraît avant la soumission.
+- **Limites déclarées** : un seul codeur des critères, qui est aussi le développeur de l'outil; l'effet du codeur n'est mesuré que sur 5 revues.
 - **Antériorité du protocole** : ce document, gelé par un commit daté dans le dépôt public avant la collecte, tient lieu de protocole préalable. L'article le citera, avec l'empreinte du commit de gel. Il n'y a pas de dépôt OSF (D-100).
 - **Éthique** : aucune donnée de participants. Les décisions de tri obtenues des auteurs sont utilisées avec leur accord et citées.
-- **Conflit d'intérêts** : le développeur de l'outil fait partie de l'équipe. Atténuations :
+- **Conflit d'intérêts** : le développeur de l'outil fait partie de l'équipe, et il est le seul codeur des critères. Atténuations :
   - ce protocole public, gelé avant la collecte;
+  - la règle de transcription, le journal de transcription et le gel des transcriptions avant le passage de l'IA;
+  - la seconde transcription indépendante sur 5 revues, et la publication de chaque transcription à côté du texte de l'article;
   - le gel de l'outil avant le test;
   - des évaluateurs indépendants pour l'analyse des erreurs;
   - la publication des résultats, quels qu'ils soient.
