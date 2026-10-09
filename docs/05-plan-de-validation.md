@@ -1,6 +1,6 @@
 # 05 — Plan de validation
 
-> **Statut** : ébauche de protocole du 7 octobre 2026, **destinée à être préenregistrée sur OSF** avant toute évaluation sur l'ensemble de test, et à mener à une publication méthodologique.
+> **Statut** : ébauche de protocole du 7 octobre 2026, détaillée dans le **protocole versionné [09-protocole-validation.md](09-protocole-validation.md)**, gelé par un commit daté avant toute évaluation sur l'ensemble de test (pas de dépôt OSF, D-100), et à mener à une publication méthodologique.
 > **Pourquoi** : l'énoncé de position conjoint Cochrane, Campbell, JBI et CEE (2025) demande aux développeurs d'outils de publier leurs données de validation et leurs limites; RAISE demande aux utilisateurs de justifier que l'outil convient à leur usage. Sans cette étude, l'outil ne peut pas être cité honnêtement dans une section méthode. Voir [01-etat-de-l-art.md §5](01-etat-de-l-art.md#5-normes-et-recommandations).
 
 ## 1. Titre provisoire
@@ -19,7 +19,7 @@
 ### 3.1 Objectif principal
 Estimer la **sensibilité** (rappel) du réviseur IA de revue-portee au tri des titres et résumés, au seuil par défaut favorisant la sensibilité, par rapport aux études finalement incluses dans des revues de portée publiées.
 
-**Hypothèse principale (préenregistrée)** : sensibilité groupée ≥ 0,95, avec une borne inférieure de l'intervalle de confiance à 95 % ≥ 0,90. Comme repère, un réviseur humain unique manque environ 13 % des études pertinentes (Gartlehner et al., 2020), soit une sensibilité d'environ 0,87.
+**Hypothèse principale (fixée au protocole)** : sensibilité groupée ≥ 0,95, avec une borne inférieure de l'intervalle de confiance à 95 % ≥ 0,90. Comme repère, un réviseur humain unique manque environ 13 % des études pertinentes (Gartlehner et al., 2020), soit une sensibilité d'environ 0,87.
 
 ### 3.2 Objectifs secondaires
 1. **Charge de travail** : proportion de références qu'un humain n'aurait pas eu à examiner en mode d'exclusion assistée; WSS@95; proportion triée avant d'atteindre 95 % de rappel en mode priorisé.
@@ -77,7 +77,7 @@ Sensibilité et spécificité au tri du **texte complet**, pour les revues où l
 | **Développement** | 3 jeux SYNERGY en psychologie (CC0) + 4 à 5 revues de portée admissibles | Mise au point des invites, choix des seuils par défaut, tests de la V1 |
 | **Test** | Revues tirées selon 5.2 (taille en section 8) | Évaluation **une seule fois**, après gel des invites, des seuils par défaut et de la version du code |
 
-**Gel** : avant l'évaluation de l'ensemble de test, on consigne sur OSF (amendement au préenregistrement) : empreinte du commit, versions des gabarits d'invite, modèle(s) et version(s) exactes, seuils par défaut, paramètres. Aucune modification n'est permise après; toute exécution supplémentaire est déclarée comme exploratoire.
+**Gel** : avant l'évaluation de l'ensemble de test, on consigne dans le protocole (09), par un commit daté : empreinte du commit, versions des gabarits d'invite, modèle(s) et version(s) exactes, seuils par défaut, paramètres. Aucune modification n'est permise après; toute exécution supplémentaire est déclarée comme exploratoire.
 
 ## 6. Procédure
 
@@ -91,7 +91,7 @@ Deux membres de l'équipe, **à l'aveugle de la liste des études incluses**, tr
 ### 6.3 Exécution
 Pour chaque revue de l'ensemble de test :
 1. **Condition « par défaut »** : tri de toutes les références par le réviseur IA, seuils par défaut, sans étalonnage.
-2. **Condition « pilote simulé »** : tirage aléatoire de 100 références; les décisions de la norme de référence servent de « décisions humaines du pilote » pour l'étalonnage isotonique et le choix du seuil selon la règle préenregistrée (sensibilité cible 0,95 sur le pilote); évaluation sur les références restantes.
+2. **Condition « pilote simulé »** : tirage aléatoire de 100 références; les décisions de la norme de référence servent de « décisions humaines du pilote » pour l'étalonnage isotonique et le choix du seuil selon la règle fixée au protocole (sensibilité cible 0,95 sur le pilote); évaluation sur les références restantes.
 3. **Reproductibilité** : nouvelle exécution sur un échantillon aléatoire de 10 % (au moins 200 références) à deux reprises.
 4. **Stratégie d'invite** : sur un sous-ensemble de revues tiré au hasard (au moins 8), comparaison un appel par référence contre un appel par critère.
 5. **Fournisseurs secondaires** (si disponibles) : mêmes références, mêmes critères.
@@ -129,14 +129,14 @@ Sur un échantillon aléatoire de 300 décisions (stratifié : inclusions, exclu
 - Pour estimer une sensibilité de 0,95 avec une demi-largeur d'intervalle de 0,02 : n = 1,96² × 0,95 × 0,05 / 0,02² ≈ **456 références positives** sans effet de grappe.
 - Les références sont regroupées par revue. Avec environ 40 études incluses par revue et un coefficient de corrélation intraclasse supposé de 0,025, l'effet de plan est d'environ 2, soit environ **900 références positives**.
 - D'où une cible de **24 à 30 revues** dans l'ensemble de test (dont au moins 6 avec une part importante de littérature francophone), plus 4 à 5 revues de développement.
-- Hypothèses (nombre médian d'inclusions, corrélation intraclasse) à revoir après le repérage (5.2); la taille finale est fixée au préenregistrement.
+- Hypothèses (nombre médian d'inclusions, corrélation intraclasse) à revoir après le repérage (5.2); la taille finale est fixée au protocole avant le tirage. Le protocole (09) retient 15 revues (choix de Benoit, 2026-10-09).
 
 ## 9. Analyse statistique
 
 - **Par revue** : sensibilité et spécificité avec intervalles de Wilson.
 - **Groupée** : modèle linéaire généralisé à effets mixtes (logit, effet aléatoire de revue); pour la strate A, modèle bivarié sensibilité-spécificité. Intervalles par bootstrap en grappes (revues) comme analyse de confirmation.
 - **Comparaisons** (par défaut contre pilote simulé; stratégies d'invite; fournisseurs) : modèles mixtes appariés sur les références; test de McNemar par revue en complément.
-- **Sous-groupes préenregistrés** : domaine; langue de la référence (FR / EN); publication avant ou après la date de fin d'entraînement du modèle; présence d'un résumé; strate A / B.
+- **Sous-groupes fixés au protocole** : domaine; langue de la référence (FR / EN); publication avant ou après la date de fin d'entraînement du modèle; présence d'un résumé; strate A / B.
 - **Analyses de sensibilité** : exclusion des études manquées classées (c) en 6.5; inclusion des revues exclues pour écart de reconstitution; inclusion des revues à auteurs de l'équipe.
 - **Données manquantes** : références sans titre ni résumé conservées (traitées comme « incertain » par la règle EF-SEL-07) et rapportées.
 - Logiciel : Python (statsmodels) ou R (lme4), code publié.
@@ -146,12 +146,12 @@ Sur un échantillon aléatoire de 300 décisions (stratifié : inclusions, exclu
 - Aucune donnée de participants; aucune approbation éthique requise (à confirmer auprès d'un comité si une revue le demande).
 - Les décisions de tri obtenues des auteurs sont utilisées avec leur accord et citées.
 - **Droits d'auteur des résumés** : les données publiées contiendront les **identifiants** (DOI, PMID, identifiant OpenAlex) et les décisions, **pas** les titres et résumés, sauf pour les sources sous licence ouverte (ex. OpenAlex CC0 pour les métadonnées).
-- **Conflit d'intérêts** : le développeur de l'outil (Benoit Plante) fait partie de l'équipe; atténuation : préenregistrement, gel avant le test, évaluateurs indépendants pour l'analyse des erreurs, publication quels que soient les résultats.
+- **Conflit d'intérêts** : le développeur de l'outil (Benoit Plante) fait partie de l'équipe; atténuation : protocole public daté, gel avant le test, évaluateurs indépendants pour l'analyse des erreurs, publication quels que soient les résultats.
 
 ## 11. Science ouverte
 
-- Préenregistrement OSF du présent protocole (gabarit OSF adapté aux études méthodologiques) **avant** le tirage de l'ensemble de test.
-- Publication sur OSF : critères transcrits, gabarits d'invite, versions exactes, décisions de l'IA avec confiance et justification, réponses brutes (sans texte protégé), code d'analyse.
+- Protocole détaillé ([09-protocole-validation.md](09-protocole-validation.md)) versionné dans le dépôt public et gelé par un commit daté **avant** le tirage de l'ensemble de test. Pas de dépôt OSF (choix de Benoit, D-100).
+- Publication dans un dépôt de données public : critères transcrits, gabarits d'invite, versions exactes, décisions de l'IA avec confiance et justification, réponses brutes (sans texte protégé), code d'analyse.
 - Prépublication puis soumission à une revue méthodologique (ex. *Research Synthesis Methods*, *JBI Evidence Synthesis*, *Systematic Reviews*).
 - Résultats repris dans `docs/resultats/` et cités dans la section méthode générée par l'outil.
 
@@ -160,7 +160,7 @@ Sur un échantillon aléatoire de 300 décisions (stratifié : inclusions, exclu
 | Jalon | Activité |
 |---|---|
 | Pendant la V1 | Ensemble de développement : banc SYNERGY (tranche 1.6), réglage des invites et des seuils par défaut |
-| Fin de la V1 | Repérage des revues admissibles; contact des auteurs (strate A); préenregistrement |
+| Fin de la V1 | Repérage des revues admissibles; contact des auteurs (strate A); gel du protocole (09) |
 | Début de la V2 | Gel; tirage et évaluation de l'ensemble de test au tri des titres et résumés |
 | V2 | Analyses, rédaction; exploration texte complet |
 | V3 | Mise à jour avec modèle local et classificateur (étude complémentaire) |
@@ -174,7 +174,7 @@ Sur un échantillon aléatoire de 300 décisions (stratifié : inclusions, exclu
 | Contamination (le modèle connaît la revue) | Sous-groupe postérieur à la date de fin d'entraînement |
 | Retrait ou changement du modèle pendant l'étude | Version exacte consignée; exécution complète dans une fenêtre courte; réponses brutes conservées |
 | Norme de référence imparfaite | Analyse des erreurs (catégorie c) et analyse de sensibilité |
-| Coût | Estimation préalable avec l'outil; traitement par lots; budget fixé au préenregistrement |
+| Coût | Estimation préalable avec l'outil; traitement par lots; budget fixé au protocole |
 | Biais du développeur | Section 10 |
 
 ## 14. Références principales
@@ -188,4 +188,4 @@ Sur un échantillon aléatoire de 300 décisions (stratifié : inclusions, exclu
 - Tran VT et al. Sensitivity and specificity of using GPT-3.5 Turbo models for title and abstract screening. *Ann Intern Med* 2024. [DOI 10.7326/M23-3389](https://doi.org/10.7326/M23-3389)
 - Vembye MH et al. GPT models can function as highly reliable second screeners of titles and abstracts. *Psychological Methods* 2025. [DOI 10.1037/met0000769](https://doi.org/10.1037/met0000769)
 
-*Les références de STARD 2015 et de Cohen et al. (2006) sont citées de mémoire documentaire et doivent être revérifiées avant le préenregistrement.*
+*Les références de STARD 2015 et de Cohen et al. (2006) sont citées de mémoire documentaire et doivent être revérifiées avant le gel du protocole.*
