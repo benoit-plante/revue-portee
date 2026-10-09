@@ -1,13 +1,17 @@
 """User-facing strings, externalized with Babel (ENF-LAN-03).
 
-Message identifiers are written in English in the code and templates; the French
-catalog (``locale/fr/LC_MESSAGES/messages.po``) provides the interface text. V1 ships
-French only, which is the default locale. Journal summaries (``summary_fr``) always
-use the French catalog through :func:`french`, whatever the interface locale.
+Message identifiers are written in English in the code and templates. The French
+catalog (``locale/fr/LC_MESSAGES/messages.po``) gives the French interface, the default;
+the English catalog (``locale/en/...``, tranche 4.5) gives the English interface, the
+identifiers with English typography (“quotation marks”), kept complete by
+:mod:`revue_portee.i18n.english`. The interface language is set for each request
+(:func:`set_locale`); journal summaries (``summary_fr``) always use the French catalog
+through :func:`french`, whatever the interface language.
 """
 
 import io
 from collections.abc import Callable
+from contextvars import ContextVar, Token
 from functools import cache
 from importlib.resources import files
 
@@ -19,18 +23,24 @@ __all__ = [
     "DEFAULT_LOCALE",
     "DOMAIN",
     "EXPORT_LANGUAGES",
+    "INTERFACE_LOCALES",
+    "current_locale",
     "french",
     "gettext",
     "ngettext",
+    "reset_locale",
+    "set_locale",
     "translations",
     "translator",
 ]
 
 DOMAIN = "messages"
 DEFAULT_LOCALE = "fr"
-# Publication exports exist in French and English (ENF-LAN-04); English is the
-# language of the message identifiers, so it needs no catalog.
+# Languages of the interface (ENF-LAN-03) and of the publication exports (ENF-LAN-04).
+INTERFACE_LOCALES = ("fr", "en")
 EXPORT_LANGUAGES = ("fr", "en")
+
+_locale: ContextVar[str] = ContextVar("revue_portee_locale", default=DEFAULT_LOCALE)
 
 
 @cache
@@ -45,13 +55,28 @@ def translations(locale: str = DEFAULT_LOCALE) -> Translations:
     return Translations(fp=compiled, domain=DOMAIN)
 
 
+def current_locale() -> str:
+    """The language of the interface for the current request (French by default)."""
+    return _locale.get()
+
+
+def set_locale(locale: str) -> Token[str]:
+    """Use ``locale`` for the interface until :func:`reset_locale`; an unknown locale
+    falls back to the default."""
+    return _locale.set(locale if locale in INTERFACE_LOCALES else DEFAULT_LOCALE)
+
+
+def reset_locale(token: Token[str]) -> None:
+    _locale.reset(token)
+
+
 def gettext(message: str) -> str:
     """Translate ``message`` into the interface language."""
-    return translations().gettext(message)
+    return translations(current_locale()).gettext(message)
 
 
 def ngettext(singular: str, plural: str, count: int) -> str:
-    return translations().ngettext(singular, plural, count)
+    return translations(current_locale()).ngettext(singular, plural, count)
 
 
 def french(message: str) -> str:
@@ -63,6 +88,4 @@ def translator(language: str) -> Callable[[str], str]:
     """Translation function for a publication export in ``language`` (fr or en)."""
     if language not in EXPORT_LANGUAGES:
         raise ValueError(f"unsupported export language: {language}")
-    if language == "en":
-        return lambda message: message
     return translations(language).gettext

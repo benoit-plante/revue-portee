@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{ interface_locale() }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,6 +14,11 @@
   <a class="skip-link" href="#contenu">{{ _("Skip to content") }}</a>
   <header class="site-header">
     <p class="project-title">{{ project.title }}</p>
+    <form method="post" action="/langue" class="language-switch">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="retour" value="{{ request.url.path }}">
+      {% if interface_locale() == "fr" %}<button type="submit" name="langue" value="en" lang="en" class="link">English</button>{% else %}<button type="submit" name="langue" value="fr" lang="fr" class="link">Français</button>{% endif %}
+    </form>
     <nav aria-label="{{ _('Main navigation') }}">
       <ul>
         <li><a href="/cadrage" {% if page == "cadrage.html" %}aria-current="page"{% endif %}>{{ _("Framing") }}</a></li>

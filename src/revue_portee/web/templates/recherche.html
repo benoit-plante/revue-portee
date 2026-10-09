@@ -88,7 +88,7 @@
     <pre><code>{{ t.text or _("(empty query)") }}</code></pre>
     {% if t.warnings %}
     <ul class="small">
-      {% for w in t.warnings %}<li>{% if w.block %}{{ w.block }} — {% endif %}{% if w.term %}<code>{{ w.term }}</code> : {% endif %}{{ warnings[w.kind] }}{% if w.detail %} ({{ w.detail }}){% endif %}</li>{% endfor %}
+      {% for w in t.warnings %}<li>{% if w.block %}{{ w.block }} — {% endif %}{% if w.term %}<code>{{ w.term }}</code>{{ colon() }} {% endif %}{{ warnings[w.kind] }}{% if w.detail %} ({{ w.detail }}){% endif %}</li>{% endfor %}
     </ul>
     {% endif %}
     {% if database == Database.PSYCINFO_EBSCO %}

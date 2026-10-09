@@ -7,6 +7,9 @@ body { margin: 0; font: 1rem/1.5 system-ui, sans-serif; color: var(--fg); backgr
 :focus-visible { outline: 3px solid #f0a500; outline-offset: 2px; }
 .site-header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding: .75rem 1.5rem; border-bottom: 1px solid #ccc; }
 .project-title { margin: 0; font-weight: 600; }
+.language-switch { margin: 0 0 0 auto; order: 3; }
+.language-switch button.link { background: none; border: none; padding: 0; color: #0b5cad; text-decoration: underline; cursor: pointer; font: inherit; }
+.language-switch button.link:focus-visible { outline: 2px solid #0b5cad; outline-offset: 2px; }
 nav ul { display: flex; gap: 1rem; list-style: none; margin: 0; padding: 0; }
 nav a { color: var(--accent); }
 nav a[aria-current="page"] { font-weight: 700; text-decoration-thickness: 3px; }

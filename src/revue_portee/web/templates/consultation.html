@@ -63,7 +63,7 @@
   <article id="commentaire-{{ f.comment.id }}" class="comment">
     <h3>{{ f.code }} ({{ f.stakeholder.role }}) — {{ targets[f.comment.target] }}{% if f.comment.target_detail %}, {{ f.comment.target_detail }}{% endif %} — {{ f.comment.received_on.isoformat() }}</h3>
     <p>{{ f.comment.text }}</p>
-    {% if f.response %}<p><strong>{{ actions[f.response.action] }}</strong>&nbsp;: {{ f.response.text }}</p>{% else %}<p><em>{{ _("Awaiting a response.") }}</em></p>{% endif %}
+    {% if f.response %}<p><strong>{{ actions[f.response.action] }}</strong>{{ colon() }} {{ f.response.text }}</p>{% else %}<p><em>{{ _("Awaiting a response.") }}</em></p>{% endif %}
     <details>
       <summary>{% if f.response %}{{ _("Change the response") }}{% else %}{{ _("Respond") }}{% endif %}</summary>
       <form method="post" action="/consultation/commentaires/{{ f.comment.id }}/suite">
