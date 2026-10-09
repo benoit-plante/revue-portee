@@ -466,6 +466,26 @@ def missing_texts(
 
 
 @app.command(
+    "textes-reconvertir",
+    help=_(
+        "Convert again the full texts converted by an older version of the tool (each new "
+        "conversion is added; the old one stays)."
+    ),
+)
+def reconvert_texts(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.fulltext.retrieval import reconvert
+
+    folder = _open_for_writing(dossier)
+    try:
+        count = reconvert(folder, now=utc_now, tool_version=tool_version())
+    finally:
+        folder.close()
+    typer.echo(_("Texts converted again: {count}").format(count=count))
+
+
+@app.command(
     "banc-pages",
     help=_(
         "Compare the text extraction by page of PyMuPDF, pypdf and pdfplumber on test PDFs; "

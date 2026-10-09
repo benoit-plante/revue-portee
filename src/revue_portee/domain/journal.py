@@ -84,6 +84,7 @@ class EntryType:
     FULLTEXT_UPLOADED = "fulltext.uploaded"
     FULLTEXT_NOT_FOUND = "fulltext.not_found"
     FULLTEXT_NOT_RETRIEVABLE = "fulltext.not_retrievable"
+    FULLTEXT_CONVERTED = "fulltext.converted"
 
 
 class JournalEntry(BaseModel):

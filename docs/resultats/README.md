@@ -103,7 +103,7 @@ uv run revue-portee banc-pages ~/revue-portee-donnees/essai-textes/essai-complet
 
 ## Essai réel du tri au texte intégral (`screen_fulltext` v1) — exécuté le 2026-10-09
 
-Essai de mise au point sur 10 textes d'Oud_2018 (pas une mesure de performance) : 10 réponses utilisables sur 10, 0,0198 $ US, 24 citations sur 28 trouvées à la page indiquée et aucune à une autre page. Les 4 citations introuvables sont exactes mais coupées par un PDF qui double chaque ligne : correction du convertisseur proposée. Une inclusion de l'IA, étiquetée exclue par SYNERGY, est à vérifier par une personne. [Rapport](essai-screen-fulltext-v1.md).
+Essai de mise au point sur 10 textes d'Oud_2018 (pas une mesure de performance) : 10 réponses utilisables sur 10, 0,0198 $ US, 24 citations sur 28 trouvées à la page indiquée et aucune à une autre page. Les 4 citations introuvables étaient exactes mais coupées par un PDF qui dessine son texte deux fois; après la conversion 2, 27 sur 28 sont trouvées à la page indiquée, 1 à une autre page (vraie erreur du modèle), aucune introuvable, et un texte indéchiffrable est signalé. Une inclusion de l'IA, étiquetée exclue par SYNERGY, est à vérifier par une personne. [Rapport](essai-screen-fulltext-v1.md).
 
 ## Test du dédoublonnage sur des données mises de côté (ASySD) — exécuté le 2026-10-08
 

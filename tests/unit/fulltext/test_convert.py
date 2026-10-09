@@ -1,15 +1,24 @@
 """PDF to text by page with PyMuPDF (EF-SEL-15): page numbers, printed numbers,
 bibliography, scanned PDFs, unreadable files."""
 
+import pymupdf
 import pytest
 
-from revue_portee.domain.fulltext import PagePosition, QuoteCheck, check_quote
+from revue_portee.domain.fulltext import (
+    PagedText,
+    PagePosition,
+    QuoteCheck,
+    TextPage,
+    check_quote,
+)
 from revue_portee.fulltext.convert import (
     ConversionError,
     convert_pdf,
     locate_bibliography,
+    merge_doubled_lines,
     needs_ocr,
     printed_labels,
+    unreadable_share,
 )
 from support import make_pdf
 
@@ -112,3 +121,60 @@ def test_unreadable_files(data: bytes) -> None:
 def test_protected_pdf() -> None:
     with pytest.raises(ConversionError, match="mot de passe"):
         convert_pdf(make_pdf(["secret"], password="pass"))
+
+
+def test_doubled_lines_are_merged_on_a_doubled_page() -> None:
+    doubled = "Background\nBackground\nDBT iswidely considered\nDBT is widely considered\n\n12\n12"
+    assert merge_doubled_lines(doubled) == "Background\nDBT iswidely considered\n\n12"
+    # runs of more than two, and a few pairs on a normal page, are left as they are
+    filler = "\n".join(["Same line."] * 5 + ["Other."])
+    assert merge_doubled_lines(filler) == filler
+    table = "Table 1\nGroup\n0\n0\nMeasure\nScore\nTotal"
+    assert merge_doubled_lines(table) == table
+    assert merge_doubled_lines("") == ""
+
+
+def test_quote_found_in_a_doubled_pdf() -> None:
+    lines = [
+        "Women with borderline personality",
+        "disorder aged 18 to 70 years",
+        "were randomly assigned",
+    ]
+    data = make_pdf(["\n".join(line for line in lines for _ in range(2))])
+    text = convert_pdf(data)
+    quote = "personality disorder aged 18 to 70 years were randomly"
+    assert check_quote(text.pages, quote, 1) is QuoteCheck.AT_PAGE
+
+
+def _shadowed_pdf(lines: list[str]) -> bytes:
+    """A page whose text is drawn twice, the second time half a point lower and to the
+    right, as some publishers' PDFs do (a "shadow" text layer)."""
+    document = pymupdf.open()  # type: ignore[no-untyped-call]
+    page = document.new_page()
+    for number, line in enumerate(lines):
+        for shift in (0.0, 0.5):
+            page.insert_text((72 + shift, 72 + 14 * number + shift), line, fontsize=10)
+    data = bytes(document.tobytes())  # type: ignore[no-untyped-call]
+    document.close()  # type: ignore[no-untyped-call]
+    return data
+
+
+def test_shadow_text_is_kept_once() -> None:
+    lines = ["The treatment combines weekly individual", "cognitive-behavioural psychotherapy"]
+    text = convert_pdf(_shadowed_pdf(lines))
+    assert text.pages[0].text.count("weekly individual") == 1
+    quote = "combines weekly individual cognitive-behavioural psychotherapy"
+    assert check_quote(text.pages, quote, 1) is QuoteCheck.AT_PAGE
+    plain = convert_pdf(make_pdf(["\n".join(lines)]))
+    assert plain.pages[0].text.count("weekly individual") == 1  # nothing drawn twice
+
+
+def test_text_that_cannot_be_decoded_is_flagged() -> None:
+    garbled = ")," + chr(0x19) + " " + chr(0x18) + " -- " + chr(0x15) + chr(0x0B) + "-"
+    pages = (TextPage(number=1, text=(garbled + "\n") * 60),)
+    assert unreadable_share(PagedText(pages=pages)) > 0.1
+    assert needs_ocr(PagedText(pages=pages))
+    readable = (TextPage(number=1, text=LONG),)
+    assert unreadable_share(PagedText(pages=readable)) == 0.0
+    assert not needs_ocr(PagedText(pages=readable))
+    assert unreadable_share(PagedText(pages=(TextPage(number=1, text=" "),))) == 0.0

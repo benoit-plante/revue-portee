@@ -31,6 +31,24 @@ Aucun des 97 textes libres n'est une étude incluse dans Oud_2018 selon les éti
 4. **Coût** : environ 0,2 cent par texte avec le modèle par défaut, bien sous l'estimation de la conception (1 à 2 cents par lots).
 5. **Nommage des codes** : l'outil attribue le préfixe X aux critères « autres » d'inclusion; X1 désigne ici le devis (essai randomisé), ce qui peut se confondre avec une exclusion. À revoir dans l'interface des critères (proposition).
 
+## Suite : conversion 2 (2026-10-09)
+
+L'examen des 4 citations introuvables a montré deux défauts de la conversion, corrigés dans la conversion 2 :
+
+- **Texte « ombré »** : le PDF de l'inclusion dessine son texte deux fois, la seconde couche coupée à d'autres endroits; les fragments dessinés de nouveau au même endroit (à moins de deux points) sont désormais gardés une fois, et les lignes en paires fusionnées.
+- **Texte indéchiffrable** : un autre des 10 PDF ne donne que des caractères de contrôle (police sans table de ses caractères). L'IA l'a reçu tel quel et l'a exclu sans pouvoir le lire. Un tel texte est désormais signalé « sans texte lisible », comme un PDF numérisé, et laissé à la personne.
+
+Vérification refaite sur les **mêmes réponses brutes**, sans nouvel appel au modèle, avec les textes convertis à neuf :
+
+| Vérification des citations | Conversion 1 | Conversion 2 |
+|---|---|---|
+| À la page indiquée | 24 | **27** |
+| À une autre page | 0 | 1 |
+| Introuvables | 4 | **0** |
+| Textes signalés sans texte lisible | 0 | 1 |
+
+La citation « à une autre page » est une vraie erreur du modèle : il indique la page 2 pour un passage de la page 1. La vérification la signale comme prévu.
+
 ## Textes de mise au point (SHA-256)
 
 - `097f8413e65ff3248fa1c8c5871432e1da6e73536794aa0e92b586dafc486ad5`

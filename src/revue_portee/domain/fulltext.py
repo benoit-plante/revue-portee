@@ -117,7 +117,8 @@ def _offset_in(page: TextPage, position: PagePosition) -> int:
 
 class FulltextDocument(BaseModel):
     """A PDF obtained for a reference, stored in ``textes/<sha256>.pdf`` with its text
-    by page in ``textes/<sha256>.pages.json``."""
+    by page in ``textes/<sha256>.pages.json`` (``<sha256>.c<N>.pages.json`` from the
+    second conversion on)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -142,6 +143,12 @@ class FulltextDocument(BaseModel):
     @property
     def open_access(self) -> bool:
         return self.origin in OPEN_ACCESS_ORIGINS
+
+    @property
+    def conversion(self) -> int:
+        """Version of the conversion rules of its text (1 before it was numbered)."""
+        match = re.search(r"conversion (\d+)", self.converter)
+        return 1 if match is None else int(match.group(1))
 
 
 class RetrievalNote(BaseModel):
