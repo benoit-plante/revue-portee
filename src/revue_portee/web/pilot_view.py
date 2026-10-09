@@ -3,6 +3,7 @@
 from decimal import ROUND_UP, Decimal
 
 from revue_portee.ai.base import CostEstimate
+from revue_portee.i18n import current_locale
 from revue_portee.i18n import gettext as _
 
 __all__ = [
@@ -32,10 +33,13 @@ def stopped_labels() -> dict[str, str]:
 
 
 def percent(value: float | None) -> str:
-    """« 87,5 % », or « — » without a value."""
+    """A percentage in the notation of the interface, or a dash without a value."""
     if value is None:
         return "—"
-    return f"{value * 100:.1f}".replace(".", ",") + " %"
+    text = f"{value * 100:.1f}"
+    if current_locale() == "fr":
+        return text.replace(".", ",") + " %"
+    return text + "%"
 
 
 def parse_amount(text: str) -> Decimal:

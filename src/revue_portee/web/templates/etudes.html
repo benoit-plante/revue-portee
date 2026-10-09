@@ -73,7 +73,7 @@
       <p>{{ _("AI: %(verdict)s.", verdict=verdict_labels[a.verdict]) }} {{ a.rationale }}</p>
       <ul class="small">
       {% for e in a.evidence %}
-        <li>{{ e.aspect }}&nbsp;: A {% if e.quote_a %}«&nbsp;{{ e.quote_a }}&nbsp;»{% if e.page_a %} ({{ _("page %(page)s", page=e.page_a) }}){% endif %}{% if e.check_a %} — {{ check_labels[e.check_a] }}{% endif %}{% else %}—{% endif %}; B {% if e.quote_b %}«&nbsp;{{ e.quote_b }}&nbsp;»{% if e.page_b %} ({{ _("page %(page)s", page=e.page_b) }}){% endif %}{% if e.check_b %} — {{ check_labels[e.check_b] }}{% endif %}{% else %}—{% endif %}</li>
+        <li>{{ e.aspect }}{{ colon() }} A {% if e.quote_a %}{{ quoted(e.quote_a) }}{% if e.page_a %} ({{ _("page %(page)s", page=e.page_a) }}){% endif %}{% if e.check_a %} — {{ check_labels[e.check_a] }}{% endif %}{% else %}—{% endif %}; B {% if e.quote_b %}{{ quoted(e.quote_b) }}{% if e.page_b %} ({{ _("page %(page)s", page=e.page_b) }}){% endif %}{% if e.check_b %} — {{ check_labels[e.check_b] }}{% endif %}{% else %}—{% endif %}</li>
       {% endfor %}
       </ul>
     {% endif %}

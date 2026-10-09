@@ -20,10 +20,11 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from markupsafe import Markup
+from markupsafe import Markup, escape
 from pydantic import JsonValue, ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from revue_portee.ai.costs import UnknownPriceError
 from revue_portee.ai.providers import ProviderFactory, UnknownProviderError
@@ -72,7 +73,16 @@ from revue_portee.extraction import grid as extraction_grid
 from revue_portee.extraction import impact as extraction_impact
 from revue_portee.extraction import prefill, validation
 from revue_portee.fulltext import retrieval
-from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
+from revue_portee.i18n import (
+    DEFAULT_LOCALE,
+    EXPORT_LANGUAGES,
+    INTERFACE_LOCALES,
+    current_locale,
+    gettext,
+    ngettext,
+    reset_locale,
+    set_locale,
+)
 from revue_portee.i18n import gettext as _
 from revue_portee.jobs.runner import BackgroundJobs
 from revue_portee.protocol import criteria, framing, notes, qualification, registration, suggestions
@@ -305,8 +315,44 @@ def block_name(code: str) -> str:
 
 
 def decimal_fr(value: Decimal | float, digits: int) -> str:
-    """Number in French notation, e.g. « 0,90 »."""
-    return f"{value:.{digits}f}".replace(".", ",")
+    """Number in the notation of the interface: comma in French, point in English."""
+    text = f"{value:.{digits}f}"
+    return text.replace(".", ",") if current_locale() == "fr" else text
+
+
+def colon() -> Markup:
+    """The colon after a label: a non-breaking space before it in French."""
+    return Markup("&nbsp;:") if current_locale() == "fr" else Markup(":")
+
+
+def quoted(text: object) -> Markup:
+    """French guillemets in French, English quotation marks in English (escaped)."""
+    if current_locale() == "fr":
+        return Markup("«&nbsp;%s&nbsp;»") % text
+    return Markup("“%s”") % text
+
+
+def pct(value: Decimal | float, digits: int) -> Markup:
+    """A percentage: a non-breaking space before « % » in French, none in English."""
+    sign = Markup("&nbsp;%") if current_locale() == "fr" else Markup("%")
+    return escape(decimal_fr(value, digits)) + sign
+
+
+class _LocaleMiddleware:
+    """The interface language of each request, from the « langue » cookie (ENF-LAN-03)."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        token = set_locale(Request(scope).cookies.get(LOCALE_COOKIE, DEFAULT_LOCALE))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            reset_locale(token)
 
 
 def money(amount: Decimal, currency: str) -> str:
@@ -370,6 +416,8 @@ DEDUP_JOB = "dedoublonnage"
 STUDY_JOB = "etudes-ia"
 # Key of the background job where the AI pre-fills the extraction grid.
 EXTRACTION_JOB = "extraction-ia"
+# Cookie that keeps the interface language chosen by the person (fr or en).
+LOCALE_COOKIE = "langue"
 # Key of the background job where the AI drafts the narrative synthesis of a field.
 NARRATIVE_JOB = "narratif-ia-{code}"
 # Key of the background job where the AI drafts the plain-language summary of a level.
@@ -408,11 +456,12 @@ def create_app(
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.state.csrf_token = context.csrf_token
     app.add_middleware(_LocalOnlyMiddleware)
+    app.add_middleware(_LocaleMiddleware)
     app.mount("/statique", StaticFiles(directory=str(_PACKAGE / "static")), name="static")
 
     templates = Jinja2Templates(directory=str(_PACKAGE / "templates"))
     templates.env.add_extension("jinja2.ext.i18n")
-    templates.env.install_gettext_translations(translations(), newstyle=True)  # type: ignore[attr-defined]
+    templates.env.install_gettext_callables(gettext, ngettext, newstyle=True)  # type: ignore[attr-defined]
     templates.env.globals.update(
         pcc_labels=pcc_labels,
         kind_labels=kind_labels,
@@ -424,6 +473,10 @@ def create_app(
         section_labels=section_labels,
         money=money,
         decimal_fr=decimal_fr,
+        colon=colon,
+        quoted=quoted,
+        pct=pct,
+        interface_locale=current_locale,
         role_labels=role_labels,
         language_labels=language_labels,
         warning_labels=warning_labels,
@@ -462,6 +515,25 @@ def create_app(
     @app.get("/")
     def home() -> RedirectResponse:
         return see_other("/cadrage")
+
+    @app.post("/langue")
+    def change_language(
+        _csrf: Csrf,
+        langue: Annotated[str, Form()] = DEFAULT_LOCALE,
+        retour: Annotated[str, Form()] = "/",
+    ) -> Response:
+        """Keep the interface language chosen by the person (ENF-LAN-03), then go back to
+        the page (a path of this application only)."""
+        back = retour if retour.startswith("/") and not retour.startswith("//") else "/"
+        response = see_other(back)
+        response.set_cookie(
+            LOCALE_COOKIE,
+            langue if langue in INTERFACE_LOCALES else DEFAULT_LOCALE,
+            max_age=365 * 24 * 3600,
+            httponly=True,
+            samesite="lax",
+        )
+        return response
 
     def framing_page(
         request: Request,
@@ -1945,7 +2017,7 @@ def create_app(
         status_code: int = 200,
     ) -> HTMLResponse:
         document = protocol_document(
-            folder, language="fr", now=now, tool_version=context.tool_version
+            folder, language=current_locale(), now=now, tool_version=context.tool_version
         )
         checklist = peters_checklist()
         statuses = checklist_status(document.blocks, checklist)
@@ -2376,7 +2448,7 @@ def create_app(
             grid, studies = synthesis_maps.study_data(folder)
         except prefill.NoGridError:
             return render(request, "synthese.html", {"grid": None}, status_code=status_code)
-        labels = synthesis_maps.category_labels("fr")
+        labels = synthesis_maps.category_labels(current_locale())
         tables = [synthesis_frequency(f, studies, labels) for f in grid.sorted_fields()]
         crossed, found, svg, comments = None, [], "", {}
         if rows and columns and rows != columns:
@@ -2386,7 +2458,7 @@ def create_app(
                 raise HTTPException(status_code=404, detail=str(unknown)) from unknown
             found = list(synthesis_gaps(crossed, sparse_max=sparse))
             context_map = MapContext(
-                project_title=project.title, language="fr",
+                project_title=project.title, language=current_locale(),
                 tool_version=context.tool_version, generated_at=now(),
             )  # fmt: skip
             svg = map_svg(crossed, found, context_map)
@@ -2457,10 +2529,12 @@ def create_app(
         sparse = int(seuil) if seuil.isdigit() else synthesis_maps.SPARSE_MAX
         crossing = [(lignes, colonnes)] if lignes and colonnes and lignes != colonnes else []
         try:
-            written = synthesis_maps.export_tables(folder, language="fr", crosses=crossing, now=now)
+            written = synthesis_maps.export_tables(
+                folder, language=current_locale(), crosses=crossing, now=now
+            )
             for rows, columns in crossing:
                 written += synthesis_maps.export_map(
-                    folder, rows, columns, language="fr", sparse_max=sparse, now=now,
+                    folder, rows, columns, language=current_locale(), sparse_max=sparse, now=now,
                     tool_version=context.tool_version,
                 )  # fmt: skip
         except (synthesis_maps.UnknownFieldError, prefill.NoGridError) as error:
@@ -2523,7 +2597,7 @@ def create_app(
     def export_narrative(request: Request, _csrf: Csrf) -> Response:
         try:
             written = synthesis_narrative.export_narrative(
-                folder, language="fr", now=now, tool_version=context.tool_version
+                folder, language=current_locale(), now=now, tool_version=context.tool_version
             )
         except prefill.NoGridError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
@@ -2877,7 +2951,7 @@ def create_app(
             {
                 "available": available,
                 "checklist": chosen,
-                "filled": fill_checklist(chosen, facts, language="fr"),
+                "filled": fill_checklist(chosen, facts, language=current_locale()),
                 "message": message,
             },
             status_code=status_code,
@@ -3529,8 +3603,8 @@ def create_app(
             "rapports.html",
             {
                 "numbers": numbers,
-                "pending": separator(DEFAULT_LOCALE).join(
-                    pending_items(_, numbers.pending, DEFAULT_LOCALE)
+                "pending": separator(current_locale()).join(
+                    pending_items(_, numbers.pending, current_locale())
                 ),
                 "archives": archives(),
                 "archive": archive,

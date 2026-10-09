@@ -88,7 +88,7 @@
         <td>{% if a %}{{ values[a.value] }} — {{ percent(a.confidence_calibrated if a.confidence_calibrated is not none else a.confidence_raw) }}{% else %}—{% endif %}</td>
         <td>{% if a %}{{ a.rationale }}
           <details><summary>{{ _("By criterion") }}</summary><ul class="small">
-          {% for item in a.assessments %}<li>{{ item.code }} : {{ statuses[item.status] }}{% if item.evidence_quote %} — «&nbsp;{{ item.evidence_quote }}&nbsp;»{% if item.quote_found == false %} ({{ _("not found in the reference") }}){% endif %}{% endif %}</li>{% endfor %}
+          {% for item in a.assessments %}<li>{{ item.code }}{{ colon() }} {{ statuses[item.status] }}{% if item.evidence_quote %} — {{ quoted(item.evidence_quote) }}{% if item.quote_found == false %} ({{ _("not found in the reference") }}){% endif %}{% endif %}</li>{% endfor %}
           </ul></details>{% endif %}</td>
       </tr>
     {% endfor %}
@@ -124,7 +124,7 @@
   </table>
   {% if state.disagreements %}
   <p class="label">{{ _("Disagreements by criterion cited") }}</p>
-  <ul>{% for code, count in state.disagreements.items() %}<li>{{ code or _("(no criterion cited)") }} : {{ count }}</li>{% endfor %}</ul>
+  <ul>{% for code, count in state.disagreements.items() %}<li>{{ code or _("(no criterion cited)") }}{{ colon() }} {{ count }}</li>{% endfor %}</ul>
   {% endif %}
   <table class="criteria">
     <caption>{{ _("Threshold, sensitivity and references avoided") }}</caption>

@@ -14,7 +14,7 @@
     {% for o in upload.added %}<li>{{ _("Added: %(file)s (found by %(kind)s)", file=o.filename, kind=match_labels[o.kind]) }} — <a href="#reference-{{ o.reference_id }}">{{ _("see the reference") }}</a></li>{% endfor %}
     {% for o in upload.already %}<li>{{ _("Already in the project: %(file)s", file=o.filename) }}</li>{% endfor %}
     {% for o in upload.unmatched %}<li>{{ _("No reference found, add it from its row below: %(file)s", file=o.filename) }}</li>{% endfor %}
-    {% for o in upload.unreadable %}<li>{{ o.filename }}&nbsp;: {{ o.message }}</li>{% endfor %}
+    {% for o in upload.unreadable %}<li>{{ o.filename }}{{ colon() }} {{ o.message }}</li>{% endfor %}
   </ul>
 </section>
 {% endif %}

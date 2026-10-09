@@ -70,7 +70,7 @@
     <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Values compared") }}</th><th scope="col">{{ _("In agreement") }}</th><th scope="col">{{ _("Share") }}</th></tr></thead>
     <tbody>
     {% for a in pilot.agreement %}
-      <tr><th scope="row">{{ a.code }} — {{ a.label }}</th><td>{{ a.compared }}</td><td>{{ a.agreed }}</td><td>{% if a.share is none %}—{% else %}{{ decimal_fr(a.share * 100, 0) }}&nbsp;%{% endif %}</td></tr>
+      <tr><th scope="row">{{ a.code }} — {{ a.label }}</th><td>{{ a.compared }}</td><td>{{ a.agreed }}</td><td>{% if a.share is none %}—{% else %}{{ pct(a.share * 100, 0) }}{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table>

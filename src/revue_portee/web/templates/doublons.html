@@ -100,7 +100,7 @@
       {% for link in group_links.get(g.primary, []) %}
       {% set ra = references[link.reference_a] %}{% set rb = references[link.reference_b] %}
       <li>
-        «&nbsp;{{ ra.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_a, "") }}) — «&nbsp;{{ rb.title | truncate(60) }}&nbsp;» ({{ sources.get(link.reference_b, "") }})&nbsp;:
+        {{ quoted(ra.title | truncate(60)) }} ({{ sources.get(link.reference_a, "") }}) — {{ quoted(rb.title | truncate(60)) }} ({{ sources.get(link.reference_b, "") }}){{ colon() }}
         {% if link.decision %}{{ _("decided by a person on %(date)s", date=link.decision.created_at.strftime("%Y-%m-%d")) }}{% elif link.pair %}{{ _("automatic") }}, {{ rules.get(link.pair.rule, link.pair.rule) }}{% endif %}
         <form method="post" action="/doublons/paire" class="inline">
           {{ csrf() }}
@@ -132,7 +132,7 @@
     {% for d in kept_apart %}
     {% set ra = references[d.reference_a_id] %}{% set rb = references[d.reference_b_id] %}
     <li>
-      «&nbsp;{{ ra.title | truncate(60) }}&nbsp;» ({{ sources.get(d.reference_a_id, "") }}) — «&nbsp;{{ rb.title | truncate(60) }}&nbsp;» ({{ sources.get(d.reference_b_id, "") }})&nbsp;: {{ _("kept apart on %(date)s", date=d.created_at.strftime("%Y-%m-%d")) }}
+      {{ quoted(ra.title | truncate(60)) }} ({{ sources.get(d.reference_a_id, "") }}) — {{ quoted(rb.title | truncate(60)) }} ({{ sources.get(d.reference_b_id, "") }}){{ colon() }} {{ _("kept apart on %(date)s", date=d.created_at.strftime("%Y-%m-%d")) }}
       <form method="post" action="/doublons/paire" class="inline">
         {{ csrf() }}
         <input type="hidden" name="reference_a" value="{{ d.reference_a_id }}">

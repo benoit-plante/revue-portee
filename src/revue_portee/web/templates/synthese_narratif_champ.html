@@ -14,7 +14,7 @@
   {% if target.studies %}
   <ul>
   {% for study, v in target.studies %}
-    <li><a href="/extraction/{{ study.primary.id }}">{{ labels[study.primary.id] }}</a>&nbsp;: {% if not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</li>
+    <li><a href="/extraction/{{ study.primary.id }}">{{ labels[study.primary.id] }}</a>{{ colon() }} {% if not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</li>
   {% endfor %}
   </ul>
   {% else %}
@@ -71,7 +71,7 @@
       <legend>{{ _("Sentence %(n)s", n=loop.index) }}</legend>
       <label class="visually-hidden" for="phrase-{{ n }}">{{ _("Sentence %(n)s", n=loop.index) }}</label>
       <textarea id="phrase-{{ n }}" name="phrase-{{ n }}" rows="2">{{ row.text if row else "" }}</textarea>
-      <p class="small">{{ _("Studies") }}&nbsp;:
+      <p class="small">{{ _("Studies") }}{{ colon() }}
       {% for study in state.studies %}<label><input type="checkbox" name="etudes-{{ n }}" value="{{ study.primary.id }}" {% if row and study.primary.id in row.study_ids %}checked{% endif %}> {{ labels[study.primary.id] }}</label> {% endfor %}
       </p>
     </fieldset>

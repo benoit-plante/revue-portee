@@ -58,7 +58,7 @@
     <summary>{{ _("Studies by cell") }}</summary>
     <ul>
     {% for r in crossed.rows %}{% for c in crossed.columns %}{% set ids = crossed.studies(r, c) %}{% if ids %}
-      <li>{{ r }} / {{ c }} ({{ ids | length }})&nbsp;: {% for i in ids %}<a href="/extraction/{{ i }}">{{ labels[i] }}</a>{% if not loop.last %}; {% endif %}{% endfor %}</li>
+      <li>{{ r }} / {{ c }} ({{ ids | length }}){{ colon() }} {% for i in ids %}<a href="/extraction/{{ i }}">{{ labels[i] }}</a>{% if not loop.last %}; {% endif %}{% endfor %}</li>
     {% endif %}{% endfor %}{% endfor %}
     </ul>
     <p class="small">{{ _("Studies without a value on either field: %(count)s.", count=crossed.unplaced | length) }}</p>
@@ -84,7 +84,7 @@
     <thead><tr><th scope="col">{{ _("Category") }}</th><th scope="col">{{ _("Studies") }}</th><th scope="col">{{ _("Share") }}</th></tr></thead>
     <tbody>
     {% for r in t.rows %}
-      <tr><th scope="row">{{ r.category }}</th><td>{{ r.count }}</td><td>{% set s = t.share(r) %}{% if s is none %}—{% else %}{{ decimal_fr(s * 100, 1) }}&nbsp;%{% endif %}</td></tr>
+      <tr><th scope="row">{{ r.category }}</th><td>{{ r.count }}</td><td>{% set s = t.share(r) %}{% if s is none %}—{% else %}{{ pct(s * 100, 1) }}{% endif %}</td></tr>
     {% endfor %}
       <tr><th scope="row"><em>{{ _("Not reported") }}</em></th><td>{{ t.not_reported | length }}</td><td></td></tr>
       <tr><th scope="row"><em>{{ _("Not extracted yet") }}</em></th><td>{{ t.not_extracted | length }}</td><td></td></tr>

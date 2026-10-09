@@ -7,7 +7,7 @@
     {% if counts %}
     <ul>
       {% for source, n in counts | dictsort %}
-      <li>{{ {"pubmed": "PubMed", "openalex": "OpenAlex", "ris": _("RIS imports")}.get(source, source) }}&nbsp;: {{ n }}</li>
+      <li>{{ {"pubmed": "PubMed", "openalex": "OpenAlex", "ris": _("RIS imports")}.get(source, source) }}{{ colon() }} {{ n }}</li>
       {% endfor %}
     </ul>
     {% endif %}

@@ -54,7 +54,7 @@
       <details>
         <summary>{{ _("Problems found: %(count)s", count=f.issues | length) }}</summary>
         <ul class="small">
-          {% for i in f.issues %}<li>{{ _("Line %(line)s", line=i.line) }}{% if i.record %} ({{ _("record %(number)s", number=i.record) }}){% endif %}&nbsp;: {{ kinds[i.kind] }}{% if i.text %} — «&nbsp;{{ i.text }}&nbsp;»{% endif %}</li>{% endfor %}
+          {% for i in f.issues %}<li>{{ _("Line %(line)s", line=i.line) }}{% if i.record %} ({{ _("record %(number)s", number=i.record) }}){% endif %}{{ colon() }} {{ kinds[i.kind] }}{% if i.text %} — {{ quoted(i.text) }}{% endif %}</li>{% endfor %}
         </ul>
       </details>
       {% endif %}

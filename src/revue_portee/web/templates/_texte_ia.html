@@ -5,6 +5,6 @@
 <p>{{ a.rationale }}</p>
 <ul class="small">
 {% for item in a.assessments %}
-  <li>{{ item.code }}&nbsp;: {{ statuses[item.status] }}{% if item.evidence_quote %} — «&nbsp;{{ item.evidence_quote }}&nbsp;»{% if item.page %} ({{ _("page %(page)s", page=item.page) }}){% endif %}{% if item.quote_check %} — {{ check_labels[item.quote_check] }}{% endif %}{% endif %}</li>
+  <li>{{ item.code }}{{ colon() }} {{ statuses[item.status] }}{% if item.evidence_quote %} — {{ quoted(item.evidence_quote) }}{% if item.page %} ({{ _("page %(page)s", page=item.page) }}){% endif %}{% if item.quote_check %} — {{ check_labels[item.quote_check] }}{% endif %}{% endif %}</li>
 {% endfor %}
 </ul>

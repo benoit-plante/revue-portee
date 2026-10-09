@@ -19,7 +19,7 @@
   {% for f in filled %}
     <tr>
       <th scope="row">{{ f.item.id }}{% if f.item.optional %} <span class="small">({{ _("optional") }})</span>{% endif %}</th>
-      <td>{{ f.item.fr }}</td>
+      <td>{{ f.item.label(interface_locale()) }}</td>
       <td>{% if f.proposals %}{{ f.proposals | join(" ") }}{% else %}<em>{{ _("To be completed by the team.") }}</em>{% endif %}{% if f.unknown %} <span class="small">({{ _("unknown data sources: %(sources)s", sources=f.unknown | join(", ")) }})</span>{% endif %}</td>
     </tr>
   {% endfor %}
