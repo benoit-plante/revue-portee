@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:34-0400\n"
+"POT-Creation-Date: 2026-10-09 07:56-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -748,6 +748,13 @@ msgstr "Consultation"
 msgid "Context"
 msgstr "Contexte"
 
+msgid ""
+"Convert again the full texts converted by an older version of the tool (each new conversion is "
+"added; the old one stays)."
+msgstr ""
+"Convertir de nouveau les textes intégraux convertis par une version antérieure de l'outil (chaque"
+" nouvelle conversion s'ajoute ; l'ancienne demeure)."
+
 msgid "Cost"
 msgstr "Coût"
 
@@ -1384,6 +1391,10 @@ msgstr "Français, Word (DOCX)"
 
 msgid "From the year"
 msgstr "À partir de l'année"
+
+#, python-brace-format
+msgid "Full text converted again ({converter}): {pages} pages"
+msgstr "Texte intégral converti de nouveau ({converter}) : {pages} pages"
 
 #, python-brace-format
 msgid "Full text declared not retrievable: {reason}"
@@ -3096,6 +3107,10 @@ msgstr "Texte du protocole"
 
 msgid "Texts"
 msgstr "Textes"
+
+#, python-brace-format
+msgid "Texts converted again: {count}"
+msgstr "Textes convertis de nouveau : {count}"
 
 #, python-format
 msgid "Texts decided: %(done)s of %(total)s."

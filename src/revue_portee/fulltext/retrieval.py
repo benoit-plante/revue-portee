@@ -39,7 +39,13 @@ from revue_portee.domain.fulltext import (
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.references import Reference
-from revue_portee.fulltext.convert import CONVERTER, ConversionError, convert_pdf, needs_ocr
+from revue_portee.fulltext.convert import (
+    CONVERSION,
+    CONVERTER,
+    ConversionError,
+    convert_pdf,
+    needs_ocr,
+)
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.screening.report import retained_references
@@ -63,6 +69,7 @@ __all__ = [
     "declare_not_retrievable",
     "export_missing",
     "paged_text",
+    "reconvert",
     "retrieval_report",
     "retrieve_open_access",
     "upload_files",
@@ -144,9 +151,11 @@ def _sought(folder: ProjectFolder, reference_id: str) -> RetrievalRow:
 # --- Files ----------------------------------------------------------------------------
 
 
-def _paths(folder: ProjectFolder, sha256: str) -> tuple[Path, Path]:
+def _paths(folder: ProjectFolder, sha256: str, conversion: int = CONVERSION) -> tuple[Path, Path]:
+    """The PDF and the text of one conversion of it."""
     base = folder.path / TEXT_FOLDER
-    return base / f"{sha256}.pdf", base / f"{sha256}.pages.json"
+    text = f"{sha256}.pages.json" if conversion == 1 else f"{sha256}.c{conversion}.pages.json"
+    return base / f"{sha256}.pdf", base / text
 
 
 def _store_files(folder: ProjectFolder, data: bytes, text: PagedText) -> tuple[str, list[Path]]:
@@ -165,7 +174,7 @@ def _store_files(folder: ProjectFolder, data: bytes, text: PagedText) -> tuple[s
 
 def paged_text(folder: ProjectFolder, document: FulltextDocument) -> PagedText:
     """Text by page of a document."""
-    _pdf, pages = _paths(folder, document.sha256)
+    _pdf, pages = _paths(folder, document.sha256, document.conversion)
     return PagedText.model_validate_json(pages.read_bytes())
 
 
@@ -186,10 +195,18 @@ def _record_document(
     location: OpenAccessLocation | None = None,
     filename: str = "",
     raw_dir: str = "",
+    reconverted: FulltextDocument | None = None,
     now: Clock,
     tool_version: str,
 ) -> FulltextDocument:
+    """Record a document; ``reconverted`` is the document whose PDF was converted again
+    (its source fields are kept)."""
     moment = now()
+    if reconverted is not None:
+        location = OpenAccessLocation(
+            reconverted.url, reconverted.license, reconverted.version, reconverted.host_type
+        )
+        filename, raw_dir = reconverted.filename, reconverted.raw_dir
     sha256, created = _store_files(folder, data, text)
     document = FulltextDocument(
         id=new_ulid(moment),
@@ -211,9 +228,14 @@ def _record_document(
         reviewer_id=folder.reviewer_id,
     )
     uploaded = origin is FulltextOrigin.UPLOAD
-    if uploaded:
+    if reconverted is not None:
+        entry_type = EntryType.FULLTEXT_CONVERTED
+        summary = french("Full text converted again ({converter}): {pages} pages")
+    elif uploaded:
+        entry_type = EntryType.FULLTEXT_UPLOADED
         summary = french("Full text uploaded: {pages} pages")
     else:
+        entry_type = EntryType.FULLTEXT_OBTAINED
         summary = french("Full text obtained in open access ({source}): {pages} pages")
     try:
         with folder.write() as connection:
@@ -221,10 +243,12 @@ def _record_document(
                 connection,
                 now=moment,
                 actor_reviewer_id=folder.reviewer_id,
-                entry_type=EntryType.FULLTEXT_UPLOADED if uploaded else EntryType.FULLTEXT_OBTAINED,
+                entry_type=entry_type,
                 subject_type="reference",
                 subject_id=reference.id,
-                summary_fr=summary.format(pages=document.page_count, source=origin.value),
+                summary_fr=summary.format(
+                    pages=document.page_count, source=origin.value, converter=CONVERTER
+                ),
                 tool_version=tool_version,
                 payload={
                     "document_id": document.id,
@@ -238,6 +262,7 @@ def _record_document(
                     "host_type": document.host_type,
                     "converter": CONVERTER,
                     "raw_dir": raw_dir,
+                    "replaces": None if reconverted is None else reconverted.id,
                 },
             )
             fulltext_repo.insert_document(connection, document, journal_entry_id=entry.id)
@@ -404,6 +429,25 @@ def retrieve_open_access(
     return RetrievalSummary(
         looked_for=len(candidates), obtained=obtained, not_found=len(candidates) - obtained
     )
+
+
+def reconvert(folder: ProjectFolder, *, now: Clock, tool_version: str) -> int:
+    """Convert again, with the rules in force, the documents in force converted by an
+    older version: each new conversion is added as a document (the old one stays, with
+    its text, D-028). Returns the number of documents converted again."""
+    done = 0
+    for row in retrieval_report(folder).rows:
+        document = row.document
+        if document is None or document.conversion >= CONVERSION:
+            continue
+        pdf, _text = _paths(folder, document.sha256, document.conversion)
+        data = pdf.read_bytes()
+        _record_document(
+            folder, row.reference, data, _convert(data), origin=document.origin,
+            reconverted=document, now=now, tool_version=tool_version,
+        )  # fmt: skip
+        done += 1
+    return done
 
 
 # --- Uploads and declarations ---------------------------------------------------------

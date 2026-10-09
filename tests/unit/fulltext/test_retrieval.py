@@ -122,7 +122,7 @@ def test_files_and_raw_answers_are_kept(tmp_path: Path) -> None:
         demo.folder.close()
     texts = demo.folder.path / "textes"
     assert (texts / f"{document.sha256}.pdf").read_bytes().startswith(b"%PDF-")
-    assert (texts / f"{document.sha256}.pages.json").is_file()
+    assert (texts / f"{document.sha256}.c2.pages.json").is_file()  # conversion 2
     assert answers[0] == {"source": "openalex", "answer": {"results": [{"id": "W0"}]}}
     assert answers[1] == {
         "source": "unpaywall",
