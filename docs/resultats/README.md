@@ -93,6 +93,8 @@ Liens refusés : 56 fois une erreur 403 (surtout Wiley), 17 pages web au lieu d'
 
 **Critère d'acceptation atteint** si l'on compte les citations retrouvées (au moins 30 PDF, bon numéro de page pour au moins 98 % des citations vérifiées) : 99,9 % avec PyMuPDF, choix confirmé. Le quart des passages introuvables ne sont pas des erreurs de page : ils chevauchent deux blocs (colonnes, encadrés, notes) que les bibliothèques lisent dans un ordre différent. Les citations du modèle étant tirées du texte de PyMuPDF lui-même, ce risque devra être mesuré avec elles au tri du texte intégral (tranche 2.2), avec les cas « trouvée ailleurs » et « introuvable » de la vérification des citations.
 
+**Avec la conversion 2** (2026-10-09, texte ombré gardé une fois, texte indéchiffrable signalé) : PyMuPDF trouve la bonne page pour **99,9 %** des passages retrouvés (8 071 sur 8 080; 2 699 introuvables), comme avec la conversion 1. La légère baisse des passages retrouvés (8 089 avant) vient des passages tirés du texte d'autres bibliothèques qui contient encore le texte ombré en double.
+
 ### Relancer
 
 ```bash
