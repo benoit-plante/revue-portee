@@ -150,7 +150,24 @@
 - **Versions** : v1 en septembre 2024 (un document); version en trois documents à l'été 2025; **v4 au début de mars 2026**, qui ajoute des tableaux sur l'état actuel de l'IA, une taxonomie des usages et des précisions pour juger si un outil convient à une tâche ([rapport Cochrane Methods 2026](https://www.cochrane.org/nl/about-us/news/cochrane-methods-report-2026)). Soumis à *Research Synthesis Methods*; publication en revue **[non vérifiée]**. Dates exactes des fichiers sur OSF **[non vérifiées]** (OSF inaccessible).
 - **Recommandations principales pour les auteurs** : les auteurs demeurent responsables de la synthèse; vérifier que l'outil fonctionne comme annoncé et justifier qu'il convient à l'usage; déclarer l'usage de l'IA « de façon transparente et détaillée » (nom et version de l'outil, dates, but, justification, intérêts financiers); respecter les normes éthiques et légales; contribuer à l'écosystème; l'IA est « un compagnon, pas un remplaçant » ([guide NEU](https://subjectguides.lib.neu.edu/systematicreview/automation); [diapositives Cochrane](https://training.cochrane.org/sites/training.cochrane.org/files/public/uploads/A%20global%20challenge%20and%20introducing%20RAISE_0.pdf)).
 - **RAISE 2** (v4, 25 août 2026, version soumise à consultation) a été lu en entier le 2026-10-08 et transformé en liste de vérification : [06-liste-raise2.md](06-liste-raise2.md) (ENF-NOR-01). Il distingue le **test** (données mises de côté), l'**évaluation** (aptitude à un usage précis) et la **validation**, toujours qualifiée.
-- **À faire** : lire RAISE 3 (v4) intégralement sur OSF (choix et utilisation des outils).
+- **RAISE 3** (v4.0, 23 septembre 2026, ébauche) a été lu en entier le 2026-10-09 (OSF, fichier « RAISE 3 - selecting and using v.4_final.pdf »). Il s'adresse aux équipes qui **choisissent et utilisent** un outil :
+  - **Cinq niveaux de recommandation** par usage : acceptable; vérification humaine requise; **validation dans la revue requise** (performance mesurée dans la revue même, contre un seuil fixé d'avance); exploratoire ou complémentaire; non acceptable.
+  - **Classement des usages** :
+    - tri par un grand modèle de langage, extraction de données et évaluation du risque de biais par un modèle : « validation dans la revue requise »; le risque de contenu inventé est jugé particulièrement élevé à l'extraction;
+    - dédoublonnage par règles et tri priorisé sans arrêt anticipé : acceptables;
+    - stratégie de recherche rédigée par un modèle : exploratoire seulement; traduction de requêtes par un modèle : vérification humaine ligne par ligne;
+    - **non acceptables** : la synthèse des résultats de plusieurs études par un modèle, et les outils « de bout en bout » qui enchaînent les étapes de façon autonome (les erreurs s'additionnent).
+  - **Choisir un outil** :
+    - l'IA appuie la décision humaine sans la remplacer; elle peut aussi servir à augmenter la **fiabilité**, en double-vérifiant les décisions humaines (le rôle de second réviseur de revue-portee);
+    - les invites ne se réutilisent pas d'une revue à l'autre sans examen; consigner invites, versions exactes et historique des changements;
+    - changer les seuils ou les paramètres peut invalider une validation antérieure : le risque doit être documenté;
+    - après usage, consigner la performance par rapport aux attentes, les erreurs, le temps gagné et les recommandations.
+  - **Évaluer un outil** : formulaire de « remise responsable » (Sense About Science), avec des signaux d'arrêt, dont « des résultats annoncés qui reposent seulement sur la validation du développeur » : c'est aujourd'hui le cas de revue-portee, d'où l'étude de validation ([09](09-protocole-validation.md)).
+  - **Droit et éthique** :
+    - envoyer le texte d'articles publiés à un service d'IA peut constituer une reproduction d'un contenu protégé; le droit de lire ne vaut pas droit de faire traiter par une IA : vérifier les conditions des éditeurs et celles du fournisseur (réutilisation pour l'entraînement, possibilité de refus);
+    - la responsabilité reste à l'équipe : documenter la validation et la supervision;
+    - un outil qui ne s'appuie que sur des textes en libre accès ne peut pas être la seule source.
+  - **Conséquences pour revue-portee** : le tri au texte intégral demande une validation dans chaque revue (petit essai pilote) et une vérification des droits de transmettre les textes au modèle ([10-conception-texte-integral.md](10-conception-texte-integral.md)); la reproduction automatique d'une revue publiée n'est acceptable que comme expérience d'évaluation, jamais comme façon de produire une revue.
 
 ### 5.2 Énoncé de position conjoint Cochrane, Campbell, JBI et CEE (2025)
 - Flemyng E, Noel-Storr A, Macura B, et al. *Position statement on artificial intelligence (AI) use in evidence synthesis across Cochrane, the Campbell Collaboration, JBI and the Collaboration for Environmental Evidence 2025*. Publié simultanément dans quatre revues; version JBI : *JBI Evid Synth* 2025;23(11):2162–2166, [DOI 10.11124/JBIES-25-00480](https://doi.org/10.11124/JBIES-25-00480) ([PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC12594113)).
