@@ -1596,3 +1596,19 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - les 48 bascules se font toutes entre « exclure » et « incertain », près du seuil d'exclusion; une seule touche une inclusion, ce qui fait varier la sensibilité de 95 à 100 %;
   - sans effet en V1, où la personne trie tout. Une exclusion par l'IA seule (tranche 2.5) devra en tenir compte (notices proches du seuil, exécutions concordantes).
 - **Renvois** : D-074, D-076; [resultats/README.md](resultats/README.md); [06-liste-raise2.md](06-liste-raise2.md).
+
+### D-100 — Protocole de validation versionné dans le dépôt, sans dépôt OSF
+
+- **Date** : 2026-10-09
+- **Statut** : décidée (choix de Benoit)
+- **Décision** : le protocole de l'étude de validation ([09-protocole-validation.md](09-protocole-validation.md)) est versionné dans le dépôt public et **gelé par un commit daté** avant le repérage et le tirage de l'ensemble de test. Tout changement ultérieur est un amendement daté, ajouté à la fin du document. Il n'est pas déposé sur OSF. Le protocole retient aussi **15 revues** au lieu de 24 à 30, et une **transcription des critères entièrement humaine**.
+- **Contexte** : le plan (05) prévoyait un préenregistrement OSF. Benoit souhaite documenter la procédure sans l'enregistrer sur OSF.
+- **Options envisagées** :
+  1. **Protocole daté dans le dépôt public** : l'historique Git prouve l'antériorité du protocole et montre tout changement; aucune démarche externe.
+  2. Préenregistrement OSF : dépôt immuable, reconnu par les revues comme préenregistrement.
+- **Justification** : choix de Benoit.
+- **Conséquences** :
+  - l'article citera le protocole et l'empreinte du commit de gel;
+  - certaines revues ou certains réviseurs pourraient ne pas tenir un historique Git pour un préenregistrement : un dépôt OSF reste possible plus tard, avant le gel, sans changer le contenu;
+  - 15 revues donnent une précision d'environ ± 0,025 sur la sensibilité groupée, suffisante pour l'hypothèse principale; les sous-groupes deviennent descriptifs.
+- **Renvois** : [05-plan-de-validation.md](05-plan-de-validation.md), [06-liste-raise2.md](06-liste-raise2.md) (points 2.4, 3.1, 3.2), [07-fiche-outil.md](07-fiche-outil.md).

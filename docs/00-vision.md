@@ -112,7 +112,7 @@ L'outil **versionne les critères d'inclusion et la grille d'extraction**. À ch
 
 ### 6.3 Crédibilité scientifique
 
-L'outil ne vaut que s'il est validé. Le [plan de validation](05-plan-de-validation.md) prévoit une étude préenregistrée sur OSF, menée sur des revues de portée publiées dont la liste d'études incluses est connue, et visant une publication méthodologique. Les résultats de cette étude doivent pouvoir être cités dans la section méthode des revues qui utilisent l'outil (exigence RAISE : justifier que l'outil convient à l'usage).
+L'outil ne vaut que s'il est validé. Le [plan de validation](05-plan-de-validation.md) prévoit une étude dont le protocole est publié et daté à l'avance dans le dépôt ([09](09-protocole-validation.md), D-100), menée sur des revues de portée publiées dont la liste d'études incluses est connue, et visant une publication méthodologique. Les résultats de cette étude doivent pouvoir être cités dans la section méthode des revues qui utilisent l'outil (exigence RAISE : justifier que l'outil convient à l'usage).
 
 ## 7. Indicateurs de réussite à long terme
 

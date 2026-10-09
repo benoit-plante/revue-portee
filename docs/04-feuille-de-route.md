@@ -168,7 +168,7 @@
 | 2.8 Traductions vers d'autres bases et PRISMA-S | CINAHL, ERIC, Scopus, Web of Science, PsycINFO Ovid; déclaration PRISMA-S | EF-REC-03, EF-DEC-04, EF-DEC-05 | Stratégies de référence reproduites; les 16 éléments PRISMA-S couverts |
 | 2.9 Réévaluation complète | Flux complet de réévaluation (humain seul, IA seule avec vérification, mixte) | EF-VER-05 | Tous les modes testés; effets visibles dans le diagramme |
 
-**Sortie de la V2** : une revue de portée peut être menée jusqu'à la liste finale des études incluses, avec deux réviseurs humains ou un humain et l'IA. Lancement de l'**étude de validation** (préenregistrement OSF, voir [05-plan-de-validation.md](05-plan-de-validation.md)).
+**Sortie de la V2** : une revue de portée peut être menée jusqu'à la liste finale des études incluses, avec deux réviseurs humains ou un humain et l'IA. Lancement de l'**étude de validation** (protocole gelé dans le dépôt, voir [05-plan-de-validation.md](05-plan-de-validation.md) et [09-protocole-validation.md](09-protocole-validation.md)).
 
 ---
 
