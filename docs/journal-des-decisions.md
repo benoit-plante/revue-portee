@@ -1580,3 +1580,19 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - 86 regroupements automatiques erronés selon ASySD (0,21 %) restent à examiner;
   - ces jeux étant désormais consultés, une future version des règles mise au point sur leurs erreurs demandera d'autres données de test.
 - **Renvois** : EF-COL-06, D-060, D-062; [resultats/README.md](resultats/README.md); [06-liste-raise2.md](06-liste-raise2.md).
+
+### D-099 — Mesure de la stabilité des réponses de l'IA
+
+- **Date** : 2026-10-09
+- **Statut** : décidée (lancée avec l'accord de Benoit)
+- **Décision** : la stabilité des réponses est mesurée avec `banc-synergy --repetitions` sur 500 notices d'Oud_2018 (les 20 inclusions et 480 exclusions tirées avec la graine 2026), triées trois fois, sous un plafond de 1,20 $ US. Coût réel : 0,54 $ US.
+- **Contexte** : liste RAISE 2, points 2.5 et 4.2 : un modèle génératif ne donne pas toujours la même réponse à la même entrée.
+- **Options envisagées** :
+  1. **Un jeu déjà publié, échantillon de 500, trois exécutions** : coût faible, toutes les inclusions comprises.
+  2. Les trois jeux SYNERGY complets, trois fois : environ 18 $ US.
+- **Justification** : choix de Benoit (plafond porté de 1 à 1,20 $ US pour couvrir l'estimation maximale).
+- **Conséquences** :
+  - même issue pour 90,4 % des notices, AC1 de 0,888 à 0,909 entre exécutions;
+  - les 48 bascules se font toutes entre « exclure » et « incertain », près du seuil d'exclusion; une seule touche une inclusion, ce qui fait varier la sensibilité de 95 à 100 %;
+  - sans effet en V1, où la personne trie tout. Une exclusion par l'IA seule (tranche 2.5) devra en tenir compte (notices proches du seuil, exécutions concordantes).
+- **Renvois** : D-074, D-076; [resultats/README.md](resultats/README.md); [06-liste-raise2.md](06-liste-raise2.md).
