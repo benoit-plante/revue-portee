@@ -306,6 +306,40 @@ def export_extracted(
 
 
 @app.command(
+    "narratif",
+    help=_(
+        "Write the narrative synthesis revised by the person (Markdown and Word) in the "
+        "exports folder; the AI's drafts not revised are never written."
+    ),
+)
+def export_narrative(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    langue: Annotated[str, typer.Option(help=_("Language of the exports (fr or en)."))] = "fr",
+) -> None:
+    from revue_portee.extraction.prefill import NoGridError
+    from revue_portee.synthesis import narrative
+
+    if langue not in ("fr", "en"):
+        raise _fail(_("Unsupported language: {language} (fr or en).").format(language=langue))
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        written = narrative.export_narrative(
+            folder, language=langue, now=utc_now, tool_version=tool_version()
+        )
+    except NoGridError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    for path in written:
+        typer.echo(str(path))
+
+
+@app.command(
     "synthese",
     help=_(
         "Write the frequency tables (CSV, Markdown, XLSX) and, with two fields, the evidence "

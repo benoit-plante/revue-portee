@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Narrative synthesis") }}{% endblock %}
+{% block content %}
+{% set f = target.field %}
+<p><a href="/synthese/narratif">{{ _("Narrative synthesis") }}</a></p>
+<h1>{{ f.code }} — {{ f.label }}</h1>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if job_error %}<div class="message error" role="alert">{{ job_error }}</div>{% endif %}
+
+<section aria-labelledby="valeurs-titre">
+  <h2 id="valeurs-titre">{{ _("Values you decided") }}</h2>
+  {% if target.studies %}
+  <ul>
+  {% for study, v in target.studies %}
+    <li><a href="/extraction/{{ study.primary.id }}">{{ labels[study.primary.id] }}</a>&nbsp;: {% if not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ _("No included study has a value decided by a person on this field.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Draft by the AI") }}</h2>
+  {% if running %}
+    <p role="status">{{ _("The AI is drafting the synthesis…") }} <a href="/synthese/narratif/{{ f.code }}">{{ _("Refresh") }}</a></p>
+  {% elif preview %}
+    <dl class="meta">
+      <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+      <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+    </dl>
+    <form method="post" action="/synthese/narratif/{{ f.code }}/ia" class="inline-form">
+      {{ csrf() }}
+      <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+      <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+      <button type="submit">{{ _("Ask the AI for a draft (confirm the cost)") }}</button>
+      <a href="/synthese/narratif/{{ f.code }}">{{ _("Cancel") }}</a>
+    </form>
+  {% elif target.studies %}
+    <form method="post" action="/synthese/narratif/{{ f.code }}/ia/estimation">{{ csrf() }}<button type="submit" class="secondary">{{ _("Estimate the cost of a draft") }}</button></form>
+  {% endif %}
+  {% if target.to_revise %}
+  <p class="message info">{{ _("Draft of the AI, not revised: it is not used anywhere until you revise it below.") }}</p>
+  {% endif %}
+  {% if target.revised and target.outdated %}
+  <p class="message info">{{ _("To review: values of this field, or the field itself, changed since your revision.") }}</p>
+  {% endif %}
+</section>
+
+{% if target.current %}
+<section aria-labelledby="actuelle-titre">
+  <h2 id="actuelle-titre">{% if target.to_revise %}{{ _("Draft to revise") }}{% else %}{{ _("Your synthesis") }}{% endif %}</h2>
+  <ol>
+  {% for s in target.current.sentences %}
+    <li>{{ s.text }} ({% for i in s.study_ids %}<a href="/extraction/{{ i }}">{{ labels.get(i, i) }}</a>{% if not loop.last %}; {% endif %}{% endfor %})</li>
+  {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<section aria-labelledby="revision-titre">
+  <h2 id="revision-titre">{{ _("Revision") }}</h2>
+  <p>{{ _("Change, remove (empty the sentence) or add sentences; tick for each the included studies it rests on. Every sentence needs at least one.") }}</p>
+  <form method="post" action="/synthese/narratif/{{ f.code }}">
+    {{ csrf() }}
+    <input type="hidden" name="nombre" value="{{ rows | length }}">
+    {% for row in rows %}{% set n = loop.index0 %}
+    <fieldset>
+      <legend>{{ _("Sentence %(n)s", n=loop.index) }}</legend>
+      <label class="visually-hidden" for="phrase-{{ n }}">{{ _("Sentence %(n)s", n=loop.index) }}</label>
+      <textarea id="phrase-{{ n }}" name="phrase-{{ n }}" rows="2">{{ row.text if row else "" }}</textarea>
+      <p class="small">{{ _("Studies") }}&nbsp;:
+      {% for study in state.studies %}<label><input type="checkbox" name="etudes-{{ n }}" value="{{ study.primary.id }}" {% if row and study.primary.id in row.study_ids %}checked{% endif %}> {{ labels[study.primary.id] }}</label> {% endfor %}
+      </p>
+    </fieldset>
+    {% endfor %}
+    <button type="submit">{{ _("Record my synthesis") }}</button>
+  </form>
+</section>
+{% endblock %}

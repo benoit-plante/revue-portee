@@ -111,6 +111,19 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | À désigner : 20 études extraites à la main (critère de la tranche 3.2), distinctes de toute donnée de mise au point |
 | Résultats | Aucun |
 
+### draft_synthesis v1
+
+| Élément | Description |
+|---|---|
+| Tâche | Ébauche de la synthèse narrative d'un champ de la grille, un champ par appel (EF-SYN-04, tranche 3.6) |
+| Date | 2026-10-09, tranche 3.6 |
+| Rédaction | Écrit d'un seul jet : synthèse descriptive propre à une revue de portée (pas d'évaluation de la qualité, pas de conclusion sur l'efficacité, pas de recommandation), dans la langue du projet, avec des décomptes; chaque phrase cite les clés (S1, S2…) des études sur lesquelles elle repose, et seulement celles-là. Le modèle ne reçoit que les valeurs décidées par une personne et leurs citations, jamais les textes intégraux. L'outil refuse une phrase sans étude ou qui cite une clé inconnue, puis la personne révise tout avant usage |
+| Données de mise au point | **Aucune.** Exécuté seulement avec le fournisseur factice des tests |
+| Versions essayées | Aucune autre |
+| Appels réels | Aucun |
+| Données de test | Aucune à ce jour |
+| Résultats | Aucun |
+
 ## Bilan
 
 Aucun des sept gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.

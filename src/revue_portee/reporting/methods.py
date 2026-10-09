@@ -228,6 +228,10 @@ class ExtractionSummary(BaseModel):
     pilot_studies: int = 0
     pilot_seed: int | None = None
     pilot_agreement: tuple[FieldAgreementLine, ...] = ()
+    narrative_model: str = ""  # empty: the AI drafted no synthesis
+    narrative_template_version: str = ""
+    narrative_drafted: int = 0  # fields drafted by the AI
+    narrative_revised: int = 0  # fields whose synthesis the person revised
 
 
 class CostLine(BaseModel):
@@ -1029,6 +1033,30 @@ def _extraction(_: Translate, data: MethodsData, language: str) -> list[Block]:
                     studies=integer(ex.pilot_studies, language),
                     seed=ex.pilot_seed,
                     agreement=agreement or "—",
+                )
+            )
+        )
+    if ex.narrative_drafted or ex.narrative_revised:
+        if ex.narrative_drafted:
+            text = _(
+                "The AI ({model}, prompt template draft_synthesis version {version}) drafted "
+                "the narrative synthesis of {drafted} fields from the values decided by the "
+                "person, never from the full texts; each sentence cites the studies it rests "
+                "on, and the tool refused a sentence without an included study. The person "
+                "revised the synthesis of {revised} fields; only revised syntheses are used."
+            )
+        else:
+            text = _(
+                "The person wrote the narrative synthesis of {revised} fields; each sentence "
+                "cites the included studies it rests on."
+            )
+        blocks.append(
+            Paragraph(
+                text=text.format(
+                    model=ex.narrative_model,
+                    version=ex.narrative_template_version,
+                    drafted=integer(ex.narrative_drafted, language),
+                    revised=integer(ex.narrative_revised, language),
                 )
             )
         )

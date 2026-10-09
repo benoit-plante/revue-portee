@@ -332,3 +332,21 @@ def test_data_extraction() -> None:
     assert "## Data extraction" in english
     assert "pre-filled" not in english  # the AI did not pre-fill
     assert "Data extraction" not in text_of("en")
+
+
+def test_narrative_synthesis_reported() -> None:
+    from revue_portee.reporting.methods import ExtractionSummary
+
+    base = ExtractionSummary(grid_version=1, fields=3, studies=4, validated=1)
+    drafted = text_of(
+        "fr",
+        extraction=base.model_copy(
+            update={"narrative_model": "model-c", "narrative_template_version": "1",
+                    "narrative_drafted": 3, "narrative_revised": 2}
+        ),
+    )  # fmt: skip
+    assert "L'IA (model-c, gabarit d'invite draft_synthesis version 1) a ébauché" in drafted
+    assert "La personne a révisé la synthèse de 2 champs" in drafted
+    own = text_of("en", extraction=base.model_copy(update={"narrative_revised": 1}))
+    assert "The person wrote the narrative synthesis of 1 fields" in own
+    assert "draft_synthesis" not in text_of("en", extraction=base)

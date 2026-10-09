@@ -1,0 +1,4 @@
+Included studies and their value on {{ field.code }} ({{ studies | length }}):
+{% for s in studies %}
+- {{ s.key }} ({{ s.label }}): {% if s.reported %}{{ s.value }}{% if s.quote %} — quote: "{{ s.quote }}"{% endif %}{% else %}not reported{% endif %}
+{% endfor %}

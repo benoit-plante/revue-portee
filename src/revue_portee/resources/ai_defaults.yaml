@@ -95,3 +95,14 @@ tasks:
       max_tokens: 16000
       effort: low
     expected_output_tokens: 4000
+  # Narrative synthesis (tranche 3.6): one call per field of the grid, the values a
+  # person decided (no full text). A writing task, as the other ones: the capable model.
+  draft_synthesis:
+    status: enabled
+    provider: anthropic
+    model: claude-opus-5-5
+    params:
+      max_tokens: 16000
+      effort: medium
+      fallbacks: default
+    expected_output_tokens: 2000
