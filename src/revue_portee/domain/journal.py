@@ -92,6 +92,8 @@ class EntryType:
     GRID_DRAFT_EDITED = "grid.draft_edited"
     GRID_DRAFT_DISCARDED = "grid.draft_discarded"
     GRID_VERSION_CREATED = "grid.version_created"
+    EXTRACTION_AI_PROPOSED = "extraction.ai_proposed"
+    EXTRACTION_AI_FAILED = "extraction.ai_failed"
 
 
 class JournalEntry(BaseModel):

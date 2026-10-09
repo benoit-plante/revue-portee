@@ -2,7 +2,7 @@
 
 from revue_portee.i18n import gettext as _
 
-__all__ = ["changed_labels", "type_labels"]
+__all__ = ["changed_labels", "type_labels", "value_status_labels"]
 
 
 def type_labels() -> dict[str, str]:
@@ -14,6 +14,15 @@ def type_labels() -> dict[str, str]:
         "hierarchical": _("hierarchical category"),
         "boolean": _("yes or no"),
         "date": _("date"),
+    }
+
+
+def value_status_labels() -> dict[str, str]:
+    return {
+        "proposed": _("proposed by the AI, to check"),
+        "validated": _("validated"),
+        "corrected": _("corrected"),
+        "rejected": _("rejected"),
     }
 
 

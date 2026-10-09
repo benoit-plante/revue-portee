@@ -98,8 +98,21 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | Aucune à ce jour. Le rappel des regroupements se mesure sur les règles (jeu PubMed par numéro ClinicalTrials.gov); le gabarit ne fait qu'éclairer la décision de la personne |
 | Résultats | Aucun |
 
+### extract_fields v1
+
+| Élément | Description |
+|---|---|
+| Tâche | Pré-remplissage de la grille d'extraction, une étude par appel (EF-EXT-03, tranche 3.2) |
+| Date | 2026-10-09, tranche 3.2 |
+| Rédaction | Écrit d'un seul jet : pour chaque champ de la grille en vigueur, « non rapporté » ou une valeur conforme à son type, avec la citation exacte et sa page; consigne de ne rien inférer. L'outil vérifie le type de chaque valeur et cherche chaque citation dans le texte (placée à la page où elle se trouve, signalée si elle est introuvable). La grille va dans l'invite système, mise en cache |
+| Données de mise au point | **Aucune.** Exécuté seulement avec le fournisseur factice des tests |
+| Versions essayées | Aucune autre |
+| Appels réels | Aucun |
+| Données de test | À désigner : 20 études extraites à la main (critère de la tranche 3.2), distinctes de toute donnée de mise au point |
+| Résultats | Aucun |
+
 ## Bilan
 
-Aucun des six gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
+Aucun des sept gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
 
 Seul `screen_reference` sert à une performance déclarée. Sa v2 devra suivre la règle ci-dessus, avec un jeu de mise au point distinct des jeux SYNERGY et de l'ensemble de test de l'étude de validation (05). Faute de quoi, les résultats SYNERGY ne pourront plus servir de point de comparaison.

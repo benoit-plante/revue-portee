@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Extraction") }}{% endblock %}
+{% block content %}
+{% set ref = study.primary %}
+<p><a href="/extraction">{{ _("Data extraction") }}</a></p>
+<h1>{{ ref.title or _("(no title)") }}</h1>
+<p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %} — <a href="/textes/{{ ref.id }}" target="_blank" rel="noopener">{{ _("Text by page") }}</a> · <a href="/textes/{{ ref.id }}/pdf" target="_blank" rel="noopener">PDF</a></p>
+<table class="criteria texts">
+  <caption class="visually-hidden">{{ _("Values of the study, field by field") }}</caption>
+  <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Value") }}</th><th scope="col">{{ _("Quote and page") }}</th><th scope="col">{{ _("Status") }}</th></tr></thead>
+  <tbody>
+  {% for f in grid.sorted_fields() %}
+    {% set v = study.values.get(f.code) %}
+    <tr id="champ-{{ f.code }}">
+      <th scope="row">{{ f.code }} — {{ f.label }} <span class="small">({{ type_labels[f.type] }})</span></th>
+      <td>{% if not v %}—{% elif not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</td>
+      <td>{% if v and v.quote %}«&nbsp;{{ v.quote }}&nbsp;»{% if v.page %} ({{ _("page %(page)s", page=v.page) }}){% endif %} — {{ check_labels[v.quote_check] }}{% if v.quote_check == "other_page" and v.model_page %} <span class="small">({{ _("the AI gave page %(page)s", page=v.model_page) }})</span>{% endif %}{% else %}—{% endif %}</td>
+      <td>{% if v %}{{ status_labels[v.status] }}{% else %}—{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

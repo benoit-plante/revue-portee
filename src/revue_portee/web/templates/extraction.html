@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Extraction") }}{% endblock %}
+{% block content %}
+<p><a href="/grille">{{ _("Extraction grid") }}</a></p>
+<h1>{{ _("Data extraction") }}</h1>
+<p>{{ _("For each included study, the AI pre-fills the grid in force from the text of its primary report: a value, the exact quote it rests on and its page, or « not reported ». The tool checks each value against its field and looks for each quote in the text. You check every value.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if not state.grid %}
+<p class="message info">{{ _("Activate a version of the extraction grid first.") }} <a href="/grille">{{ _("Extraction grid") }}</a></p>
+{% else %}
+<p>{{ _("Grid version %(number)s, %(fields)s fields.", number=state.grid.number, fields=state.grid.fields | length) }}</p>
+<section aria-labelledby="ia-titre">
+  <h2 id="ia-titre">{{ _("Pre-filling by the AI") }}</h2>
+  <p>{{ _("Studies to pre-fill: %(count)s.", count=state.waiting | length) }}</p>
+  {% if running %}
+    <p role="status">{{ _("The AI is pre-filling the studies…") }}</p>
+  {% else %}
+    {% if job_error %}<div class="message error" role="alert">{{ job_error }}</div>{% endif %}
+    {% if last_run %}<p class="small">{{ _("Last AI batch: %(screened)s studies pre-filled, %(failed)s failed.", screened=last_run.screened, failed=last_run.failed | length) }}</p>{% endif %}
+    {% if preview %}
+      <dl class="meta">
+        <dt>{{ _("Model") }}</dt><dd>{{ preview.provider }} — {{ preview.model }}</dd>
+        <dt>{{ _("Studies") }}</dt><dd>{{ preview.items }}</dd>
+        <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
+      </dl>
+      <form method="post" action="/extraction/ia" class="inline-form">
+        {{ csrf() }}
+        <label for="plafond">{{ _("Ceiling of the batch in US dollars") }}</label>
+        <input type="text" inputmode="decimal" id="plafond" name="plafond" value="{{ decimal_fr(ceiling, 2) }}" required>
+        <button type="submit">{{ _("Start the pre-filling (confirm the cost)") }}</button>
+        <a href="/extraction">{{ _("Cancel") }}</a>
+      </form>
+    {% elif state.waiting %}
+      <form method="post" action="/extraction/ia/estimation">{{ csrf() }}<button type="submit" class="secondary">{{ _("Estimate the cost of the pre-filling") }}</button></form>
+    {% endif %}
+  {% endif %}
+</section>
+<section aria-labelledby="etudes-titre">
+  <h2 id="etudes-titre">{{ _("Studies") }}</h2>
+  {% if state.studies %}
+  <table class="criteria texts">
+    <caption class="visually-hidden">{{ _("Included studies and their extraction") }}</caption>
+    <thead><tr><th scope="col">{{ _("Study (primary report)") }}</th><th scope="col">{{ _("Extraction") }}</th></tr></thead>
+    <tbody>
+    {% for s in state.studies %}
+      <tr>
+        <th scope="row"><a href="/extraction/{{ s.primary.id }}">{{ s.primary.title or _("(no title)") }}</a> <span class="small">{{ s.primary.year or "" }}{% if s.reports | length > 1 %} · {{ ngettext("%(num)s report", "%(num)s reports", s.reports | length) }}{% endif %}</span></th>
+        <td>{% if s.prefilled %}{{ _("Fields reported: %(reported)s of %(fields)s.", reported=s.values.values() | selectattr("reported") | list | length, fields=s.values | length) }}{% elif not s.readable %}{{ _("No readable text: extract it from the PDF.") }}{% else %}{{ _("Not pre-filled yet.") }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ _("No study is included yet.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

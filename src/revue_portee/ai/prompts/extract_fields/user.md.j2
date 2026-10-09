@@ -1,0 +1,10 @@
+Source of evidence to chart:
+- Title: {{ report.title or "(no title)" }}
+- Year: {{ report.year or "(unknown)" }}
+- Journal or book: {{ report.container_title or "(unknown)" }}
+
+Text:
+{% for page in report.pages %}
+[p. {{ page.number }}]
+{{ page.text }}
+{% endfor %}

@@ -62,6 +62,7 @@ from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.extraction import grid as extraction_grid
+from revue_portee.extraction import prefill
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
@@ -314,6 +315,7 @@ _RECONCILE_ERRORS: tuple[type[Exception], ...] = (
     main_screening.NotADisagreementError,
 )
 _VERIFY_ERRORS: tuple[type[Exception], ...] = (*_DECISION_ERRORS, reassessment.NotAChangeError)
+_EXTRACTION_ERRORS: tuple[type[Exception], ...] = (*_AI_ERRORS, prefill.NoGridError)
 _TEXT_DECISION_ERRORS: tuple[type[Exception], ...] = (
     *_DECISION_ERRORS,
     fulltext_screening.AIFirstError,
@@ -331,6 +333,8 @@ ARCHIVE_NAME = re.compile(r"archive-(publique|complete)-\d{8}T\d{6}Z\.zip")
 DEDUP_JOB = "dedoublonnage"
 # Key of the background job where the AI examines pairs of reports (one at a time).
 STUDY_JOB = "etudes-ia"
+# Key of the background job where the AI pre-fills the extraction grid.
+EXTRACTION_JOB = "extraction-ia"
 
 
 def create_app(
@@ -2115,6 +2119,94 @@ def create_app(
         if row is None or row.document is None:
             raise HTTPException(status_code=404, detail=_("No full text for this reference."))
         return row, row.document
+
+    # --- Extraction -------------------------------------------------------------------
+
+    def extraction_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        preview: CostPreview | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        state = prefill.extraction_state(folder)
+        return render(
+            request,
+            "extraction.html",
+            {
+                "state": state,
+                "running": background.running(EXTRACTION_JOB),
+                "job_error": background.error(EXTRACTION_JOB),
+                "last_run": last_batches.get(EXTRACTION_JOB),
+                "preview": preview,
+                "ceiling": None if preview is None else pilot_view.batch_ceiling(preview.estimate),
+                "error": error,
+                "message": message,
+            },
+            status_code=status_code,
+        )
+
+    @app.get("/extraction", response_class=HTMLResponse)
+    def show_extraction(request: Request, ok: str = "") -> HTMLResponse:
+        message = _("Pre-filling started in the background.") if ok == "ia" else None
+        return extraction_page(request, message=message)
+
+    @app.post("/extraction/ia/estimation")
+    def estimate_extraction(request: Request, _csrf: Csrf) -> Response:
+        try:
+            preview = prefill.preview_ai(folder, factory=provider_factory)
+        except _EXTRACTION_ERRORS as error:
+            return extraction_page(request, error=str(error), status_code=422)
+        return extraction_page(request, preview=preview)
+
+    @app.post("/extraction/ia")
+    def prefill_with_ai(
+        request: Request, _csrf: Csrf, plafond: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            limit = pilot_view.parse_amount(plafond)
+        except ValueError:
+            return extraction_page(
+                request, error=_("The ceiling must be a positive amount."), status_code=422
+            )
+        with folder.engine.connect() as connection:
+            if screening_repo.latest_budget(connection) is None:
+                error = str(screening_settings.BudgetNotSetError())
+                return extraction_page(request, error=error, status_code=422)
+
+        def work() -> None:
+            last_batches[EXTRACTION_JOB] = prefill.run_ai(
+                folder,
+                batch_limit=limit,
+                factory=provider_factory,
+                now=now,
+                tool_version=context.tool_version,
+            )
+
+        if not background.start(EXTRACTION_JOB, work):
+            return extraction_page(
+                request, error=_("An AI batch is already running."), status_code=422
+            )
+        return see_other("/extraction?ok=ia")
+
+    @app.get("/extraction/{reference_id}", response_class=HTMLResponse)
+    def show_study_extraction(request: Request, reference_id: str) -> HTMLResponse:
+        state = prefill.extraction_state(folder)
+        study = next((s for s in state.studies if s.primary.id == reference_id), None)
+        if study is None or state.grid is None:
+            raise HTTPException(status_code=404, detail=_("Unknown study."))
+        return render(
+            request,
+            "extraction_etude.html",
+            {
+                "grid": state.grid,
+                "study": study,
+                "type_labels": grid_view.type_labels(),
+                "check_labels": fulltext_view.check_labels(),
+                "status_labels": grid_view.value_status_labels(),
+            },
+        )
 
     # --- Extraction grid --------------------------------------------------------------
 

@@ -61,6 +61,7 @@ __all__ = [
     "descriptor_check",
     "duplicate_pair",
     "enrichment",
+    "extraction_value",
     "framing_version",
     "fulltext_document",
     "grid_field",
@@ -948,6 +949,34 @@ grid_field_code = Table(
     Column("code", String(16), primary_key=True),
     Column("first_version_id", String(26), nullable=False),
     Column("created_at", UTCDateTime, nullable=False),
+)
+
+extraction_value = Table(
+    "extraction_value",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("field_code", String(16), nullable=False),
+    Column("grid_version_id", String(26), ForeignKey("grid_version.id"), nullable=False),
+    Column("reported", Boolean, nullable=False),
+    Column("value_json", Text, nullable=False),
+    Column("quote", Text, nullable=False),
+    Column("page", Integer, nullable=True),
+    Column("model_page", Integer, nullable=True),
+    Column("quote_check", String(16), nullable=True),
+    Column("status", String(16), nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("reviewer_kind", String(8), nullable=False),
+    Column("supersedes_id", String(26), ForeignKey("extraction_value.id"), nullable=True),
+    Column("ai_call_id", String(26), ForeignKey("ai_call.id"), nullable=True),
+    Column("note", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    _journal_column(),
+    CheckConstraint(
+        "reviewer_kind <> 'ai' OR (ai_call_id IS NOT NULL AND status = 'proposed')",
+        name="ck_extraction_ai_traceable",
+    ),
+    Index("ix_extraction_value_reference", "reference_id", "field_code"),
 )
 
 Index(
