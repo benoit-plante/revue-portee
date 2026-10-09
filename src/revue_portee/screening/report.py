@@ -16,6 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from revue_portee.collect.deduplication import dedup_state
+from revue_portee.domain.fulltext import RetrievalCounts, retrieval_counts
 from revue_portee.domain.screening import keeps
 from revue_portee.reporting.flow import (
     FlowNumbers,
@@ -29,6 +30,7 @@ from revue_portee.resources import flow_template
 from revue_portee.screening import main, reassessment
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
+from revue_portee.storage.repositories import fulltext as fulltext_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import screening as screening_repo
 
@@ -39,6 +41,7 @@ __all__ = [
     "export_flow",
     "export_retained",
     "flow_report",
+    "full_text_counts",
     "retained_references",
 ]
 
@@ -80,6 +83,14 @@ def _reassessments(folder: ProjectFolder, main_round_id: str) -> list[Reassessme
     return counts
 
 
+def _retrieval(folder: ProjectFolder, sought: list[str]) -> RetrievalCounts:
+    """Counts of the full texts of the references ``sought``."""
+    with folder.engine.connect() as connection:
+        documents = fulltext_repo.list_documents(connection)
+        notes = fulltext_repo.list_notes(connection)
+    return retrieval_counts(sought, documents, notes)
+
+
 def flow_report(
     folder: ProjectFolder, *, now: Callable[[], datetime], tool_version: str
 ) -> FlowReport:
@@ -91,6 +102,9 @@ def flow_report(
         numbers = flow_numbers(dedup.counts, remaining, {}, screening_started=False)
     else:
         state = main.main_state(folder, started.id)
+        kept = sorted(
+            ref for ref in remaining if ref in state.final and keeps(state.final[ref].value)
+        )
         numbers = flow_numbers(
             dedup.counts,
             remaining,
@@ -98,6 +112,7 @@ def flow_report(
             screened_by_ai=state.ai,
             disagreements_open=len(state.queue),
             reassessments=_reassessments(folder, started.id),
+            retrieval=_retrieval(folder, kept),
         )
     with folder.engine.connect() as connection:
         project = projects.get_project(connection)
@@ -121,6 +136,11 @@ def export_flow(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(svg, encoding="utf-8")
     return target
+
+
+def full_text_counts(folder: ProjectFolder) -> RetrievalCounts:
+    """Counts of the full texts of the references kept for them."""
+    return _retrieval(folder, [item.reference.id for item in retained_references(folder)])
 
 
 # --- References kept for the full text ----------------------------------------------

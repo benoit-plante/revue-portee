@@ -22,9 +22,21 @@ from revue_portee.sources.http import (
     get_json,
     merge_answers,
 )
-from revue_portee.sources.records import FetchedPage, FetchedRecord, abstract_from_inverted_index
+from revue_portee.sources.records import (
+    FetchedPage,
+    FetchedRecord,
+    OpenAccessLocation,
+    abstract_from_inverted_index,
+)
 
-__all__ = ["PAGE_SIZE", "WORKS", "OpenAlex", "OpenAlexKeyError", "normalize_work"]
+__all__ = [
+    "PAGE_SIZE",
+    "WORKS",
+    "OpenAlex",
+    "OpenAlexKeyError",
+    "normalize_work",
+    "open_access_locations",
+]
 
 WORKS = "https://api.openalex.org/works"
 SERVICE = "OpenAlex"
@@ -115,6 +127,22 @@ class OpenAlex:
             answer = self._works(f'title.search.exact:"{title}"', 2)
         return (answer.ids[0] if len(answer.ids) == 1 else None), answer.raw
 
+    def locations(
+        self, *, openalex_id: str = "", doi: str = ""
+    ) -> tuple[list[OpenAccessLocation], dict[str, Any]]:
+        """Open access PDFs that OpenAlex knows for a work (by its id, else its DOI)."""
+        if openalex_id:
+            filter_value = f"openalex:{openalex_id}"
+        elif doi:
+            filter_value = f"doi:{doi.lower()}"
+        else:
+            return [], {}
+        raw = self._get(
+            {"filter": filter_value, "per-page": "1", "select": "id,best_oa_location,locations"}
+        )
+        results = raw.get("results") or []
+        return (open_access_locations(results[0]) if results else []), raw
+
     def fetch(self, filter_value: str, cursor: str | None) -> FetchedPage:
         """One page of the works retrieved by the filter; ``cursor`` None for the first."""
         raw = self._get(
@@ -168,3 +196,21 @@ def normalize_work(work: dict[str, Any]) -> FetchedRecord:
             "url": location.get("landing_page_url") or "",
         },
     )
+
+
+def open_access_locations(work: dict[str, Any]) -> list[OpenAccessLocation]:
+    """Locations of an OpenAlex work with an open access PDF, the best one first."""
+    found: list[OpenAccessLocation] = []
+    for location in [work.get("best_oa_location"), *(work.get("locations") or [])]:
+        if not location or not location.get("is_oa") or not location.get("pdf_url"):
+            continue
+        source = location.get("source") or {}
+        item = OpenAccessLocation(
+            pdf_url=str(location["pdf_url"]),
+            license=str(location.get("license") or ""),
+            version=str(location.get("version") or ""),
+            host_type="repository" if source.get("type") == "repository" else "publisher",
+        )
+        if all(item.pdf_url != other.pdf_url for other in found):
+            found.append(item)
+    return found

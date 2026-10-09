@@ -41,6 +41,9 @@ dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1re
 dl.meta dt { font-weight: 600; }
 dl.meta dd { margin: 0; }
 table.criteria th[scope="row"] { white-space: nowrap; }
+table.texts th[scope="row"] { white-space: normal; }
+table.texts th .small { display: block; }
+.page-text { max-height: 40rem; overflow-y: auto; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f4f4; border: 1px solid #ccc; border-radius: 4px; padding: .5rem .75rem; }
 input[type="text"][size="4"] { width: 6rem; }
 details > summary { cursor: pointer; }

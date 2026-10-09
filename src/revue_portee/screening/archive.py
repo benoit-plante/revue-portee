@@ -28,6 +28,7 @@ from jinja2 import Environment, PackageLoader
 from revue_portee.collect.deduplication import DedupState, dedup_state
 from revue_portee.config.secret_scan import scan_text
 from revue_portee.config.secrets import redact
+from revue_portee.domain.fulltext import current_documents, retrieval_statuses
 from revue_portee.domain.journal import EntryType
 from revue_portee.i18n import EXPORT_LANGUAGES, french
 from revue_portee.i18n import gettext as _
@@ -38,7 +39,7 @@ from revue_portee.reporting.methods import build_methods
 from revue_portee.resources import flow_template
 from revue_portee.screening import main
 from revue_portee.screening.methods import methods_data
-from revue_portee.screening.report import flow_report
+from revue_portee.screening.report import flow_report, retained_references
 from revue_portee.storage.archive import (
     csv_text,
     database_copy,
@@ -48,6 +49,7 @@ from revue_portee.storage.archive import (
 )
 from revue_portee.storage.project_folder import DATABASE_FILE, PROJECT_FILE, ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
+from revue_portee.storage.repositories import fulltext as fulltext_repo
 from revue_portee.storage.repositories import journal, projects
 from revue_portee.storage.repositories import screening as screening_repo
 
@@ -156,6 +158,39 @@ def _screening_files(folder: ProjectFolder, state: DedupState) -> dict[str, str]
     return {"etat-du-tri.csv": csv_text(header, rows), "reevaluations.csv": reassessments}
 
 
+def _fulltext_files(folder: ProjectFolder) -> dict[str, str]:
+    """Status of the full text of each reference sought: never the PDF, its text, its
+    URL nor its file name (D-092)."""
+    sought = [item.reference.id for item in retained_references(folder)]
+    with folder.engine.connect() as connection:
+        documents = fulltext_repo.list_documents(connection)
+        notes = fulltext_repo.list_notes(connection)
+    statuses = retrieval_statuses(sought, documents, notes)
+    current = current_documents(documents)
+    latest = {note.reference_id: note for note in notes}
+    rows = []
+    for ref in sorted(statuses):
+        document = current.get(ref)
+        note = None if document is not None else latest.get(ref)
+        rows.append(
+            (
+                ref,
+                statuses[ref].value,
+                None if document is None else document.origin.value,
+                None if document is None else document.license,
+                None if document is None else document.version,
+                None if document is None else document.host_type,
+                None if document is None else document.page_count,
+                None if document is None else document.needs_ocr,
+                None if document is None else document.sha256,
+                None if note is None else note.reason,
+            )
+        )
+    header = ("reference_id", "status", "origin", "license", "version", "host_type",
+              "page_count", "needs_ocr", "sha256", "reason")  # fmt: skip
+    return {"textes.csv": csv_text(header, rows)}
+
+
 def _exports(folder: ProjectFolder, *, now: Clock, tool_version: str) -> dict[str, bytes]:
     report = flow_report(folder, now=now, tool_version=tool_version)
     data = methods_data(folder, now=now, tool_version=tool_version)
@@ -188,7 +223,12 @@ def archive_files(
     moment = now()
     files: dict[str, bytes] = {}
     state = dedup_state(folder)
-    tables = readable_tables(folder) | _dedup_files(state) | _screening_files(folder, state)
+    tables = (
+        readable_tables(folder)
+        | _dedup_files(state)
+        | _screening_files(folder, state)
+        | _fulltext_files(folder)
+    )
     files |= {f"donnees/{name}": text.encode() for name, text in tables.items()}
     files |= _exports(folder, now=lambda: moment, tool_version=tool_version)
     files[PROJECT_FILE] = (folder.path / PROJECT_FILE).read_bytes()

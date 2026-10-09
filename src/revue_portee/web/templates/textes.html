@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Full texts") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Full texts") }}</h1>
+<p>{{ _("The references kept at the title and abstract stage (include or uncertain) go on to the full text. Their PDF is kept in the project folder, with its text by page; it never goes into an archive.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+{% if upload %}
+<section aria-labelledby="televersement-resultat" class="message info">
+  <h2 id="televersement-resultat">{{ _("Files added") }}</h2>
+  <ul>
+    {% for o in upload.added %}<li>{{ _("Added: %(file)s (found by %(kind)s)", file=o.filename, kind=match_labels[o.kind]) }} — <a href="#reference-{{ o.reference_id }}">{{ _("see the reference") }}</a></li>{% endfor %}
+    {% for o in upload.already %}<li>{{ _("Already in the project: %(file)s", file=o.filename) }}</li>{% endfor %}
+    {% for o in upload.unmatched %}<li>{{ _("No reference found, add it from its row below: %(file)s", file=o.filename) }}</li>{% endfor %}
+    {% for o in upload.unreadable %}<li>{{ o.filename }}&nbsp;: {{ o.message }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% include "_textes_etat.html" %}
+
+<section aria-labelledby="televerser">
+  <h2 id="televerser">{{ _("Add PDFs obtained by the team") }}</h2>
+  <p>{{ _("Texts obtained through the library, from the authors or elsewhere. Each file is matched to its reference by the DOI in its name or in its first pages, then by the title; files that match no reference are listed and can be added from their row below.") }}</p>
+  <form method="post" action="/textes/televerser" enctype="multipart/form-data">
+    {{ csrf() }}
+    <label for="fichiers">{{ _("PDF files") }}</label>
+    <input id="fichiers" type="file" name="fichiers" accept=".pdf,application/pdf" multiple required>
+    <button type="submit">{{ _("Add the files") }}</button>
+  </form>
+  <p><a href="/textes/manquants.csv">{{ _("List of the references still without a text (CSV), to look for through the library") }}</a></p>
+</section>
+
+<section aria-labelledby="references-titre" id="references">
+  <h2 id="references-titre">{{ _("References sought") }}</h2>
+  {% if report.rows %}
+  <table class="criteria texts">
+    <caption class="visually-hidden">{{ _("References sought for their full text, by title") }}</caption>
+    <thead><tr>
+      <th scope="col">{{ _("Reference") }}</th>
+      <th scope="col">{{ _("Status") }}</th>
+      <th scope="col">{{ _("Actions") }}</th>
+    </tr></thead>
+    <tbody>
+    {% for row in report.rows %}
+      {% set ref = row.reference %}
+      <tr id="reference-{{ ref.id }}">
+        <th scope="row">
+          {{ ref.title or _("(no title)") }}
+          <span class="small">{% if ref.year %}{{ ref.year }}{% endif %}{% if ref.container_title %} · {{ ref.container_title }}{% endif %}{% if ref.doi %} · DOI {{ ref.doi }}{% endif %}</span>
+        </th>
+        <td>
+          {{ fulltext_status_labels[row.status.value] }}
+          {% if row.document %}
+            <span class="small">{{ origin_labels[row.document.origin.value] }} · {{ ngettext("%(num)s page", "%(num)s pages", row.document.page_count) }}{% if row.document.license %} · {{ row.document.license }}{% endif %}</span>
+            {% if row.document.needs_ocr %}<span class="small">{{ _("no readable text (scanned PDF): read it without the tool") }}</span>{% endif %}
+          {% elif row.note and row.note.status.value == "not_retrievable" %}
+            <span class="small">{{ row.note.reason }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if row.document %}
+            <a href="/textes/{{ ref.id }}">{{ _("Text by page") }}</a> · <a href="/textes/{{ ref.id }}/pdf">PDF</a>
+            <details>
+              <summary>{{ _("Replace with another version") }}</summary>
+              <form method="post" action="/textes/{{ ref.id }}/televerser" enctype="multipart/form-data">
+                {{ csrf() }}
+                <label for="fichier-{{ ref.id }}">{{ _("PDF file") }}</label>
+                <input id="fichier-{{ ref.id }}" type="file" name="fichier" accept=".pdf,application/pdf" required>
+                <button type="submit" class="secondary">{{ _("Add") }}</button>
+              </form>
+            </details>
+          {% else %}
+            <form method="post" action="/textes/{{ ref.id }}/televerser" enctype="multipart/form-data">
+              {{ csrf() }}
+              <label for="fichier-{{ ref.id }}">{{ _("PDF file") }}</label>
+              <input id="fichier-{{ ref.id }}" type="file" name="fichier" accept=".pdf,application/pdf" required>
+              <button type="submit" class="secondary">{{ _("Add") }}</button>
+            </form>
+            {% if row.status.value != "not_retrievable" %}
+            <details>
+              <summary>{{ _("Declare not retrievable") }}</summary>
+              <form method="post" action="/textes/{{ ref.id }}/introuvable">
+                {{ csrf() }}
+                <label for="raison-{{ ref.id }}">{{ _("Reason (reported in the diagram as « Reports not retrieved »)") }}</label>
+                <input id="raison-{{ ref.id }}" type="text" name="raison" required>
+                <button type="submit" class="secondary">{{ _("Declare") }}</button>
+              </form>
+            </details>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ _("No reference is kept for the full text yet: finish the title and abstract screening first.") }}</p>
+  {% endif %}
+</section>
+{% endblock %}

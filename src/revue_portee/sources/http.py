@@ -18,6 +18,9 @@ from revue_portee import __version__
 from revue_portee.i18n import gettext as _
 
 __all__ = [
+    "MAX_PDF_BYTES",
+    "NotAPdfError",
+    "PdfTooLargeError",
     "RateLimiter",
     "SourceAccessError",
     "SourceAnswer",
@@ -26,6 +29,7 @@ __all__ = [
     "SourceUnreachableError",
     "chunks",
     "get_json",
+    "get_pdf",
     "get_text",
     "make_client",
     "merge_answers",
@@ -87,6 +91,24 @@ class SourceAccessError(SourceError):
 class SourceInvalidAnswerError(SourceError):
     def __init__(self, service: str) -> None:
         super().__init__(_("{service} sent an answer that cannot be read.").format(service=service))
+
+
+class NotAPdfError(SourceError):
+    def __init__(self, host: str) -> None:
+        super().__init__(
+            _("The file sent by {host} is not a PDF (often a web page asking to sign in).").format(
+                host=host
+            )
+        )
+
+
+class PdfTooLargeError(SourceError):
+    def __init__(self, host: str, limit: int) -> None:
+        super().__init__(
+            _("The file sent by {host} is larger than {limit} MB.").format(
+                host=host, limit=limit // 1_000_000
+            )
+        )
 
 
 @dataclass
@@ -170,3 +192,51 @@ def get_json(
     if not isinstance(document, dict):
         raise SourceInvalidAnswerError(service)
     return document
+
+
+MAX_PDF_BYTES = 100_000_000
+
+
+def get_pdf(
+    client: httpx2.Client,
+    url: str,
+    *,
+    limiter: RateLimiter,
+    max_bytes: int = MAX_PDF_BYTES,
+    retries: int = 2,
+    sleep: Callable[[float], None] = time.sleep,
+) -> bytes:
+    """Download the PDF at ``url`` (redirects followed, http and https only).
+
+    Retried like :func:`get_text`; a file that does not start like a PDF, or larger
+    than ``max_bytes``, ends as a :class:`SourceError` naming the host."""
+    parsed = httpx2.URL(url)
+    host = parsed.host or url
+    if parsed.scheme not in ("http", "https"):
+        raise NotAPdfError(host)
+    for attempt in range(retries + 1):
+        last = attempt == retries
+        limiter.wait()
+        data = bytearray()
+        try:
+            with client.stream("GET", url, follow_redirects=True) as response:
+                if response.status_code in _RETRY_STATUSES and not last:
+                    sleep(2**attempt)
+                    continue
+                if response.status_code >= 400:
+                    raise SourceAccessError(host, response.status_code)
+                for chunk in response.iter_bytes():
+                    data.extend(chunk)
+                    if len(data) > max_bytes:
+                        raise PdfTooLargeError(host, max_bytes)
+        except (httpx2.ConnectError, httpx2.ProxyError, httpx2.UnsupportedProtocol) as error:
+            raise SourceUnreachableError(host, host) from error
+        except httpx2.TransportError as error:  # timeouts, read and protocol errors
+            if last:
+                raise SourceUnreachableError(host, host) from error
+            sleep(2**attempt)
+            continue
+        if not bytes(data[:1024]).lstrip().startswith(b"%PDF-"):
+            raise NotAPdfError(host)
+        return bytes(data)
+    raise AssertionError("unreachable")  # pragma: no cover - the loop returns or raises

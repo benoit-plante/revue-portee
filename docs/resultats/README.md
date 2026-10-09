@@ -70,6 +70,37 @@ Même configuration que le banc (`screen_reference` v1, `claude-haiku-5-5`, effo
 - Une seule exécution peut varier de quelques points de sensibilité sur un petit jeu. Une **exclusion par l'IA seule** (V2, tranche 2.5) devrait en tenir compte, par exemple en rejouant les notices proches du seuil ou en exigeant plusieurs exécutions concordantes.
 - Les résultats du banc SYNERGY (une exécution par jeu) portent cette incertitude de plus, en plus de celle de l'échantillonnage.
 
+## Textes intégraux : obtention et extraction par page (tranche 2.1) — exécuté le 2026-10-09
+
+**Obtention en libre accès** (`textes-libres`) sur un projet d'essai, hors du dépôt : les 912 références d'Oud_2018 (SYNERGY) qui ont un DOI, toutes retenues sans IA. Sans coût.
+
+| Étape | Références |
+|---|---|
+| Connues d'OpenAlex | 912 |
+| Version en libre accès selon OpenAlex | 261 (28,6 %) |
+| dont avec un lien PDF (OpenAlex ou Unpaywall) | 166 |
+| **PDF obtenus** | **97 (10,6 % des références recherchées)** |
+
+Liens refusés : 56 fois une erreur 403 (surtout Wiley), 17 pages web au lieu d'un PDF, 6 autres erreurs. 96 versions en libre accès n'ont qu'une page web (souvent PubMed Central ou Europe PMC) : un accès à PubMed Central en récupérerait une partie. Le corpus (psychiatrie clinique, revues surtout payantes) explique le taux bas : le téléversement par l'équipe reste la voie principale.
+
+**Extraction par page** (`banc-pages`) sur ces 97 PDF (1 821 pages) : passages de 8 mots tirés avec la graine 2026 dans le texte lu par les deux autres bibliothèques. [Rapport](extraction-pages.md).
+
+| Bibliothèque | Passages | Bonne page | Autre page | Introuvables | Bonne page parmi les passages trouvés |
+|---|---|---|---|---|---|
+| **PyMuPDF** (par défaut) | 10 779 | 8 089 | 9 | 2 681 | **99,9 %** |
+| pypdf | 10 776 | 8 112 | 0 | 2 664 | 100,0 % |
+| pdfplumber | 10 779 | 6 064 | 73 | 4 642 | 98,8 % |
+
+**Critère d'acceptation atteint** si l'on compte les citations retrouvées (au moins 30 PDF, bon numéro de page pour au moins 98 % des citations vérifiées) : 99,9 % avec PyMuPDF, choix confirmé. Le quart des passages introuvables ne sont pas des erreurs de page : ils chevauchent deux blocs (colonnes, encadrés, notes) que les bibliothèques lisent dans un ordre différent. Les citations du modèle étant tirées du texte de PyMuPDF lui-même, ce risque devra être mesuré avec elles au tri du texte intégral (tranche 2.2), avec les cas « trouvée ailleurs » et « introuvable » de la vérification des citations.
+
+### Relancer
+
+```bash
+uv run python -I ~/revue-portee-donnees/essai-textes/creer_projet_complet.py   # projet d'essai (hors du dépôt)
+uv run revue-portee textes-libres ~/revue-portee-donnees/essai-textes/essai-complet.revue   # réseau : OpenAlex, Unpaywall
+uv run revue-portee banc-pages ~/revue-portee-donnees/essai-textes/essai-complet.revue/textes   # local
+```
+
 ## Test du dédoublonnage sur des données mises de côté (ASySD) — exécuté le 2026-10-08
 
 Règles de dédoublonnage version 1 (D-062), seuils par défaut : examen à partir de 0,75, regroupement automatique à partir de 0,93. Les règles ont été mises au point sur le jeu annoté de la tranche 1.5 (D-060). Les jeux ci-dessous **n'ont jamais servi** à les construire ni à les ajuster, et les règles n'ont pas été modifiées après cette exécution : ce sont des **résultats de test** au sens de RAISE 2 (liste RAISE 2, point 2.10).

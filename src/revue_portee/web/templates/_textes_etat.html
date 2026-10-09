@@ -1,0 +1,38 @@
+{%- macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endmacro -%}
+<div id="etat-textes" aria-live="polite"
+     {% if job_running %}hx-get="/textes/etat" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <section aria-labelledby="comptes-titre">
+    <h2 id="comptes-titre">{{ _("Where things stand") }}</h2>
+    <table class="criteria">
+      <caption class="visually-hidden">{{ _("Full texts of the references sought") }}</caption>
+      <tbody>
+        <tr><th scope="row">{{ _("References sought") }}</th><td>{{ counts.sought }}</td></tr>
+        <tr><th scope="row">{{ _("Texts obtained") }}</th><td>{{ counts.obtained }}</td></tr>
+        <tr><th scope="row">{{ _("of which in open access") }}</th><td>{{ counts.open_access }}{% if counts.open_access_share is not none %} ({{ percent(counts.open_access_share) }} {{ _("of the references sought") }}){% endif %}</td></tr>
+        <tr><th scope="row">{{ _("of which added by the team") }}</th><td>{{ counts.uploaded }}</td></tr>
+        <tr><th scope="row">{{ _("Not found in open access") }}</th><td>{{ counts.not_found }}</td></tr>
+        <tr><th scope="row">{{ _("Declared not retrievable") }}</th><td>{{ counts.not_retrievable }}</td></tr>
+        <tr><th scope="row">{{ _("Not looked for yet") }}</th><td>{{ counts.not_sought }}</td></tr>
+        {% if counts.needs_ocr %}<tr><th scope="row">{{ _("Texts without readable text (scanned)") }}</th><td>{{ counts.needs_ocr }}</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </section>
+
+  <section aria-labelledby="libre-acces">
+    <h2 id="libre-acces">{{ _("Open access versions") }}</h2>
+    <p>{{ _("For each reference not looked for yet, the tool asks OpenAlex, then Unpaywall (by DOI), for a free PDF and downloads it from the publisher or repository they name. Each answer is kept, with the address, the licence declared and the version of the text.") }}</p>
+    <p class="small">{{ _("The right to read an article does not always give the right to have it processed by an AI: checking the publishers' conditions before the screening of full texts remains the responsibility of the team.") }}</p>
+    {% if job_running %}
+      <p role="status">{{ _("Looking for the open access versions…") }}</p>
+    {% else %}
+      {% if job_error %}<div class="message error" role="alert">{{ job_error }}</div>{% endif %}
+      <form method="post" action="/textes/libres">
+        {{ csrf() }}
+        {% if counts.not_found %}
+        <label><input type="checkbox" name="reessayer" value="1"> {{ _("Also look again for the references not found before") }}</label>
+        {% endif %}
+        <button type="submit" {% if not counts.not_sought and not counts.not_found %}disabled{% endif %}>{{ _("Look for the open access versions") }}</button>
+      </form>
+    {% endif %}
+  </section>
+</div>

@@ -44,12 +44,14 @@ from revue_portee.domain.criteria import (
 )
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
 from revue_portee.domain.framing import Framing
+from revue_portee.domain.fulltext import FulltextDocument
 from revue_portee.domain.journal import verify_chain
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
 from revue_portee.domain.screening import DecisionValue, ScreeningRound, Thresholds
 from revue_portee.domain.search import LANGUAGES, BlockRole, Database, WarningKind
 from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
+from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
 from revue_portee.jobs.runner import BackgroundJobs
@@ -73,14 +75,19 @@ from revue_portee.screening.report import flow_report, retained_references
 from revue_portee.search import runs, strategies
 from revue_portee.search import suggestions as term_suggestions
 from revue_portee.search.runs import DescriptorSource, default_descriptor_source
-from revue_portee.sources import SourceError, SourceFactory, default_source_factory
+from revue_portee.sources import (
+    OpenAccessSources,
+    SourceError,
+    SourceFactory,
+    default_source_factory,
+)
 from revue_portee.storage.project_folder import ProjectFolder, ProjectFolderError
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import projects
 from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
 from revue_portee.version import tool_version as current_tool_version
-from revue_portee.web import dedup_view, pilot_view, screening_view
+from revue_portee.web import dedup_view, fulltext_view, pilot_view, screening_view
 from revue_portee.web.search_form import NEW_BLOCK, StrategyForm, read_strategy_form, rows_of
 
 __all__ = ["ALLOWED_HOSTS", "create_app"]
@@ -309,6 +316,7 @@ def create_app(
     descriptor_source: Callable[[], DescriptorSource] = default_descriptor_source,
     collector_factory: CollectorFactory | None = None,
     crossref_source: Callable[[], WorkSource] | None = None,
+    open_access_finder: Callable[[], retrieval.OpenAccessFinder] = OpenAccessSources,
     jobs: BackgroundJobs | None = None,
     batch_wait: Callable[[float], None] = time.sleep,
     batch_poll_seconds: float = batch_ai.POLL_SECONDS,
@@ -1949,6 +1957,151 @@ def create_app(
             render_docx(document),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers=disposition,
+        )
+
+    # --- Full texts -------------------------------------------------------------------
+
+    def fulltext_context() -> dict[str, Any]:
+        report = retrieval.retrieval_report(folder)
+        return {
+            "report": report,
+            "counts": report.counts,
+            "job_running": background.running(fulltext_view.JOB),
+            "job_error": background.error(fulltext_view.JOB),
+            "fulltext_status_labels": fulltext_view.status_labels(),
+            "origin_labels": fulltext_view.origin_labels(),
+            "match_labels": fulltext_view.match_labels(),
+        }
+
+    def fulltext_page(
+        request: Request,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        upload: retrieval.UploadReport | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        return render(
+            request,
+            "textes.html",
+            fulltext_context() | {"error": error, "message": message, "upload": upload},
+            status_code=status_code,
+        )
+
+    @app.get("/textes", response_class=HTMLResponse)
+    def show_texts(request: Request, ajoute: int = 0, declare: int = 0) -> HTMLResponse:
+        message = None
+        if ajoute:
+            message = _("Text added.")
+        elif declare:
+            message = _("Text declared not retrievable.")
+        return fulltext_page(request, message=message)
+
+    @app.get("/textes/etat", response_class=HTMLResponse)
+    def texts_progress(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request, "_textes_etat.html", {"csrf_token": context.csrf_token} | fulltext_context()
+        )
+
+    @app.post("/textes/libres")
+    def look_for_open_access(_csrf: Csrf, reessayer: Annotated[str, Form()] = "") -> Response:
+        background.start(
+            fulltext_view.JOB,
+            lambda: retrieval.retrieve_open_access(
+                folder,
+                now=now,
+                tool_version=context.tool_version,
+                finder=open_access_finder,
+                retry_not_found=bool(reessayer),
+            ),
+        )
+        return see_other("/textes#libre-acces")
+
+    @app.post("/textes/televerser")
+    async def upload_texts(request: Request, _csrf: Csrf) -> Response:
+        form = await request.form()
+        files = [
+            (item.filename, await item.read())
+            for item in form.getlist("fichiers")
+            if not isinstance(item, str) and item.filename
+        ]
+        if not files:
+            return fulltext_page(request, error=_("Choose one or more PDF files."), status_code=422)
+        report = await run_in_threadpool(
+            retrieval.upload_files, folder, files, now=now, tool_version=context.tool_version
+        )
+        return fulltext_page(request, upload=report)
+
+    @app.post("/textes/{reference_id}/televerser")
+    async def upload_text(request: Request, reference_id: str, _csrf: Csrf) -> Response:
+        form = await request.form()
+        item = form.get("fichier")
+        if item is None or isinstance(item, str) or not item.filename:
+            return fulltext_page(request, error=_("Choose a PDF file."), status_code=422)
+        content = await item.read()
+        try:
+            await run_in_threadpool(
+                retrieval.add_upload,
+                folder,
+                reference_id,
+                content,
+                filename=item.filename,
+                now=now,
+                tool_version=context.tool_version,
+            )
+        except retrieval.FulltextError as error:
+            return fulltext_page(request, error=str(error), status_code=422)
+        return see_other(f"/textes?ajoute=1#reference-{reference_id}")
+
+    @app.post("/textes/{reference_id}/introuvable")
+    def declare_text_not_retrievable(
+        request: Request, reference_id: str, _csrf: Csrf, raison: Annotated[str, Form()] = ""
+    ) -> Response:
+        try:
+            retrieval.declare_not_retrievable(
+                folder, reference_id, raison, now=now, tool_version=context.tool_version
+            )
+        except retrieval.FulltextError as error:
+            return fulltext_page(request, error=str(error), status_code=422)
+        return see_other(f"/textes?declare=1#reference-{reference_id}")
+
+    @app.get("/textes/manquants.csv")
+    def download_missing() -> Response:
+        path, _count = retrieval.export_missing(folder)
+        return Response(
+            path.read_text(encoding="utf-8"),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="textes-manquants.csv"'},
+        )
+
+    def _document_row(reference_id: str) -> tuple[retrieval.RetrievalRow, FulltextDocument]:
+        row = retrieval.retrieval_report(folder).row(reference_id)
+        if row is None or row.document is None:
+            raise HTTPException(status_code=404, detail=_("No full text for this reference."))
+        return row, row.document
+
+    @app.get("/textes/{reference_id}", response_class=HTMLResponse)
+    def show_text(request: Request, reference_id: str) -> HTMLResponse:
+        row, document = _document_row(reference_id)
+        text = retrieval.paged_text(folder, document)
+        body = {page.number: page.text for page in text.body()}
+        return render(
+            request,
+            "texte.html",
+            {
+                "row": row,
+                "pages": [(page, body[page.number] != page.text) for page in text.pages],
+                "origin_labels": fulltext_view.origin_labels(),
+            },
+        )
+
+    @app.get("/textes/{reference_id}/pdf")
+    def download_pdf(reference_id: str) -> Response:
+        _row, document = _document_row(reference_id)
+        return FileResponse(
+            folder.path / retrieval.TEXT_FOLDER / f"{document.sha256}.pdf",
+            media_type="application/pdf",
+            filename=f"{reference_id}.pdf",
         )
 
     # --- Reports ----------------------------------------------------------------------

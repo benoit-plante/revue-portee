@@ -62,6 +62,7 @@ __all__ = [
     "duplicate_pair",
     "enrichment",
     "framing_version",
+    "fulltext_document",
     "impact_assessment",
     "import_file",
     "journal_entry",
@@ -75,6 +76,7 @@ __all__ = [
     "qualification_proposal",
     "query",
     "reference",
+    "retrieval_note",
     "reviewer",
     "round_member",
     "screening_round",
@@ -815,6 +817,45 @@ impact_assessment = Table(
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
     _journal_column(),
+)
+
+fulltext_document = Table(
+    "fulltext_document",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("origin", String(16), nullable=False),
+    Column("url", Text, nullable=False),
+    Column("license", Text, nullable=False),
+    Column("version", Text, nullable=False),
+    Column("host_type", Text, nullable=False),
+    Column("filename", Text, nullable=False),
+    Column("sha256", String(64), nullable=False),
+    Column("page_count", Integer, nullable=False),
+    Column("text_chars", Integer, nullable=False),
+    Column("needs_ocr", Boolean, nullable=False),
+    Column("references_page", Integer, nullable=True),
+    Column("converter", Text, nullable=False),
+    Column("raw_dir", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+    Index("ix_fulltext_document_reference", "reference_id"),
+)
+
+retrieval_note = Table(
+    "retrieval_note",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("reference_id", String(26), ForeignKey("reference.id"), nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("raw_dir", Text, nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+    CheckConstraint("status IN ('not_found', 'not_retrievable')", name="ck_retrieval_status"),
+    Index("ix_retrieval_note_reference", "reference_id"),
 )
 
 Index(

@@ -12,6 +12,7 @@ from revue_portee.config.secrets import install_secret_redaction
 from revue_portee.i18n import gettext as _
 from revue_portee.i18n import ngettext
 from revue_portee.storage.project_folder import (
+    ProjectFolder,
     ProjectFolderError,
     create_project_folder,
     open_project_folder,
@@ -280,6 +281,225 @@ def export_retained(
         folder.close()
     if result.provisional:
         typer.echo(_("The screening is not finished: this list may still change."), err=True)
+
+
+def _counts_line(folder: ProjectFolder) -> str:
+    from revue_portee.fulltext.retrieval import retrieval_report
+    from revue_portee.reporting.formats import percent
+
+    counts = retrieval_report(folder).counts
+    return _(
+        "Full texts: {obtained} obtained of {sought} sought ({open_access} in open access, "
+        "{share}; {uploaded} added by the team); not found: {not_found}; not retrievable: "
+        "{not_retrievable}; never looked for: {not_sought}."
+    ).format(
+        obtained=counts.obtained,
+        sought=counts.sought,
+        open_access=counts.open_access,
+        share=percent(counts.open_access_share or 0.0, "fr"),
+        uploaded=counts.uploaded,
+        not_found=counts.not_found,
+        not_retrievable=counts.not_retrievable,
+        not_sought=counts.not_sought,
+    )
+
+
+def _open_for_writing(dossier: Path) -> ProjectFolder:
+    try:
+        return open_project_folder(dossier, now=utc_now, tool_version=tool_version())
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+
+
+@app.command(
+    "textes-libres",
+    help=_(
+        "Look for the open access PDF of the references kept (OpenAlex, then Unpaywall) and "
+        "store it in the project (calls these services)."
+    ),
+)
+def open_access_texts(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    limite: Annotated[
+        int | None, typer.Option("--limite", help=_("Look for at most this many references."))
+    ] = None,
+    reessayer: Annotated[
+        bool,
+        typer.Option("--reessayer", help=_("Look again for the references not found before.")),
+    ] = False,
+) -> None:
+    from revue_portee.config.secrets import MissingSecretError
+    from revue_portee.fulltext.retrieval import retrieve_open_access
+    from revue_portee.sources import OpenAccessSources, SourceError
+
+    folder = _open_for_writing(dossier)
+    try:
+        summary = retrieve_open_access(
+            folder,
+            now=utc_now,
+            tool_version=tool_version(),
+            finder=OpenAccessSources,
+            retry_not_found=reessayer,
+            limit=limite,
+            progress=lambda done, total: typer.echo(f"{done}/{total}", err=True),
+        )
+        typer.echo(
+            _("References looked for: {looked_for}; texts obtained: {obtained}.").format(
+                looked_for=summary.looked_for, obtained=summary.obtained
+            )
+        )
+        typer.echo(_counts_line(folder))
+    except (MissingSecretError, SourceError) as error:
+        typer.echo(_counts_line(folder), err=True)
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+
+
+@app.command(
+    "textes-ajouter",
+    help=_(
+        "Add PDFs obtained by the team: each file is matched to its reference by DOI, then "
+        "title, unless --reference is given."
+    ),
+)
+def add_texts(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    fichiers: Annotated[list[Path], typer.Argument(help=_("PDF files or folders of PDFs."))],
+    reference: Annotated[
+        str | None,
+        typer.Option("--reference", help=_("Identifier of the reference (one file only).")),
+    ] = None,
+) -> None:
+    from revue_portee.fulltext.page_benchmark import pdf_files
+    from revue_portee.fulltext.retrieval import FulltextError, add_upload, upload_files
+
+    try:
+        paths = pdf_files(fichiers)
+    except FileNotFoundError as error:
+        raise _fail(str(error)) from error
+    folder = _open_for_writing(dossier)
+    try:
+        if reference is not None:
+            if len(paths) != 1:
+                raise _fail(_("With --reference, give exactly one PDF file."))
+            add_upload(
+                folder, reference, paths[0].read_bytes(), filename=paths[0].name, now=utc_now,
+                tool_version=tool_version(),
+            )  # fmt: skip
+            typer.echo(_("Text added: {file}").format(file=paths[0].name))
+        else:
+            report = upload_files(
+                folder, ((p.name, p.read_bytes()) for p in paths), now=utc_now,
+                tool_version=tool_version(),
+            )  # fmt: skip
+            for outcome in report.added:
+                typer.echo(_("Added: {file} → {reference}").format(
+                    file=outcome.filename, reference=outcome.reference_id))  # fmt: skip
+            for outcome in report.already:
+                typer.echo(_("Already in the project: {file}").format(file=outcome.filename))
+            for outcome in report.unmatched:
+                typer.echo(
+                    _("No reference found (add it with --reference): {file}").format(
+                        file=outcome.filename
+                    ),
+                    err=True,
+                )
+            for outcome in report.unreadable:
+                typer.echo(f"{outcome.filename} : {outcome.message}", err=True)
+        typer.echo(_counts_line(folder))
+    except FulltextError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+
+
+@app.command(
+    "texte-introuvable",
+    help=_("Declare that the full text of a reference cannot be obtained, with the reason."),
+)
+def text_not_retrievable(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    reference: Annotated[str, typer.Argument(help=_("Identifier of the reference."))],
+    raison: Annotated[str, typer.Option("--raison", help=_("Why the text cannot be obtained."))],
+) -> None:
+    from revue_portee.fulltext.retrieval import FulltextError, declare_not_retrievable
+
+    folder = _open_for_writing(dossier)
+    try:
+        declare_not_retrievable(folder, reference, raison, now=utc_now, tool_version=tool_version())
+        typer.echo(_counts_line(folder))
+    except FulltextError as error:
+        raise _fail(str(error)) from error
+    finally:
+        folder.close()
+
+
+@app.command(
+    "textes-manquants",
+    help=_("Write the list of the references still without a full text (CSV) in the exports "
+           "folder."),
+)  # fmt: skip
+def missing_texts(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.fulltext.retrieval import export_missing
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        path, count = export_missing(folder)
+        typer.echo(
+            ngettext(
+                "{count} reference without a full text, written: {path}",
+                "{count} references without a full text, written: {path}",
+                count,
+            ).format(count=count, path=path)
+        )
+        typer.echo(_counts_line(folder))
+    finally:
+        folder.close()
+
+
+@app.command(
+    "banc-pages",
+    help=_(
+        "Compare the text extraction by page of PyMuPDF, pypdf and pdfplumber on test PDFs; "
+        "local, no model call."
+    ),
+)
+def page_benchmark(
+    fichiers: Annotated[list[Path], typer.Argument(help=_("PDF files or folders of PDFs."))],
+    graine: Annotated[int, typer.Option("--graine", help=_("Seed of the draw."))] = 2026,
+    sortie: Annotated[Path, typer.Option("--sortie", help=_("Folder of the reports."))] = Path(
+        "docs/resultats"
+    ),
+) -> None:
+    from revue_portee.fulltext import page_benchmark as bench
+
+    try:
+        paths = bench.pdf_files(fichiers)
+    except FileNotFoundError as error:
+        raise _fail(str(error)) from error
+    if not paths:
+        raise _fail(_("No PDF file found."))
+    result = bench.run_benchmark(paths, seed=graine, now=utc_now())
+    sortie.mkdir(parents=True, exist_ok=True)
+    report = sortie / "extraction-pages.md"
+    report.write_text(bench.report_markdown(result), encoding="utf-8")
+    for name in bench.EXTRACTORS:
+        total = result.total(name)
+        rate = "—" if total.rate is None else f"{total.rate:.1%}"
+        typer.echo(
+            _("{name}: right page for {rate} of {count} passages").format(
+                name=name, rate=rate, count=total.checked
+            )
+        )
+    typer.echo(_("Report: {path}").format(path=report))
 
 
 @app.command(

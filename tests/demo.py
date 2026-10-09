@@ -5,8 +5,10 @@ five references after deduplication. The person and a deterministic AI screen th
 with criteria version 1; they disagree on one reference, which the person reconciles.
 Criterion P1 is then broadened (version 2): the impact analysis touches the two
 references excluded for P1, the AI screens them again and the person verifies the one
-whose decision it would change. Every number of the diagram is counted by hand in the
-README.
+whose decision it would change. The full texts of the three references kept are then
+looked for in open access: one is found in OpenAlex, one in Unpaywall after a host
+refuses the first link, and the third, found nowhere, is declared not retrievable.
+Every number of the diagram is counted by hand in the README.
 """
 
 from collections.abc import Callable, Sequence
@@ -25,11 +27,15 @@ from revue_portee.collect.enrichment import enriched_reference
 from revue_portee.domain.changes import ChangeType
 from revue_portee.domain.criteria import CriterionKind, PccElement
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
+from revue_portee.domain.references import Reference
 from revue_portee.domain.screening import DecisionValue, Thresholds
+from revue_portee.fulltext import retrieval
 from revue_portee.protocol import criteria
 from revue_portee.screening import ai_screening, batch_ai, main, pilot, reassessment, settings
+from revue_portee.sources.http import SourceAccessError
+from revue_portee.sources.records import OpenAccessLocation
 from revue_portee.storage.project_folder import ProjectFolder
-from support import TOOL_VERSION, make_clock, new_project
+from support import TOOL_VERSION, make_clock, make_pdf, new_project
 
 Clock = Callable[[], datetime]
 FIXTURES = Path(__file__).parent / "fixtures" / "dedup"
@@ -272,11 +278,83 @@ def broaden_and_reassess(demo: Demo, *, complete: bool = True) -> None:
         reassessment.complete(folder, impact.id, now=clock, tool_version=TOOL_VERSION)
 
 
+# Open access answers of the demonstration, by key of the reference: OpenAlex, Unpaywall.
+BLOCKED = "https://publisher.example.org/housing.pdf"
+OPEN_ACCESS: dict[str, tuple[list[OpenAccessLocation], list[OpenAccessLocation]]] = {
+    "loneliness": (
+        [OpenAccessLocation("https://repository.example.org/loneliness.pdf", "cc-by",
+                            "publishedVersion", "repository")],
+        [],
+    ),
+    "housing": (
+        [],
+        [
+            OpenAccessLocation(BLOCKED, "cc-by-nc", "publishedVersion", "publisher"),
+            OpenAccessLocation("https://repository.example.org/housing.pdf", "cc-by",
+                               "acceptedVersion", "repository"),
+        ],
+    ),
+}  # fmt: skip
+PDFS = {
+    "https://repository.example.org/loneliness.pdf": [
+        "Loneliness among older adults after residential relocation\nAbstract",
+        "Methods\nWe interviewed 24 older adults\nliving in three residences.",
+        "Results\nLoneliness was reported\nin the first months.\nReferences\n1. Smith J.",
+    ],
+    "https://repository.example.org/housing.pdf": [
+        "Housing instability and the mental health\nof young adults: a cohort study",
+        "Methods\nA cohort of 1,200 adults\naged 18 to 30.",
+    ],
+}
+# Body text added to every page, so that the demonstration PDFs are not taken for
+# scanned ones (fewer than 200 characters a page).
+FILLER = "\n" + "\n".join(["The participants described their housing and care."] * 5)
+NOT_RETRIEVABLE = "Revue non accessible par la bibliothèque; auteurs sans réponse."
+
+
+class DemoFinder:
+    """Open access sources of the demonstration (no network)."""
+
+    def __init__(self, keys: dict[str, str]) -> None:
+        self.keys = {ref: key for key, ref in keys.items()}  # reference id: key
+        self.downloads: list[str] = []
+
+    def openalex(self, reference: Reference) -> tuple[list[OpenAccessLocation], dict[str, Any]]:
+        found = OPEN_ACCESS.get(self.keys[reference.id], ([], []))[0]
+        return found, {"results": [{"id": reference.openalex_id or "W0"}]}
+
+    def unpaywall(self, doi: str) -> tuple[list[OpenAccessLocation], dict[str, Any]]:
+        # Only the housing study has a DOI in the demonstration.
+        found = OPEN_ACCESS["housing"][1] if doi == "10.5555/DEMO.0001" else []
+        return found, {"doi": doi.lower(), "is_oa": bool(found)}
+
+    def download(self, url: str) -> bytes:
+        self.downloads.append(url)
+        if url == BLOCKED:
+            raise SourceAccessError("publisher.example.org", 403)
+        return make_pdf([page + FILLER for page in PDFS[url]])
+
+
+def retrieve_texts(demo: Demo) -> DemoFinder:
+    """Look for the full texts in open access, then declare the caregivers study not
+    retrievable."""
+    finder = DemoFinder(demo.ids())
+    retrieval.retrieve_open_access(
+        demo.folder, now=demo.clock, tool_version=TOOL_VERSION, finder=lambda: finder
+    )
+    retrieval.declare_not_retrievable(
+        demo.folder, demo.ids()["caregivers"], NOT_RETRIEVABLE, now=demo.clock,
+        tool_version=TOOL_VERSION,
+    )  # fmt: skip
+    return finder
+
+
 def build(tmp_path: Path) -> Demo:
-    """The whole demonstration, up to the completed reassessment."""
+    """The whole demonstration, up to the full texts obtained."""
     demo = create(tmp_path)
     deduplicate(demo)
     screen(demo)
     reconcile(demo)
     broaden_and_reassess(demo)
+    retrieve_texts(demo)
     return demo

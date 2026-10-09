@@ -80,6 +80,10 @@ class EntryType:
     REASSESSMENT_DECIDED = "reassessment.decided"
     REASSESSMENT_COMPLETED = "reassessment.completed"
     ARCHIVE_EXPORTED = "archive.exported"
+    FULLTEXT_OBTAINED = "fulltext.obtained"
+    FULLTEXT_UPLOADED = "fulltext.uploaded"
+    FULLTEXT_NOT_FOUND = "fulltext.not_found"
+    FULLTEXT_NOT_RETRIEVABLE = "fulltext.not_retrievable"
 
 
 class JournalEntry(BaseModel):
