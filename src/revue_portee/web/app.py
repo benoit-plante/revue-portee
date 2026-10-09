@@ -2191,10 +2191,14 @@ def create_app(
     @app.post("/textes/tri/{round_id}/ia/estimation")
     def estimate_text_ai(request: Request, round_id: str, _csrf: Csrf) -> Response:
         try:
-            preview = fulltext_screening.preview_ai(folder, round_id, factory=provider_factory)
+            screening = fulltext_screening.round_of(folder, round_id)
+            if screening.kind is RoundKind.MAIN:  # the main round goes through batches
+                preview = batch_ai.preview(folder, round_id, factory=provider_factory)
+            else:
+                preview = fulltext_screening.preview_ai(folder, round_id, factory=provider_factory)
         except pilot.UnknownRoundError as unknown:
             raise HTTPException(status_code=404, detail=str(unknown)) from unknown
-        except _AI_ERRORS as error:
+        except _BATCH_ERRORS as error:
             return fulltext_screening_page(request, error=str(error), status_code=422)
         return fulltext_screening_page(request, preview=preview, preview_round=round_id)
 
@@ -2221,6 +2225,9 @@ def create_app(
             return fulltext_screening_page(request, error=error, status_code=422)
 
         def work() -> None:
+            if screening.kind is RoundKind.MAIN:
+                run_batches(round_id, limit)
+                return
             last_batches[round_id] = fulltext_screening.run_ai(
                 folder,
                 round_id,

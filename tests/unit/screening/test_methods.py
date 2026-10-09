@@ -49,13 +49,13 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
     assert (change.counts.reassessed, change.counts.excluded_to_kept) == (2, 1)
     costs = {c.phase: (c.calls, c.amount) for c in data.costs}
     # FakeProvider: 0.002 per call, at half price through the batch API; the full texts
-    # are screened one call at a time (two texts, in the pilot and in the main round)
+    # of the pilot are screened one call at a time, those of the main round in a batch
     assert costs == {
         "pilot": (0, Decimal(0)),
         "main": (5, Decimal("0.005")),
         "reassessment": (2, Decimal("0.002")),
         "full_text_pilot": (2, Decimal("0.004")),
-        "full_text_main": (2, Decimal("0.004")),
+        "full_text_main": (2, Decimal("0.002")),
         "unlinked": (0, Decimal(0)),
     }
     ft = data.full_text

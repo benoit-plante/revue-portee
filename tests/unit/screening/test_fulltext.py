@@ -30,7 +30,7 @@ from revue_portee.domain.screening import (
     page_quote_counts,
 )
 from revue_portee.protocol import notes
-from revue_portee.screening import fulltext, settings
+from revue_portee.screening import batch_ai, fulltext, settings
 from revue_portee.screening.ai_screening import AIBatchResult, UnusableAnswerError
 from revue_portee.screening.main import NotADisagreementError
 from revue_portee.screening.pilot import NotInRoundError, UnknownCriterionError, UnknownRoundError
@@ -309,3 +309,20 @@ def test_missing_criterion_is_unusable() -> None:
     output = ScreenFulltextOutput.model_validate(AI_FT["housing"])
     with pytest.raises(UnusableAnswerError):
         fulltext.check_answer(output, ["P1", "C1", "X1", "X2"])
+
+
+def test_batches_of_the_main_round_need_the_pilot(tmp_path: Path) -> None:
+    demo = _with_texts(tmp_path)
+    try:
+        started = fulltext.start_main(
+            demo.folder, ScreeningMode.BLIND, seed=1, now=demo.clock, tool_version=TOOL_VERSION
+        )
+        preview = batch_ai.preview(demo.folder, started.id, factory=_factory(AI_FT))
+        with pytest.raises(fulltext.PilotRequiredError):
+            batch_ai.submit(
+                demo.folder, started.id, batch_limit=Decimal(5), factory=_factory(AI_FT),
+                now=demo.clock, tool_version=TOOL_VERSION,
+            )  # fmt: skip
+    finally:
+        demo.folder.close()
+    assert (preview.task, preview.items) == ("screen_fulltext", 2)

@@ -133,6 +133,7 @@ __all__ = [
     "screenable_texts",
     "start_main",
     "start_pilot",
+    "store_batch_decision",
 ]
 
 Clock = Callable[[], datetime]
@@ -583,6 +584,35 @@ def _store_ai_decision(
         )
         screening_repo.insert_decision(connection, decision, journal_entry_id=entry.id)
     return decision
+
+
+def store_batch_decision(
+    folder: ProjectFolder,
+    screening: ScreeningRound,
+    _label: str,
+    stored: StoredCall,
+    output: ScreenFulltextOutput,
+    reference_id: str,
+    version: CriteriaVersion,
+    *,
+    now: Clock,
+    tool_version: str,
+) -> Decision:
+    """Record the AI's decision on a text from a batch answer (``screening.batch_ai``)."""
+    reference, document = _documents(folder)[reference_id]
+    return _store_ai_decision(
+        folder,
+        screening,
+        stored,
+        output,
+        reference,
+        retrieval.paged_text(folder, document),
+        version,
+        fulltext_thresholds(folder),
+        ai_reviewer(folder, stored, now=now, tool_version=tool_version),
+        now=now,
+        tool_version=tool_version,
+    )
 
 
 def run_ai(

@@ -399,8 +399,9 @@ HUMAN_FT = {"housing": (EX, ["P1"]), "loneliness": (IN, [])}
 
 
 def screen_texts(demo: Demo, *, mode: ScreeningMode = ScreeningMode.BLIND) -> None:
-    """The full-text pilot (both texts), screened by the person and the AI, then the
-    main round in ``mode``, screened by the AI (the pilot's decisions count for it)."""
+    """The full-text pilot (both texts), screened by the person and the AI one call at a
+    time, then the main round in ``mode``, screened by the AI in a batch (the pilot's
+    decisions count for it)."""
     folder, clock = demo.folder, demo.clock
     chosen = _factory(AI_FT)
     trial = fulltext.start_pilot(folder, seed=5, now=clock, tool_version=TOOL_VERSION)
@@ -416,10 +417,7 @@ def screen_texts(demo: Demo, *, mode: ScreeningMode = ScreeningMode.BLIND) -> No
     )  # fmt: skip
     started = fulltext.start_main(folder, mode, seed=7, now=clock, tool_version=TOOL_VERSION)
     demo.fulltext_round_id = started.id
-    fulltext.run_ai(
-        folder, started.id, batch_limit=Decimal(5), factory=chosen, now=clock,
-        tool_version=TOOL_VERSION,
-    )  # fmt: skip
+    _screen_with_ai(folder, clock, started.id, AI_FT)  # through the batch API
 
 
 def build(tmp_path: Path) -> Demo:
