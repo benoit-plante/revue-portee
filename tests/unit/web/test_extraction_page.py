@@ -48,7 +48,7 @@ def test_extraction_pages(tmp_path: Path) -> None:
         jobs.wait(EXTRACTION_JOB, timeout=30)
         assert jobs.error(EXTRACTION_JOB) is None
         page = text(client.get("/extraction"))
-        assert "Champs rapportés : 2 sur 3." in page
+        assert "Champs vérifiés par vous : 0 sur 3." in page
         loneliness = demo.ids()["loneliness"]
         study = text(client.get(f"/extraction/{loneliness}"))
         assert "non rapporté" in study
@@ -73,5 +73,104 @@ def test_without_grid(tmp_path: Path) -> None:
         refused = client.post("/extraction/ia/estimation", data={"csrf_token": token(client)})
         assert refused.status_code == 422
         grid.add_template(demo.folder, now=demo.clock, tool_version=TOOL_VERSION)
+    finally:
+        demo.folder.close()
+
+
+def test_values_checked_then_exported(tmp_path: Path) -> None:
+    demo = _with_grid(tmp_path)
+    loneliness = demo.ids()["loneliness"]
+    try:
+        jobs = BackgroundJobs()
+        app = create_app(
+            demo.folder, now=make_clock(), tool_version=TOOL_VERSION, jobs=jobs,
+            provider_factory=factory(answer),
+        )  # fmt: skip
+        client = TestClient(app, base_url=BASE, follow_redirects=False)
+        client.post("/extraction/ia", data={"csrf_token": token(client), "plafond": "1"})
+        jobs.wait(EXTRACTION_JOB, timeout=30)
+        assert "Champs vérifiés par vous : 0 sur 3." in text(client.get("/extraction"))
+        url = f"/extraction/{loneliness}"
+        study = text(client.get(url))
+        assert 'name="action" value="valider"' in study
+        assert "Corriger" in study
+        validated = client.post(
+            f"{url}/D2", data={"csrf_token": token(client), "action": "valider"}
+        )
+        assert validated.status_code == 303
+        assert validated.headers["location"] == f"{url}?ok=1#champ-D2"
+        assert "Valeur enregistrée." in text(client.get(f"{url}?ok=1"))
+        rejected = client.post(f"{url}/D1", data={"csrf_token": token(client), "action": "rejeter"})
+        assert rejected.status_code == 303
+        again = client.post(f"{url}/D1", data={"csrf_token": token(client), "action": "valider"})
+        assert again.status_code == 422
+        assert "Aucune valeur de l'IA à vérifier pour ce champ." in text(again)
+        wrong = {"csrf_token": token(client), "action": "saisir", "rapporte": "oui"}
+        bad_value = client.post(f"{url}/D3", data=wrong | {"valeur": "Mixte"})
+        assert bad_value.status_code == 422
+        assert "La valeur ne correspond pas au type du champ D3." in text(bad_value)
+        bad_page = client.post(f"{url}/D3", data=wrong | {"valeur": "Quantitatif", "page": "x"})
+        assert bad_page.status_code == 422
+        corrected = client.post(
+            f"{url}/D3",
+            data=wrong | {"valeur": "Quantitatif", "citation": "living in three residences",
+                          "page": "2", "note": "devis mal lu"},
+        )  # fmt: skip
+        assert corrected.status_code == 303
+        study = text(client.get(url))
+        assert 'corrigée <span class="small">— devis mal lu</span>' in study
+        assert "rejetée" in study
+        assert client.post(f"{url}/D9", data=wrong).status_code == 404
+        assert "Champs vérifiés par vous : 3 sur 3." in text(client.get("/extraction"))
+        exported = text(client.post("/extraction/export", data={"csrf_token": token(client)}))
+        assert "Valeurs écrites dans exports/donnees-extraites.csv : 2." in exported
+    finally:
+        demo.folder.close()
+    written = (demo.folder.path / "exports" / "donnees-extraites.csv").read_text(encoding="utf-8")
+    assert ",D3,Devis,oui,Quantitatif,2,corrected" in written
+    assert "Qualitatif" not in written
+
+
+def test_pilot_pages(tmp_path: Path) -> None:
+    demo = _with_grid(tmp_path)
+    loneliness = demo.ids()["loneliness"]
+    try:
+        jobs = BackgroundJobs()
+        app = create_app(
+            demo.folder, now=make_clock(), tool_version=TOOL_VERSION, jobs=jobs,
+            provider_factory=factory(answer),
+        )  # fmt: skip
+        client = TestClient(app, base_url=BASE, follow_redirects=False)
+        client.post("/extraction/ia", data={"csrf_token": token(client), "plafond": "1"})
+        jobs.wait(EXTRACTION_JOB, timeout=30)
+        refused = client.post(
+            "/extraction/pilote", data={"csrf_token": token(client), "taille": "0"}
+        )
+        assert refused.status_code == 422
+        started = client.post(
+            "/extraction/pilote", data={"csrf_token": token(client), "taille": "5"}
+        )
+        assert started.headers["location"] == "/extraction?ok=pilote"
+        page = text(client.get("/extraction?ok=pilote"))
+        assert "Études du pilote tirées : extrayez-les sans l'IA." in page
+        assert "0 études extraites sur 1." in page
+        assert "Pilote : à extraire sans l'IA." in page
+        url = f"/extraction/{loneliness}"
+        study = text(client.get(url))
+        assert "Cette étude fait partie du pilote d'extraction" in study
+        assert "We interviewed" not in study
+        assert 'value="valider"' not in study
+        give = {"csrf_token": token(client), "action": "saisir"}
+        client.post(f"{url}/D1", data=give | {"rapporte": "non"})
+        client.post(f"{url}/D2", data=give | {"rapporte": "oui", "valeur": "24"})
+        client.post(f"{url}/D3", data=give | {"rapporte": "oui", "valeur": "Quantitatif"})
+        page = text(client.get("/extraction"))
+        assert "1 études extraites sur 1." in page
+        assert "Concordance de l'IA avec votre extraction" in page
+        assert "<td>1</td><td>0</td><td>0 %</td>" in page  # D3
+        assert "Tirer les études d'un nouveau pilote" in page
+        study = text(client.get(url))
+        assert "Cette étude fait partie du pilote" not in study
+        assert "extraite par la personne" in study
     finally:
         demo.folder.close()

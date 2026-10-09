@@ -20,7 +20,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
@@ -43,11 +43,13 @@ from revue_portee.domain.criteria import (
     diff_versions,
 )
 from revue_portee.domain.dedup import DedupSettings, PairOutcome
+from revue_portee.domain.extraction import InvalidValueError
 from revue_portee.domain.framing import Framing
 from revue_portee.domain.fulltext import FulltextDocument
 from revue_portee.domain.grid import FieldType
 from revue_portee.domain.grid import diff_versions as grid_diff
 from revue_portee.domain.journal import verify_chain
+from revue_portee.domain.project import ReviewerKind
 from revue_portee.domain.protocol import FREE_TEXT_SECTIONS, ProtocolSection, ProtocolText
 from revue_portee.domain.screening import (
     DecisionValue,
@@ -62,7 +64,7 @@ from revue_portee.domain.sensitivity import LIMITS
 from revue_portee.domain.studies import LinkOutcome, same_pair
 from revue_portee.domain.suggestions import SuggestionKind, SuggestionOutcome
 from revue_portee.extraction import grid as extraction_grid
-from revue_portee.extraction import prefill
+from revue_portee.extraction import prefill, validation
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import DEFAULT_LOCALE, EXPORT_LANGUAGES, translations
 from revue_portee.i18n import gettext as _
@@ -2136,6 +2138,8 @@ def create_app(
             "extraction.html",
             {
                 "state": state,
+                "pilot": validation.pilot_state(folder),
+                "pilot_size": validation.PILOT_SIZE,
                 "running": background.running(EXTRACTION_JOB),
                 "job_error": background.error(EXTRACTION_JOB),
                 "last_run": last_batches.get(EXTRACTION_JOB),
@@ -2149,8 +2153,11 @@ def create_app(
 
     @app.get("/extraction", response_class=HTMLResponse)
     def show_extraction(request: Request, ok: str = "") -> HTMLResponse:
-        message = _("Pre-filling started in the background.") if ok == "ia" else None
-        return extraction_page(request, message=message)
+        messages = {
+            "ia": _("Pre-filling started in the background."),
+            "pilote": _("Studies of the pilot drawn: extract them without the AI."),
+        }
+        return extraction_page(request, message=messages.get(ok))
 
     @app.post("/extraction/ia/estimation")
     def estimate_extraction(request: Request, _csrf: Csrf) -> Response:
@@ -2190,23 +2197,124 @@ def create_app(
             )
         return see_other("/extraction?ok=ia")
 
-    @app.get("/extraction/{reference_id}", response_class=HTMLResponse)
-    def show_study_extraction(request: Request, reference_id: str) -> HTMLResponse:
+    def study_extraction_page(
+        request: Request,
+        reference_id: str,
+        *,
+        error: str | None = None,
+        message: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
         state = prefill.extraction_state(folder)
         study = next((s for s in state.studies if s.primary.id == reference_id), None)
         if study is None or state.grid is None:
             raise HTTPException(status_code=404, detail=_("Unknown study."))
+        hidden = validation.blind(folder, reference_id)
+        values = {
+            code: value
+            for code, value in study.values.items()
+            if not hidden or value.reviewer_kind is ReviewerKind.HUMAN
+        }
         return render(
             request,
             "extraction_etude.html",
             {
                 "grid": state.grid,
                 "study": study,
+                "values": values,
+                "blind": hidden,
                 "type_labels": grid_view.type_labels(),
                 "check_labels": fulltext_view.check_labels(),
                 "status_labels": grid_view.value_status_labels(),
+                "error": error,
+                "message": message,
             },
+            status_code=status_code,
         )
+
+    @app.get("/extraction/{reference_id}", response_class=HTMLResponse)
+    def show_study_extraction(request: Request, reference_id: str, ok: str = "") -> HTMLResponse:
+        message = _("Value recorded.") if ok else None
+        return study_extraction_page(request, reference_id, message=message)
+
+    @app.post("/extraction/{reference_id}/{code}")
+    async def decide_extracted_value(
+        request: Request, reference_id: str, code: str, _csrf: Csrf
+    ) -> Response:
+        form = await request.form()
+        action = str(form.get("action", ""))
+        common: dict[str, Any] = {
+            "note": str(form.get("note", "")),
+            "now": now,
+            "tool_version": context.tool_version,
+        }
+        try:
+            if action == "valider":
+                await run_in_threadpool(
+                    validation.validate_value, folder, reference_id, code, **common
+                )
+            elif action == "rejeter":
+                await run_in_threadpool(
+                    validation.reject_value, folder, reference_id, code, **common
+                )
+            else:
+                raw_page = str(form.get("page", "")).strip()
+                if raw_page and not (raw_page.isdigit() and int(raw_page) > 0):
+                    return study_extraction_page(
+                        request,
+                        reference_id,
+                        error=_("The page must be a positive whole number."),
+                        status_code=422,
+                    )
+                given: list[JsonValue] = [str(v) for v in form.getlist("valeur")]
+                value: JsonValue = given if len(given) > 1 else (given[0] if given else None)
+                await run_in_threadpool(
+                    validation.record_value,
+                    folder,
+                    reference_id,
+                    code,
+                    reported=form.get("rapporte") == "oui",
+                    value=value,
+                    quote=str(form.get("citation", "")),
+                    page=int(raw_page) if raw_page else None,
+                    **common,
+                )
+        except (validation.NotAStudyError, prefill.NoGridError) as unknown:
+            raise HTTPException(status_code=404, detail=str(unknown)) from unknown
+        except validation.NoAIValueError as error:
+            return study_extraction_page(request, reference_id, error=str(error), status_code=422)
+        except InvalidValueError:
+            return study_extraction_page(
+                request,
+                reference_id,
+                error=_("The value does not fit the type of field %(code)s.") % {"code": code},
+                status_code=422,
+            )
+        return see_other(f"/extraction/{reference_id}?ok=1#champ-{code}")
+
+    @app.post("/extraction/pilote")
+    def start_extraction_pilot(
+        request: Request, _csrf: Csrf, taille: Annotated[str, Form()] = ""
+    ) -> Response:
+        size = int(taille) if taille.strip().isdigit() else 0
+        if size < 1:
+            return extraction_page(
+                request, error=_("The number of studies must be at least 1."), status_code=422
+            )
+        try:
+            validation.start_pilot(folder, size=size, now=now, tool_version=context.tool_version)
+        except (prefill.NoGridError, validation.NotAStudyError) as error:
+            return extraction_page(request, error=str(error), status_code=422)
+        return see_other("/extraction?ok=pilote")
+
+    @app.post("/extraction/export")
+    def export_extracted_values(request: Request, _csrf: Csrf) -> Response:
+        path, written = validation.export_extraction(folder)
+        message = _("%(count)s values written to %(path)s.") % {
+            "count": written,
+            "path": path.relative_to(folder.path).as_posix(),
+        }
+        return extraction_page(request, message=message)
 
     # --- Extraction grid --------------------------------------------------------------
 

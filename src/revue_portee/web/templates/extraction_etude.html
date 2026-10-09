@@ -1,21 +1,72 @@
 {% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
 {% block title %}{{ _("Extraction") }}{% endblock %}
 {% block content %}
 {% set ref = study.primary %}
 <p><a href="/extraction">{{ _("Data extraction") }}</a></p>
 <h1>{{ ref.title or _("(no title)") }}</h1>
 <p class="small">{{ ref.year or "" }}{% if ref.container_title %} — {{ ref.container_title }}{% endif %} — <a href="/textes/{{ ref.id }}" target="_blank" rel="noopener">{{ _("Text by page") }}</a> · <a href="/textes/{{ ref.id }}/pdf" target="_blank" rel="noopener">PDF</a></p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+{% if blind %}
+<p class="message info">{{ _("This study is in the extraction pilot: give every field from the text, without the AI. Its values will be shown once you have given them all.") }}</p>
+{% else %}
+<p>{{ _("Validate, correct or reject each value of the AI; give the value of the fields it did not fill. Only the values you decided go into the synthesis.") }}</p>
+{% endif %}
 <table class="criteria texts">
   <caption class="visually-hidden">{{ _("Values of the study, field by field") }}</caption>
   <thead><tr><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Value") }}</th><th scope="col">{{ _("Quote and page") }}</th><th scope="col">{{ _("Status") }}</th></tr></thead>
   <tbody>
   {% for f in grid.sorted_fields() %}
-    {% set v = study.values.get(f.code) %}
+    {% set v = values.get(f.code) %}
+    {% set given = v.value if v and v.reported and v.status != "rejected" else none %}
     <tr id="champ-{{ f.code }}">
       <th scope="row">{{ f.code }} — {{ f.label }} <span class="small">({{ type_labels[f.type] }})</span></th>
-      <td>{% if not v %}—{% elif not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</td>
-      <td>{% if v and v.quote %}«&nbsp;{{ v.quote }}&nbsp;»{% if v.page %} ({{ _("page %(page)s", page=v.page) }}){% endif %} — {{ check_labels[v.quote_check] }}{% if v.quote_check == "other_page" and v.model_page %} <span class="small">({{ _("the AI gave page %(page)s", page=v.model_page) }})</span>{% endif %}{% else %}—{% endif %}</td>
-      <td>{% if v %}{{ status_labels[v.status] }}{% else %}—{% endif %}</td>
+      <td>{% if not v or v.status == "rejected" %}—{% elif not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</td>
+      <td>{% if v and v.quote %}«&nbsp;{{ v.quote }}&nbsp;»{% if v.page %} ({{ _("page %(page)s", page=v.page) }}){% endif %}{% if v.quote_check %} — {{ check_labels[v.quote_check] }}{% endif %}{% if v.quote_check == "other_page" and v.model_page %} <span class="small">({{ _("the AI gave page %(page)s", page=v.model_page) }})</span>{% endif %}{% else %}—{% endif %}</td>
+      <td>{% if v %}{{ status_labels[v.status] }}{% if v.note %} <span class="small">— {{ v.note }}</span>{% endif %}{% else %}—{% endif %}
+        {% if v and v.reviewer_kind == "ai" %}
+        <form method="post" action="/extraction/{{ ref.id }}/{{ f.code }}" class="inline-form">
+          {{ csrf() }}
+          <button type="submit" name="action" value="valider">{{ _("Validate") }}</button>
+          <button type="submit" name="action" value="rejeter" class="secondary">{{ _("Reject") }}</button>
+        </form>
+        {% endif %}
+        <details>
+          <summary>{% if v and v.reviewer_kind == "ai" %}{{ _("Correct") }}{% elif v %}{{ _("Change") }}{% else %}{{ _("Give the value") }}{% endif %}</summary>
+          <form method="post" action="/extraction/{{ ref.id }}/{{ f.code }}">
+            {{ csrf() }}
+            <input type="hidden" name="action" value="saisir">
+            <fieldset>
+              <legend>{{ _("Does the report give it?") }}</legend>
+              <label><input type="radio" name="rapporte" value="oui" {% if not v or v.reported %}checked{% endif %}> {{ _("yes") }}</label>
+              <label><input type="radio" name="rapporte" value="non" {% if v and not v.reported %}checked{% endif %}> {{ _("not reported") }}</label>
+            </fieldset>
+            {% if f.type == "multiple_choice" %}
+            <fieldset>
+              <legend>{{ _("Value") }}</legend>
+              {% for c in f.choices %}<label><input type="checkbox" name="valeur" value="{{ c }}" {% if given is not none and c in given %}checked{% endif %}> {{ c }}</label> {% endfor %}
+            </fieldset>
+            {% elif f.type in ("single_choice", "hierarchical") %}
+            <label for="valeur-{{ f.code }}">{{ _("Value") }}</label>
+            <select id="valeur-{{ f.code }}" name="valeur"><option value=""></option>{% for c in f.choices %}<option {% if c == given %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+            {% elif f.type == "boolean" %}
+            <label for="valeur-{{ f.code }}">{{ _("Value") }}</label>
+            <select id="valeur-{{ f.code }}" name="valeur"><option value="oui" {% if given is sameas true %}selected{% endif %}>{{ _("yes") }}</option><option value="non" {% if given is sameas false %}selected{% endif %}>{{ _("no") }}</option></select>
+            {% else %}
+            <label for="valeur-{{ f.code }}">{{ _("Value") }}{% if f.type == "date" %} <span class="small">({{ _("YYYY, YYYY-MM or YYYY-MM-DD") }})</span>{% endif %}</label>
+            {% if f.type == "text" %}<textarea id="valeur-{{ f.code }}" name="valeur" rows="2">{{ given if given is not none else "" }}</textarea>{% else %}<input type="text" id="valeur-{{ f.code }}" name="valeur" value="{{ given if given is not none else "" }}">{% endif %}
+            {% endif %}
+            <label for="citation-{{ f.code }}">{{ _("Quote from the text (optional)") }}</label>
+            <textarea id="citation-{{ f.code }}" name="citation" rows="2">{{ v.quote if v else "" }}</textarea>
+            <label for="page-{{ f.code }}">{{ _("Page") }}</label>
+            <input type="text" inputmode="numeric" id="page-{{ f.code }}" name="page" value="{{ v.page if v and v.page else "" }}" size="4">
+            <label for="note-{{ f.code }}">{{ _("Note (optional)") }}</label>
+            <input type="text" id="note-{{ f.code }}" name="note">
+            <button type="submit">{{ _("Record the value") }}</button>
+          </form>
+        </details>
+      </td>
     </tr>
   {% endfor %}
   </tbody>

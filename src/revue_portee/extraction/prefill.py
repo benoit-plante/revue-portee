@@ -102,6 +102,8 @@ class StudyExtraction:
     reports: list[str]  # the reports of the study
     readable: bool  # its primary report has readable text
     values: dict[str, ExtractionValue] = field(default_factory=dict)  # by field code
+    # grid versions the AI pre-filled it with (its values may since be checked by a person)
+    ai_versions: frozenset[str] = frozenset()
 
     @property
     def prefilled(self) -> bool:
@@ -119,18 +121,18 @@ class ExtractionState:
         if self.grid is None:
             return []
         version = self.grid.id
-        return [
-            s
-            for s in self.studies
-            if s.readable and not any(v.grid_version_id == version and v.reviewer_kind is
-                                       ReviewerKind.AI for v in s.values.values())
-        ]  # fmt: skip
+        return [s for s in self.studies if s.readable and version not in s.ai_versions]
 
 
 def extraction_state(folder: ProjectFolder) -> ExtractionState:
     with folder.engine.connect() as connection:
         grid = grid_repo.get_active_version(connection)
-        values = current_values(extraction_repo.list_values(connection))
+        stored = extraction_repo.list_values(connection)
+    values = current_values(stored)
+    ai_versions: dict[str, set[str]] = {}
+    for value in stored:
+        if value.reviewer_kind is ReviewerKind.AI:
+            ai_versions.setdefault(value.reference_id, set()).add(value.grid_version_id)
     included = studies.included_reports(folder)
     found = []
     for study in studies.study_state(folder).studies:
@@ -143,6 +145,7 @@ def extraction_state(folder: ProjectFolder) -> ExtractionState:
                 values={
                     code: value for (ref, code), value in values.items() if ref == study.primary
                 },
+                ai_versions=frozenset(ai_versions.get(study.primary, ())),
             )
         )
     return ExtractionState(grid=grid, studies=found)

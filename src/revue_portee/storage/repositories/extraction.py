@@ -5,10 +5,10 @@ from typing import Any
 
 from sqlalchemy import Connection, select
 
-from revue_portee.domain.extraction import ExtractionValue
-from revue_portee.storage.db import extraction_value, journal_entry
+from revue_portee.domain.extraction import ExtractionPilot, ExtractionValue
+from revue_portee.storage.db import extraction_pilot, extraction_value, journal_entry
 
-__all__ = ["insert_value", "list_values"]
+__all__ = ["insert_pilot", "insert_value", "list_pilots", "list_values"]
 
 
 def insert_value(connection: Connection, value: ExtractionValue, *, journal_entry_id: str) -> None:
@@ -35,4 +35,20 @@ def list_values(
         data: dict[str, Any] = {k: v for k, v in dict(row).items() if k != "journal_entry_id"}
         data["value"] = json.loads(data.pop("value_json"))
         found.append(ExtractionValue.model_validate(data))
+    return found
+
+
+def insert_pilot(connection: Connection, pilot: ExtractionPilot, *, journal_entry_id: str) -> None:
+    data = pilot.model_dump(mode="python", exclude={"reference_ids"})
+    data["reference_ids_json"] = json.dumps(list(pilot.reference_ids))
+    connection.execute(extraction_pilot.insert().values(**data, journal_entry_id=journal_entry_id))
+
+
+def list_pilots(connection: Connection) -> list[ExtractionPilot]:
+    rows = connection.execute(select(extraction_pilot).order_by(extraction_pilot.c.number))
+    found = []
+    for row in rows.mappings():
+        data: dict[str, Any] = {k: v for k, v in dict(row).items() if k != "journal_entry_id"}
+        data["reference_ids"] = tuple(json.loads(data.pop("reference_ids_json")))
+        found.append(ExtractionPilot.model_validate(data))
     return found

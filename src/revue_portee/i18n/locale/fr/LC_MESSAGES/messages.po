@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 11:24-0400\n"
+"POT-Creation-Date: 2026-10-09 12:11-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -21,6 +21,10 @@ msgstr ""
 #, python-format
 msgid "%(code)s: %(type)s (proposed by %(who)s, confirmed by the reviewer)"
 msgstr "%(code)s : %(type)s (proposé par %(who)s, confirmé par le réviseur)"
+
+#, python-format
+msgid "%(count)s values written to %(path)s."
+msgstr "Valeurs écrites dans %(path)s : %(count)s."
 
 #, python-format
 msgid "%(input)s in, %(output)s out"
@@ -138,6 +142,15 @@ msgstr ""
 
 msgid "A deduplication is already running."
 msgstr "Un dédoublonnage est déjà en cours."
+
+msgid ""
+"A few studies drawn at random, which you extract from the text without seeing the AI. Once you "
+"have given every field of a study, its AI values are shown and their agreement with yours is "
+"counted field by field."
+msgstr ""
+"Quelques études tirées au hasard, que vous extrayez à partir du texte sans voir l'IA. Une fois "
+"tous les champs d'une étude remplis, les valeurs de l'IA s'affichent et leur concordance avec les"
+" vôtres est comptée champ par champ."
 
 msgid "A full text is already obtained for this reference."
 msgstr "Un texte intégral est déjà obtenu pour cette référence."
@@ -407,6 +420,9 @@ msgstr "Accord"
 msgid "Agreement and accuracy of the AI"
 msgstr "Accord et exactitude de l'IA"
 
+msgid "Agreement of the AI with your extraction"
+msgstr "Concordance de l'IA avec votre extraction"
+
 #, python-format
 msgid "Already in the project: %(file)s"
 msgstr "Déjà dans le projet : %(file)s"
@@ -531,6 +547,13 @@ msgstr ""
 
 msgid "Authors"
 msgstr "Auteurs"
+
+msgid ""
+"Automatic agreement: texts agree when one contains the other or they share at least half of their"
+" words; to read with your judgement."
+msgstr ""
+"Concordance automatique : les textes concordent quand l'un contient l'autre ou qu'ils partagent "
+"au moins la moitié de leurs mots ; à lire avec votre jugement."
 
 msgid "Back"
 msgstr "Retour"
@@ -829,6 +852,9 @@ msgstr ""
 "Convertir de nouveau les textes intégraux convertis par une version antérieure de l'outil (chaque"
 " nouvelle conversion s'ajoute ; l'ancienne demeure)."
 
+msgid "Correct"
+msgstr "Corriger"
+
 msgid "Cost"
 msgstr "Coût"
 
@@ -975,6 +1001,9 @@ msgstr "Analyse et présentation des données"
 
 msgid "Data extraction"
 msgstr "Extraction des données"
+
+msgid "Data for the synthesis"
+msgstr "Données pour la synthèse"
 
 msgid "Database"
 msgstr "Base"
@@ -1128,6 +1157,9 @@ msgstr "Abandonner le brouillon"
 msgid "Do not ask to confirm the cost."
 msgstr "Ne pas demander de confirmer le coût."
 
+msgid "Does the report give it?"
+msgstr "Le rapport la donne-t-il ?"
+
 msgid "Download"
 msgstr "Télécharger"
 
@@ -1178,6 +1210,12 @@ msgstr "Tirer un échantillon pilote"
 
 msgid "Draw the pilot"
 msgstr "Tirer l'essai pilote"
+
+msgid "Draw the studies of a new pilot"
+msgstr "Tirer les études d'un nouveau pilote"
+
+msgid "Draw the studies of the pilot"
+msgstr "Tirer les études du pilote"
 
 msgid "Duplicate records removed"
 msgstr "Doublons retirés"
@@ -1390,6 +1428,9 @@ msgstr "Exclusion"
 msgid "Exclusion (removed with NOT)"
 msgstr "Exclusion (retiré par NOT)"
 
+msgid "Export the extracted data (CSV)"
+msgstr "Exporter les données extraites (CSV)"
+
 msgid ""
 "Export the results of the database in RIS format, then choose the file. The file is kept as is in"
 " the project."
@@ -1403,9 +1444,32 @@ msgstr "Extraction"
 msgid "Extraction grid"
 msgstr "Grille d'extraction"
 
+msgid "Extraction pilot"
+msgstr "Pilote d'extraction"
+
+#, python-brace-format
+msgid "Extraction pilot {number}: studies drawn: {size} of {population} (seed {seed})"
+msgstr "Pilote d'extraction {number} : études tirées : {size} sur {population} (graine {seed})"
+
 #, python-brace-format
 msgid "Extraction: the AI could not pre-fill a study (attempts: {n})"
 msgstr "Extraction : l'IA n'a pas pu pré-remplir une étude (tentatives : {n})"
+
+#, python-brace-format
+msgid "Extraction: value of {field} corrected"
+msgstr "Extraction : valeur de {field} corrigée"
+
+#, python-brace-format
+msgid "Extraction: value of {field} extracted by the person"
+msgstr "Extraction : valeur de {field} extraite par la personne"
+
+#, python-brace-format
+msgid "Extraction: value of {field} rejected"
+msgstr "Extraction : valeur de {field} rejetée"
+
+#, python-brace-format
+msgid "Extraction: value of {field} validated"
+msgstr "Extraction : valeur de {field} validée"
 
 #, python-brace-format
 msgid "Extraction: values proposed by the AI for a study (fields reported: {reported} of {fields})"
@@ -1443,6 +1507,10 @@ msgstr "Champ {code} modifié dans le brouillon de la grille"
 msgid "Field {code} removed from the grid draft"
 msgstr "Champ {code} retiré du brouillon de la grille"
 
+#, python-format
+msgid "Fields checked by you: %(checked)s of %(fields)s."
+msgstr "Champs vérifiés par vous : %(checked)s sur %(fields)s."
+
 msgid "Fields of the starting grid added to the draft."
 msgstr "Champs de la grille de départ ajoutés au brouillon."
 
@@ -1453,10 +1521,6 @@ msgstr "Champs de la grille de départ {template} ajoutés au brouillon"
 #, python-format
 msgid "Fields of version %(number)s"
 msgstr "Champs de la version %(number)s"
-
-#, python-format
-msgid "Fields reported: %(reported)s of %(fields)s."
-msgstr "Champs rapportés : %(reported)s sur %(fields)s."
 
 msgid "File imported."
 msgstr "Fichier importé."
@@ -1697,6 +1761,9 @@ msgstr "Donnez la justification des seuils."
 msgid "Give the reason why the full text cannot be obtained."
 msgstr "Donnez la raison pour laquelle le texte intégral ne peut pas être obtenu."
 
+msgid "Give the value"
+msgstr "Donner la valeur"
+
 msgid "Grid"
 msgstr "Grille"
 
@@ -1775,6 +1842,9 @@ msgstr "Importer un fichier RIS"
 
 msgid "Imported files"
 msgstr "Fichiers importés"
+
+msgid "In agreement"
+msgstr "Concordantes"
 
 msgid "In assisted screening, a text waits until the AI has screened it."
 msgstr "En tri assisté, un texte attend que l'IA l'ait trié."
@@ -2337,6 +2407,9 @@ msgstr "Rien à vérifier pour l'instant."
 msgid "Number of results in {database}: {count}"
 msgstr "Nombre de résultats dans {database} : {count}"
 
+msgid "Number of studies"
+msgstr "Nombre d'études"
+
 msgid "Numbers for the flow diagram"
 msgstr "Nombres du diagramme de flux"
 
@@ -2366,6 +2439,13 @@ msgstr "Seule de la littérature publiée a été transmise au modèle ; aucune
 
 msgid "Only reports included at the full text can be grouped into studies."
 msgstr "Seuls les rapports inclus au texte intégral peuvent être regroupés en études."
+
+msgid ""
+"Only the values you validated, corrected or extracted go into the synthesis; a value proposed by "
+"the AI that you have not checked never does."
+msgstr ""
+"Seules les valeurs que vous avez validées, corrigées ou extraites entrent dans la synthèse ; une "
+"valeur proposée par l'IA que vous n'avez pas vérifiée n'y entre jamais."
 
 msgid "Open access versions"
 msgstr "Versions en libre accès"
@@ -2438,6 +2518,9 @@ msgstr "Diagramme de flux PRISMA 2020 adapté aux revues de portée"
 msgid "PROVISIONAL"
 msgstr "PROVISOIRE"
 
+msgid "Page"
+msgstr "Page"
+
 #, python-format
 msgid "Page %(number)s"
 msgstr "Page %(number)s"
@@ -2507,6 +2590,10 @@ msgstr "Phase"
 msgid "Pilot"
 msgstr "Pilote"
 
+#, python-format
+msgid "Pilot %(number)s (seed %(seed)s): %(done)s of %(size)s studies extracted."
+msgstr "Pilote %(number)s (graine %(seed)s) : %(done)s études extraites sur %(size)s."
+
 msgid "Pilot complete."
 msgstr "Essai pilote terminé."
 
@@ -2546,6 +2633,9 @@ msgstr "Tour pilote {number} : l'IA n'a pas pu trier une référence (tentative
 
 msgid "Pilot rounds"
 msgstr "Tours pilotes"
+
+msgid "Pilot: extract it without the AI."
+msgstr "Pilote : à extraire sans l'IA."
 
 #, python-brace-format
 msgid ""
@@ -2719,6 +2809,9 @@ msgstr "Requêtes de la version %(number)s"
 msgid "Quote and page"
 msgstr "Citation et page"
 
+msgid "Quote from the text (optional)"
+msgstr "Citation du texte (facultative)"
+
 msgid "Quotes of the AI found in the title or abstract"
 msgstr "Citations de l'IA retrouvées dans le titre ou le résumé"
 
@@ -2827,6 +2920,9 @@ msgstr "Consigner un nouvel enregistrement"
 
 msgid "Record the registration"
 msgstr "Consigner l'enregistrement"
+
+msgid "Record the value"
+msgstr "Enregistrer la valeur"
 
 msgid "Records"
 msgstr "Notices"
@@ -3287,6 +3383,9 @@ msgstr "Fixez le budget de l'IA du projet à la page « Pilote » avant le pre
 msgid "Set the budget"
 msgstr "Fixer le budget"
 
+msgid "Share"
+msgstr "Proportion"
+
 msgid "Shared authors at least."
 msgstr "Auteurs en commun, au moins."
 
@@ -3408,6 +3507,9 @@ msgstr "Études comparées : {studies} ; valeurs concordantes : {accuracy} ;
 #, python-format
 msgid "Studies included: %(studies)s, from %(reports)s reports"
 msgstr "Études incluses : %(studies)s, à partir de %(reports)s rapports"
+
+msgid "Studies of the pilot drawn: extract them without the AI."
+msgstr "Études du pilote tirées : extrayez-les sans l'IA."
 
 #, python-format
 msgid "Studies to pre-fill: %(count)s."
@@ -3892,6 +3994,12 @@ msgstr "La nouvelle version de la grille est en vigueur."
 msgid "The next pairs appear as these are decided."
 msgstr "Les paires suivantes s'affichent à mesure que celles-ci sont décidées."
 
+msgid "The number of studies must be at least 1."
+msgstr "Le nombre d'études doit être d'au moins 1."
+
+msgid "The page must be a positive whole number."
+msgstr "La page doit être un nombre entier positif."
+
 msgid ""
 "The page numbers are those of the PDF; the number printed on the page is shown when it differs "
 "and could be read. The bibliography, when it was found, is marked: it is not sent to the model."
@@ -4070,6 +4178,10 @@ msgstr "Les deux références côte à côte"
 msgid "The two versions have the same criteria."
 msgstr "Les deux versions ont les mêmes critères."
 
+#, python-format
+msgid "The value does not fit the type of field %(code)s."
+msgstr "La valeur ne correspond pas au type du champ %(code)s."
+
 msgid "The wording of the criterion is required."
 msgstr "Le libellé du critère est obligatoire."
 
@@ -4095,6 +4207,9 @@ msgstr "Il n'y a encore aucune référence à dédoublonner : collectez ou impo
 
 msgid "There is no reference to screen yet: collect or import first."
 msgstr "Aucune référence à trier pour l'instant : collectez ou importez d'abord."
+
+msgid "There is no value of the AI to check on this field."
+msgstr "Aucune valeur de l'IA à vérifier pour ce champ."
 
 msgid ""
 "These reviews make up the tool's development set. In the terms of RAISE 2, these are development "
@@ -4149,6 +4264,13 @@ msgstr ""
 "Cette revue de portée sera menée selon la méthode JBI des revues de portée et rapportée selon "
 "l'extension PRISMA pour les revues de portée (PRISMA-ScR). Ce protocole suit les recommandations "
 "de Peters et al. (2022)."
+
+msgid ""
+"This study is in the extraction pilot: give every field from the text, without the AI. Its values"
+" will be shown once you have given them all."
+msgstr ""
+"Cette étude fait partie du pilote d'extraction : remplissez chaque champ à partir du texte, sans "
+"l'IA. Ses valeurs s'afficheront une fois tous les champs remplis."
 
 msgid "This suggestion has already been reviewed."
 msgstr "Cette suggestion a déjà été examinée."
@@ -4352,6 +4474,9 @@ msgstr "Tour inconnu."
 msgid "Unknown source"
 msgstr "Source inconnue"
 
+msgid "Unknown study or field."
+msgstr "Étude ou champ inconnu."
+
 msgid "Unknown study."
 msgstr "Étude inconnue."
 
@@ -4383,6 +4508,16 @@ msgstr ""
 "versions exactes, essai pilote et seuils, désaccords, réévaluations, coûts. Ce que seule l'équipe"
 " peut écrire reste à compléter."
 
+msgid "Validate"
+msgstr "Valider"
+
+msgid ""
+"Validate, correct or reject each value of the AI; give the value of the fields it did not fill. "
+"Only the values you decided go into the synthesis."
+msgstr ""
+"Validez, corrigez ou rejetez chaque valeur de l'IA ; donnez la valeur des champs qu'elle n'a pas "
+"remplis. Seules les valeurs que vous avez décidées entrent dans la synthèse."
+
 msgid "Validation"
 msgstr "Validation"
 
@@ -4391,6 +4526,12 @@ msgstr "Valeur"
 
 msgid "Value of the « filter » parameter of the OpenAlex API (works)."
 msgstr "Valeur du paramètre « filter » de l'API OpenAlex (works)."
+
+msgid "Value recorded."
+msgstr "Valeur enregistrée."
+
+msgid "Values compared"
+msgstr "Valeurs comparées"
 
 msgid "Values of the study, field by field"
 msgstr "Valeurs de l'étude, champ par champ"
@@ -4464,6 +4605,9 @@ msgstr ""
 "Écrire l'ébauche de la section méthode sur l'IA au tri (Markdown et DOCX, en français et en "
 "anglais) dans le dossier des exports."
 
+msgid "Write the extracted values a person decided (CSV) in the exports folder."
+msgstr "Écrire les valeurs extraites décidées par une personne (CSV) dans le dossier des exports."
+
 msgid "Write the file to fill for the included studies."
 msgstr "Écrire le fichier à remplir pour les études incluses."
 
@@ -4481,6 +4625,9 @@ msgstr "Écrire les références retenues pour le texte intégral (RIS et CSV) d
 
 msgid "YAML file of the criteria."
 msgstr "Fichier YAML des critères."
+
+msgid "YYYY, YYYY-MM or YYYY-MM-DD"
+msgstr "AAAA, AAAA-MM ou AAAA-MM-JJ"
 
 msgid "Year"
 msgstr "Année"
@@ -4754,6 +4901,12 @@ msgstr ""
 #, python-format
 msgid "exists (%(ui)s)"
 msgstr "existe (%(ui)s)"
+
+msgid "extracted"
+msgstr "extraite"
+
+msgid "extracted by the person"
+msgstr "extraite par la personne"
 
 msgid "field not available: searched in title and abstract"
 msgstr "champ indisponible : cherché dans le titre et le résumé"
@@ -5195,6 +5348,9 @@ msgstr "à déterminer"
 msgid "to be filled in directly in the OSF form, or not applicable"
 msgstr "à remplir directement dans le formulaire OSF, ou sans objet"
 
+msgid "to extract"
+msgstr "à extraire"
+
 msgid "type"
 msgstr "type"
 
@@ -5396,6 +5552,9 @@ msgstr ""
 
 #~ msgid "95 % interval: %(low)s to %(high)s"
 #~ msgstr ""
+
+#~ msgid "Fields reported: %(reported)s of %(fields)s."
+#~ msgstr "Champs rapportés : %(reported)s sur %(fields)s."
 
 #~ msgid ""
 #~ "Missing environment variable: {names} ({description}). Set "

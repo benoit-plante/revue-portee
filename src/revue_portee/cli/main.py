@@ -283,6 +283,28 @@ def export_retained(
         typer.echo(_("The screening is not finished: this list may still change."), err=True)
 
 
+@app.command(
+    "donnees-extraites",
+    help=_("Write the extracted values a person decided (CSV) in the exports folder."),
+)
+def export_extracted(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+) -> None:
+    from revue_portee.extraction.validation import export_extraction
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        path, written = export_extraction(folder)
+    finally:
+        folder.close()
+    typer.echo(_("%(count)s values written to %(path)s.") % {"count": written, "path": path})
+
+
 def _counts_line(folder: ProjectFolder) -> str:
     from revue_portee.fulltext.retrieval import retrieval_report
     from revue_portee.reporting.formats import percent
