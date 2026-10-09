@@ -48,13 +48,22 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
     assert change.justification == "Population élargie à tous les adultes."
     assert (change.counts.reassessed, change.counts.excluded_to_kept) == (2, 1)
     costs = {c.phase: (c.calls, c.amount) for c in data.costs}
-    # FakeProvider: 0.002 per call, at half price through the batch API
+    # FakeProvider: 0.002 per call, at half price through the batch API; the full texts
+    # are screened one call at a time (two texts, in the pilot and in the main round)
     assert costs == {
         "pilot": (0, Decimal(0)),
         "main": (5, Decimal("0.005")),
         "reassessment": (2, Decimal("0.002")),
+        "full_text_pilot": (2, Decimal("0.004")),
+        "full_text_main": (2, Decimal("0.004")),
         "unlinked": (0, Decimal(0)),
     }
+    ft = data.full_text
+    assert ft is not None
+    assert (ft.mode, ft.texts, ft.by_person, ft.by_ai, ft.unreadable) == ("blind", 2, 2, 2, 0)
+    assert (ft.quotes_at_page, ft.quotes_other_page, ft.quotes_not_found) == (3, 1, 1)
+    assert ft.pilot is not None
+    assert (ft.pilot.sample_size, ft.pilot.compared, ft.pilot.agreement) == (2, 2, 1.0)
     assert data.other_costs.calls == 0
     # full texts: 3 sought, 2 obtained in open access, 1 declared not retrievable
     assert data.retrieval is not None
@@ -127,5 +136,11 @@ def test_export_in_both_languages(tmp_path: Path) -> None:
     assert "Texts obtained: 2, of which 2 in open access (66.7% of the reports sought)" in english
     assert "not retrieved, declared by the person with the reason: 1." in english
     assert "Most of the texts come from open access versions" in english
+    assert "## Full-text screening" in english
+    assert "blind double screening" in english
+    assert "was sent to the model provider (anthropic)" in english
+    assert "found at the page given: 60.0%; on another page: 20.0%; not found: 20.0%" in english
+    assert "Reports excluded, by primary reason: P1 (1)." in english
+    assert text.startswith("# Soutien à la parentalité et santé mentale des enfants : usage de")
     placeholders = [b for b in french.blocks if isinstance(b, Paragraph) and b.placeholder]
     assert len(placeholders) == 3  # rationale, limitations of the review, funding

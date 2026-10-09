@@ -8,6 +8,13 @@ told, and no criterion that fails it, is never excluded. A criterion fails a ref
 when it is an inclusion criterion not met, or an exclusion criterion met (its reason
 for exclusion applies). Decisions are only added,
 never changed (ENF-TRA-02).
+
+At the full-text stage (tranche 2.2, D-102), each round has a mode: blind double
+screening (the person decides without seeing the AI, disagreements are reconciled) or
+assisted screening (the AI screens first and the person decides with its assessment in
+view). Each assessment of the AI names the page of its quote, which the tool looks for
+in the text. An exclusion reports one primary reason: the first criterion cited, in the
+order of the criteria.
 """
 
 import random
@@ -22,6 +29,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 
 from revue_portee.domain.calibration import Calibration
 from revue_portee.domain.criteria import CriterionKind
+from revue_portee.domain.fulltext import QuoteCheck
 from revue_portee.domain.project import ReviewerKind
 
 __all__ = [
@@ -35,8 +43,10 @@ __all__ = [
     "DecisionContext",
     "DecisionValue",
     "PilotRound",
+    "QuoteCheck",
     "ReviewerKind",
     "RoundKind",
+    "ScreeningMode",
     "ScreeningRound",
     "Stage",
     "ThresholdSetting",
@@ -47,6 +57,9 @@ __all__ = [
     "draw_sample",
     "keeps",
     "must_not_exclude",
+    "page_quote_counts",
+    "primary_reason",
+    "quote_counts",
 ]
 
 
@@ -89,6 +102,14 @@ class DecisionContext(StrEnum):
     RECONCILIATION = "reconciliation"
     REASSESSMENT = "reassessment"
     AUDIT = "audit"
+    ASSISTED = "assisted"  # full text, the AI's assessment in view (D-102)
+
+
+class ScreeningMode(StrEnum):
+    """How a full-text round is screened (D-102), fixed when the round starts."""
+
+    BLIND = "blind"  # double screening, the AI shown only to reconcile
+    ASSISTED = "assisted"  # the AI first, the person decides with it in view
 
 
 class CriterionAssessment(BaseModel):
@@ -100,7 +121,9 @@ class CriterionAssessment(BaseModel):
     kind: CriterionKind
     status: AssessmentStatus
     evidence_quote: str = ""
-    quote_found: bool | None = None  # the quote is in the title or abstract
+    quote_found: bool | None = None  # the quote is in the title or abstract, or the text
+    page: int | None = None  # full text: the page the AI gives for its quote
+    quote_check: QuoteCheck | None = None  # full text: found at that page, elsewhere, not
 
 
 def quote_counts(assessments: Iterable[CriterionAssessment]) -> tuple[int, int]:
@@ -108,6 +131,26 @@ def quote_counts(assessments: Iterable[CriterionAssessment]) -> tuple[int, int]:
     quote is not checked): ``(found, checked)``."""
     checked = [a.quote_found for a in assessments if a.quote_found is not None]
     return sum(1 for found in checked if found), len(checked)
+
+
+def page_quote_counts(assessments: Iterable[CriterionAssessment]) -> dict[QuoteCheck, int]:
+    """Full-text quotes by result of their check: found at the page given, at another
+    page, or not found (assessments without a quote are not checked)."""
+    counts = dict.fromkeys(QuoteCheck, 0)
+    for a in assessments:
+        if a.quote_check is not None:
+            counts[a.quote_check] += 1
+    return counts
+
+
+def primary_reason(cited: Iterable[str], order: Sequence[str]) -> str | None:
+    """Primary reason of an exclusion (D-102): the first criterion cited in the order of
+    the criteria (``order``, their codes); codes no longer in the version come last."""
+    codes = list(dict.fromkeys(cited))
+    if not codes:
+        return None
+    rank = {code: i for i, code in enumerate(order)}
+    return min(codes, key=lambda code: (rank.get(code, len(rank)), codes.index(code)))
 
 
 def _fails(a: CriterionAssessment) -> bool:
@@ -236,6 +279,7 @@ class ScreeningRound(BaseModel):
     sample_size: int = Field(ge=0)  # members when the round was created
     created_at: AwareDatetime
     reviewer_id: str
+    mode: ScreeningMode = ScreeningMode.BLIND  # full text (D-102); blind before it
 
 
 class AIBatch(BaseModel):

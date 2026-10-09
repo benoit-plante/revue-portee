@@ -106,6 +106,7 @@ def insert_round(connection: Connection, value: PilotRound, *, journal_entry_id:
 def _to_round(connection: Connection, row: Any) -> PilotRound:  # noqa: ANN401
     data = _plain(row)
     data.pop("kind")
+    data.pop("mode")  # a pilot is always screened blind
     members = connection.execute(
         select(round_member.c.reference_id)
         .where(round_member.c.round_id == data["id"])

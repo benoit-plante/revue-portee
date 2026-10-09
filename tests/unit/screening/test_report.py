@@ -47,6 +47,12 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
     assert (numbers.screened, numbers.excluded, numbers.sought) == (5, 2, 3)
     assert (numbers.excluded_by_person, numbers.excluded_by_automation) == (2, 0)
     assert numbers.not_retrieved == 1
+    full_text = numbers.full_text
+    assert full_text is not None
+    assert (full_text.assessed, full_text.included, full_text.uncertain) == (2, 1, 0)
+    assert full_text.excluded_by_reason == {"P1": 1}
+    assert full_text.reason_labels["P1"].startswith("Adults")
+    assert (full_text.not_screened, full_text.without_ai, full_text.disagreements) == (0, 0, 0)
     assert numbers.reassessments == (
         ReassessmentCounts(
             from_version=1,

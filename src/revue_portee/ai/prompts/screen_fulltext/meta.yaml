@@ -1,0 +1,7 @@
+id: screen_fulltext
+version: "1"
+task: screen_fulltext
+changelog:
+  - version: "1"
+    date: "2026-10-09"
+    change: First version (tranche 2.2), one call per report, quotes with their page.

@@ -72,8 +72,21 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | Sans objet en V1 : chaque terme est jugé par une personne. La proportion de descripteurs inexistants serait une mesure directe d'hallucination, à rapporter si une performance est un jour déclarée |
 | Résultats | Aucun |
 
+### screen_fulltext v1
+
+| Élément | Description |
+|---|---|
+| Tâche | Tri des textes intégraux par le réviseur IA, un rapport par appel (EF-SEL-16, D-102) |
+| Date | 2026-10-09, tranche 2.2 |
+| Rédaction | Écrit d'un seul jet à partir de `screen_reference` v1 et de la conception du tri au texte intégral ([10](10-conception-texte-integral.md), §3.2) : même évaluation par critère et même règle EF-SEL-07, mais sur le texte page par page (« [p. N] »), sans la bibliographie; chaque citation donne sa page, que l'outil vérifie (trouvée à la page, ailleurs, introuvable); citation d'au plus 40 mots environ, recopiée telle quelle. Les critères vont dans l'invite système, mise en cache (ENF-COU-04) |
+| Données de mise au point | **Aucune.** Le gabarit n'a été exécuté qu'avec le fournisseur factice des tests |
+| Versions essayées | Aucune autre |
+| Appels réels | Aucun |
+| Données de test | Aucune à ce jour. L'objectif secondaire de l'étude de validation (protocole en préparation) le mesurera sur des revues mises de côté; toute mise au point devra se faire sur d'autres textes, désignés ici avant |
+| Résultats | Aucun |
+
 ## Bilan
 
-Aucun des quatre gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
+Aucun des cinq gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.
 
 Seul `screen_reference` sert à une performance déclarée. Sa v2 devra suivre la règle ci-dessus, avec un jeu de mise au point distinct des jeux SYNERGY et de l'ensemble de test de l'étude de validation (05). Faute de quoi, les résultats SYNERGY ne pourront plus servir de point de comparaison.

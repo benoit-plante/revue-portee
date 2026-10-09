@@ -17,9 +17,10 @@ from pathlib import Path
 
 from revue_portee.collect.deduplication import dedup_state
 from revue_portee.domain.fulltext import RetrievalCounts, retrieval_counts
-from revue_portee.domain.screening import keeps
+from revue_portee.domain.screening import DecisionValue, keeps
 from revue_portee.reporting.flow import (
     FlowNumbers,
+    FulltextCounts,
     ReassessmentCounts,
     flow_numbers,
     reassessment_counts,
@@ -42,6 +43,7 @@ __all__ = [
     "export_retained",
     "flow_report",
     "full_text_counts",
+    "full_text_screening",
     "retained_references",
 ]
 
@@ -91,6 +93,38 @@ def _retrieval(folder: ProjectFolder, sought: list[str]) -> RetrievalCounts:
     return retrieval_counts(sought, documents, notes)
 
 
+def full_text_screening(folder: ProjectFolder) -> FulltextCounts | None:
+    """The full-text screening as the diagram counts it, once its main round started."""
+    # Imported here: the full-text use cases depend on this module (retained references).
+    from revue_portee.screening import fulltext
+
+    if fulltext.main_round(folder) is None:
+        return None
+    state = fulltext.main_state(folder)
+    with folder.engine.connect() as connection:
+        version = criteria_repo.get_version(connection, state.round.criteria_version_id)
+    labels = {} if version is None else {c.code: c.text for c in version.criteria}
+    members = set(state.members)
+    final = {r: d for r, d in state.final.items() if r in members}
+    reasons: dict[str, int] = {}
+    for ref in state.members:
+        reason = state.reason(ref)
+        if reason is not None:
+            reasons[reason] = reasons.get(reason, 0) + 1
+    ordered = dict(sorted(reasons.items(), key=lambda item: state.order.index(item[0])
+                          if item[0] in state.order else len(state.order)))  # fmt: skip
+    return FulltextCounts(
+        assessed=len(final),
+        included=sum(1 for d in final.values() if d.value is DecisionValue.INCLUDE),
+        uncertain=sum(1 for d in final.values() if d.value is DecisionValue.UNCERTAIN),
+        excluded_by_reason=ordered,
+        reason_labels={code: labels.get(code, "") for code in ordered},
+        not_screened=len(members - set(state.human)),
+        without_ai=len(members - set(state.ai) - set(state.unreadable)),
+        disagreements=len(state.queue),
+    )
+
+
 def flow_report(
     folder: ProjectFolder, *, now: Callable[[], datetime], tool_version: str
 ) -> FlowReport:
@@ -113,6 +147,7 @@ def flow_report(
             disagreements_open=len(state.queue),
             reassessments=_reassessments(folder, started.id),
             retrieval=_retrieval(folder, kept),
+            full_text=full_text_screening(folder),
         )
     with folder.engine.connect() as connection:
         project = projects.get_project(connection)

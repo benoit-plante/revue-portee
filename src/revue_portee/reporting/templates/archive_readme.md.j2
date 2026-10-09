@@ -23,6 +23,7 @@ Cette archive accompagne une revue de portée menée avec revue-portee, logiciel
 | `donnees/decisions.csv` | Toutes les décisions, humaines et de l'IA, dans l'ordre du journal (`order`); une décision qui en remplace une autre la nomme (`supersedes_decision_id`) |
 | `donnees/etat-du-tri.csv` | Pour chaque référence après dédoublonnage : la décision en vigueur (`final_decision_id`), celle de l'IA au tri principal, désaccord et réconciliation |
 | `donnees/reevaluations.csv` | Changements de critères pendant le tri et tour de réévaluation de chacun |
+| `donnees/etat-texte-integral.csv` | Pour chaque texte du tri du texte intégral : la décision en vigueur, celle de l'IA, le motif principal d'une exclusion, désaccord et réconciliation |
 | `donnees/textes.csv` | Pour chaque rapport recherché : statut du texte intégral (`obtained`, `not_found`, `not_retrievable`, `not_sought`), origine (libre accès ou téléversement), licence déclarée, nombre de pages, empreinte SHA-256 du PDF et raison d'un texte introuvable; jamais le PDF, son texte ni son adresse |
 | `donnees/appels-ia.csv` | Chaque appel au modèle : fournisseur, modèle demandé, version exacte renvoyée, gabarit d'invite et sa version, jetons, coût estimé |
 | `donnees/criteres.csv` | Toutes les versions des critères |
@@ -40,6 +41,10 @@ Cette archive accompagne une revue de portée menée avec revue-portee, logiciel
 - **Références exclues** : celles dont la décision en vigueur vaut `exclude`; `reviewer_kind` dit qui l'a prise (`human` ou `ai`).
 - **Rapports recherchés pour le texte intégral** : références triées moins références exclues (`include` et `uncertain` sont conservées). Ce sont les lignes de `textes.csv`.
 - **Rapports non obtenus** : lignes de `textes.csv` dont `status` vaut `not_retrievable` (texte déclaré introuvable par la personne, avec sa raison). Le diagramme ne les compte qu'une fois la recherche des textes commencée.
+- **Rapports évalués pour l'admissibilité** : lignes de `etat-texte-integral.csv` dont `final_decision_id` est rempli; la décision en vigueur est la dernière décision humaine de l'étape `full_text` sur le texte (le mode du tour, `blind` ou `assisted`, est dans `tours.csv`).
+- **Rapports exclus, par motif** : ces lignes dont la décision vaut `exclude`, comptées par `primary_reason` (le premier critère cité, dans l'ordre des critères).
+- **Sources de données probantes incluses** : ces lignes dont la décision vaut `include`.
+- Aux deux étapes, la décision en vigueur est la dernière décision **humaine de cette étape** (colonne `stage` de `decisions.csv` : `title_abstract` ou `full_text`).
 - **Réévaluations** : pour chaque ligne de `reevaluations.csv`, les références réévaluées sont les membres du tour (`membres-des-tours.csv`); une décision changée est une décision humaine du tour dont la valeur et celle de la décision remplacée (`supersedes_decision_id`) diffèrent au sens « conserver » (`include`, `uncertain`) ou « exclure ».
 
 ### Vérifier le journal
@@ -64,6 +69,10 @@ This archive comes with a scoping review conducted with revue-portee, free softw
 - **Records excluded**: those whose decision in force is `exclude`; `reviewer_kind` tells who took it (`human` or `ai`).
 - **Reports sought for retrieval**: records screened minus records excluded (`include` and `uncertain` are kept). They are the rows of `textes.csv`.
 - **Reports not retrieved**: rows of `textes.csv` whose `status` is `not_retrievable` (declared not retrievable by the person, with the reason). The diagram counts them only once the retrieval of full texts has started.
+- **Reports assessed for eligibility**: rows of `etat-texte-integral.csv` with `final_decision_id` filled in; the decision in force is the latest human decision of the `full_text` stage on the text (the mode of the round, `blind` or `assisted`, is in `tours.csv`).
+- **Reports excluded, with reasons**: those rows whose decision is `exclude`, counted by `primary_reason` (the first criterion cited, in the order of the criteria).
+- **Sources of evidence included**: those rows whose decision is `include`.
+- At both stages, the decision in force is the latest **human decision of that stage** (column `stage` of `decisions.csv`: `title_abstract` or `full_text`).
 - **Reassessments**: for each row of `reevaluations.csv`, the records reassessed are the members of its round (`membres-des-tours.csv`); a changed decision is a human decision of the round whose value and that of the decision it supersedes (`supersedes_decision_id`) differ as keep (`include`, `uncertain`) or exclude.
 
 ### Checking the journal

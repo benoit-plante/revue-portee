@@ -64,3 +64,14 @@ tasks:
       max_tokens: 8000
       effort: low
     expected_output_tokens: 1200
+  # Full-text screening (tranche 2.2): one call per report, its text by page without
+  # the bibliography (10,000 to 20,000 tokens), the criteria cached across reports. The
+  # same fast model as at title and abstract; to be checked on the validation study.
+  screen_fulltext:
+    status: enabled
+    provider: anthropic
+    model: claude-haiku-5-5
+    params:
+      max_tokens: 12000
+      effort: low
+    expected_output_tokens: 2500

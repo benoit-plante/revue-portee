@@ -69,16 +69,19 @@ class ProjectFolder:
 
     def ai_settings(self) -> AISettings:
         """AI configuration of the project (``[ia]`` in ``projet.toml``), or the defaults
-        for a project created before it existed."""
+        for a project created before it existed; a task added to the tool since the
+        project was created takes its default configuration."""
         section = _read_metadata(self.path).get("ia")
+        defaults = default_ai_settings()
         if not isinstance(section, dict):
-            return default_ai_settings()
+            return defaults
         try:
-            return AISettings.model_validate(section)
+            settings = AISettings.model_validate(section)
         except ValueError as error:
             raise ProjectFolderError(
                 _("The [ia] section of {file} is invalid.").format(file=self.path / PROJECT_FILE)
             ) from error
+        return settings.model_copy(update={"tasks": defaults.tasks | settings.tasks})
 
 
 def _with_suffix(path: Path) -> Path:

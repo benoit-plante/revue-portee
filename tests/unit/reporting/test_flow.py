@@ -20,6 +20,7 @@ from revue_portee.domain.screening import (
 )
 from revue_portee.reporting.flow import (
     FlowNumbers,
+    FulltextCounts,
     Pending,
     ReassessmentCounts,
     StageStatus,
@@ -154,6 +155,10 @@ def test_full_texts_counted_by_hand() -> None:
         (Pending(duplicate_pairs=1), True),
         (Pending(reassessments=1), True),
         (Pending(texts_missing=1), True),
+        (Pending(texts_not_screened=1), True),
+        (Pending(texts_without_ai=1), True),
+        (Pending(text_disagreements=1), True),
+        (Pending(texts_uncertain=1), True),
         (Pending(screening_not_started=True), True),
     ],
 )
@@ -292,6 +297,44 @@ def test_reports_not_retrieved_drawn_once_counted() -> None:
     root = ET.fromstring(svg)  # noqa: S314 - our own output
     assert "Rapports non obtenus (n = 7)" in texts(svg)
     assert len([r for r in root.iter(f"{SVG}rect") if r.get("stroke-dasharray")]) == 3
+
+
+FULL_TEXT = FulltextCounts(
+    assessed=80,
+    included=52,
+    uncertain=0,
+    excluded_by_reason={"P1": 20, "C2": 8},
+    reason_labels={"P1": "Adultes", "C2": ""},
+    not_screened=0,
+    without_ai=0,
+    disagreements=0,
+)
+
+
+def test_full_text_boxes_counted_by_hand() -> None:
+    assert FULL_TEXT.excluded == 28
+    final = {ref: decision(ref, IN) for ref in REMAINING}
+    started = flow_numbers(
+        COUNTS, REMAINING, final, screened_by_ai=REMAINING,
+        full_text=FULL_TEXT.model_copy(update={"not_screened": 3, "without_ai": 2,
+                                               "disagreements": 1, "uncertain": 4}),
+    )  # fmt: skip
+    assert started.pending == Pending(
+        texts_not_screened=3, texts_without_ai=2, text_disagreements=1, texts_uncertain=4
+    )
+    svg = render_flow_svg(numbers(full_text=FULL_TEXT), flow_template(), CONTEXT, language="fr")
+    lines = texts(svg)
+    nb = " "
+    assert f"Rapports évalués pour l'admissibilité (n{nb}={nb}80)" in lines
+    assert f"P1{nb}: Adultes (n{nb}={nb}20)" in lines
+    assert f"C2 (n{nb}={nb}8)" in lines
+    assert any(line.startswith("Sources de données probantes incluses") for line in lines)
+    root = ET.fromstring(svg)  # noqa: S314 - our own output
+    dashed = [r for r in root.iter(f"{SVG}rect") if r.get("stroke-dasharray")]
+    assert len(dashed) == 1  # only « Reports not retrieved » is still to come
+    english = texts(render_flow_svg(numbers(full_text=FULL_TEXT), flow_template(), CONTEXT,
+                                    language="en"))  # fmt: skip
+    assert f"P1: Adultes (n{nb}={nb}20)" in english
 
 
 def test_stages_to_come_are_dashed() -> None:
