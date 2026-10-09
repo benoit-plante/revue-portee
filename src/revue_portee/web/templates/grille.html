@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ _("Extraction grid") }}{% endblock %}
+{% macro field_inputs(prefix, f=none) %}
+  <label for="{{ prefix }}-libelle">{{ _("Name of the field") }}</label>
+  <input id="{{ prefix }}-libelle" name="libelle" required value="{{ f.label if f else '' }}">
+  <label for="{{ prefix }}-type">{{ _("Type") }}</label>
+  <select id="{{ prefix }}-type" name="type">
+    {% for value, label in type_labels.items() %}<option value="{{ value }}"{% if f and f.type == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <label for="{{ prefix }}-definition">{{ _("Definition") }}</label>
+  <textarea id="{{ prefix }}-definition" name="definition" rows="2">{{ f.definition if f else '' }}</textarea>
+  <label for="{{ prefix }}-consignes">{{ _("Guidance for the extraction") }}</label>
+  <textarea id="{{ prefix }}-consignes" name="consignes" rows="2">{{ f.guidance if f else '' }}</textarea>
+  <label for="{{ prefix }}-exemples">{{ _("Examples (one per line)") }}</label>
+  <textarea id="{{ prefix }}-exemples" name="exemples" rows="2">{{ f.examples | join("\n") if f else '' }}</textarea>
+  <label for="{{ prefix }}-choix">{{ _("Choices (one per line; for a hierarchical category, write the path: « Intervention > Psychologique »)") }}</label>
+  <textarea id="{{ prefix }}-choix" name="choix" rows="3">{{ f.choices | join("\n") if f else '' }}</textarea>
+{% endmacro %}
+{% macro fields_table(version, editable=false) %}
+<table class="criteria">
+  <caption class="visually-hidden">{{ _("Fields of version %(number)s", number=version.number) }}</caption>
+  <thead><tr><th scope="col">{{ _("Code") }}</th><th scope="col">{{ _("Field") }}</th><th scope="col">{{ _("Type") }}</th><th scope="col">{{ _("Definition and choices") }}</th></tr></thead>
+  <tbody>
+  {% for f in version.sorted_fields() %}
+    <tr id="champ-{{ f.code }}">
+      <th scope="row">{{ f.code }}</th>
+      <td>{{ f.label }}</td>
+      <td>{{ type_labels[f.type] }}</td>
+      <td>{{ f.definition }}{% if f.choices %}<ul class="small">{% for c in f.choices %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+        {% if f.guidance %}<p class="small">{{ f.guidance }}</p>{% endif %}
+        {% if f.examples %}<p class="small">{{ _("Examples: %(list)s", list=f.examples | join(" | ")) }}</p>{% endif %}
+        {% if editable %}
+        <details>
+          <summary>{{ _("Modify") }}</summary>
+          <form method="post" action="/grille/{{ f.code }}/modifier">{{ csrf() }}{{ field_inputs("m-" ~ f.code, f) }}<button type="submit">{{ _("Save") }}</button></form>
+          <form method="post" action="/grille/{{ f.code }}/retirer">{{ csrf() }}<button type="submit" class="secondary">{{ _("Remove the field") }}</button></form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+{% macro diff_list(d) %}
+<ul class="diff-summary">
+  {% for f in d.added %}<li class="added">{{ _("Added: %(code)s", code=f.code) }} ({{ f.label }})</li>{% endfor %}
+  {% for f in d.removed %}<li class="removed">{{ _("Removed: %(code)s", code=f.code) }} ({{ f.label }})</li>{% endfor %}
+  {% for m in d.modified %}<li class="modified">{{ _("Modified: %(code)s", code=m.code) }} ({% for c in m.changed %}{{ changed_labels[c] }}{% if not loop.last %}, {% endif %}{% endfor %})</li>{% endfor %}
+</ul>
+{% endmacro %}
+{% block content %}
+<h1>{{ _("Extraction grid") }}</h1>
+<p>{{ _("The fields to extract from each included source of evidence, with their type, definition and guidance. The grid is versioned like the criteria: every change goes through a draft, and a new version needs a rationale.") }}</p>
+{% if error %}<div class="message error" role="alert">{{ error }}</div>{% endif %}
+{% if message %}<div class="message success" role="status">{{ message }}</div>{% endif %}
+
+<section aria-labelledby="en-vigueur">
+  <h2 id="en-vigueur">{{ _("Version in force") }}</h2>
+  {% if state.active %}
+    <p>{{ _("Version %(number)s, in force since %(date)s UTC.", number=state.active.number, date=state.active.activated_at.strftime("%Y-%m-%d %H:%M")) }}</p>
+    {{ fields_table(state.active) }}
+  {% else %}
+    <p>{{ _("No version of the grid is in force yet.") }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="brouillon-titre" id="brouillon">
+  <h2 id="brouillon-titre">{{ _("Draft") }}</h2>
+  {% if state.draft %}
+    <p>{{ _("Draft of version %(number)s. Changes stay in the draft until you activate it.", number=state.draft.number) }}</p>
+    {% if state.draft.fields %}{{ fields_table(state.draft, editable=true) }}{% endif %}
+    {% if draft_diff %}
+    <h3>{{ _("Changes compared with version %(number)s", number=state.active.number) }}</h3>
+    {% if draft_diff.is_empty %}<p>{{ _("No change yet.") }}</p>{% else %}{{ diff_list(draft_diff) }}{% endif %}
+    {% endif %}
+  {% else %}
+    <p>{{ _("No draft: the first change below starts one from the version in force.") }}</p>
+  {% endif %}
+
+  {% if not state.active and not (state.draft and state.draft.fields) %}
+  <h3>{{ _("Starting grid") }}</h3>
+  <p>{{ _("Start from the fields recommended by JBI for scoping reviews (Pollock et al., 2023): country, aims, type of source, population, sample size, concept, context, design and methods, intervention, outcomes, key findings. Adapt them to your review question before activating the grid.") }}</p>
+  <form method="post" action="/grille/modele">{{ csrf() }}<button type="submit">{{ _("Add the fields of the starting grid") }}</button></form>
+  {% endif %}
+
+  <h3 id="ajouter">{{ _("Add a field") }}</h3>
+  <form method="post" action="/grille/ajouter">{{ csrf() }}{{ field_inputs("nouveau") }}<button type="submit">{{ _("Add the field") }}</button></form>
+
+  {% if state.draft %}
+  <h3>{{ _("Activate the draft") }}</h3>
+  <form method="post" action="/grille/activer">
+    {{ csrf() }}
+    <label for="justification">{{ _("Rationale (required from version 2 on)") }}</label>
+    <textarea id="justification" name="justification" rows="2"></textarea>
+    <button type="submit">{{ _("Activate version %(number)s", number=state.draft.number) }}</button>
+  </form>
+  <form method="post" action="/grille/abandonner">{{ csrf() }}<button type="submit" class="secondary">{{ _("Discard the draft") }}</button></form>
+  {% endif %}
+</section>
+
+{% if history %}
+<section aria-labelledby="historique">
+  <h2 id="historique">{{ _("History") }}</h2>
+  <ul>
+  {% for v, d in history %}
+    <li>{{ _("Version %(number)s, %(date)s UTC", number=v.number, date=v.activated_at.strftime("%Y-%m-%d %H:%M")) }}{% if v.rationale %} — {{ v.rationale }}{% endif %}
+      {% if d %}{{ diff_list(d) }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

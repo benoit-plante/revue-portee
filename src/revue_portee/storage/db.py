@@ -63,6 +63,9 @@ __all__ = [
     "enrichment",
     "framing_version",
     "fulltext_document",
+    "grid_field",
+    "grid_field_code",
+    "grid_version",
     "impact_assessment",
     "import_file",
     "journal_entry",
@@ -902,6 +905,49 @@ primary_report_choice = Table(
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
     _journal_column(),
+)
+
+grid_version = Table(
+    "grid_version",
+    metadata,
+    Column("id", String(26), primary_key=True),
+    Column("number", Integer, nullable=False, unique=True),
+    Column("parent_id", String(26), ForeignKey("grid_version.id"), nullable=True),
+    Column("status", String(16), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
+    Column("activated_at", UTCDateTime, nullable=True),
+    Column("author_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("journal_entry_id", String(26), ForeignKey("journal_entry.id"), nullable=True),
+    Index(
+        "uq_grid_version_one_active", "status", unique=True, sqlite_where=text("status = 'active'")
+    ),
+    Index(
+        "uq_grid_version_one_draft", "status", unique=True, sqlite_where=text("status = 'draft'")
+    ),
+)
+
+grid_field = Table(
+    "grid_field",
+    metadata,
+    Column("version_id", String(26), ForeignKey("grid_version.id"), nullable=False),
+    Column("code", String(16), nullable=False),
+    Column("label", Text, nullable=False),
+    Column("type", String(16), nullable=False),
+    Column("definition", Text, nullable=False),
+    Column("guidance", Text, nullable=False),
+    Column("examples_json", Text, nullable=False),
+    Column("choices_json", Text, nullable=False),
+    PrimaryKeyConstraint("version_id", "code"),
+)
+
+# Every field code ever given, append-only: a code is never given to another field.
+grid_field_code = Table(
+    "grid_field_code",
+    metadata,
+    Column("code", String(16), primary_key=True),
+    Column("first_version_id", String(26), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
 )
 
 Index(

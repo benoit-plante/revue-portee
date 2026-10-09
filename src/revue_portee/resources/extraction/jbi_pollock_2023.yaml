@@ -1,0 +1,71 @@
+# Starting extraction grid for a scoping review (EF-EXT-01), from the JBI template
+# "source of evidence details, characteristics and results extraction instrument" and
+# Pollock et al. (2023). The bibliographic details (authors, year, title) are already
+# known to the tool and are not fields. The team adapts the grid to its review
+# question before the first version is activated.
+id: jbi-pollock-2023
+version: "1"
+date: 2026-10-09
+source: >-
+  Pollock D, Peters MDJ, Khalil H, McInerney P, Alexander L, Tricco AC, et al.
+  Recommendations for the extraction, analysis, and presentation of results in scoping
+  reviews. JBI Evid Synth. 2023;21(3):520-532. doi:10.11124/JBIES-22-00123
+fields:
+  - type: text
+    label: {fr: Pays, en: Country}
+    definition:
+      fr: Pays où la source a été produite ou où l'étude a été menée.
+      en: Country where the source was produced or the study conducted.
+  - type: text
+    label: {fr: Objectifs, en: Aims}
+    definition:
+      fr: Objectifs ou but déclarés de la source.
+      en: Stated aims or purpose of the source.
+  - type: single_choice
+    label: {fr: Type de source, en: Type of source}
+    definition:
+      fr: Nature de la source de données probantes.
+      en: Kind of source of evidence.
+    choices:
+      fr: [Étude empirique quantitative, Étude empirique qualitative, Méthodes mixtes, Revue, Texte d'opinion ou politique, Autre]
+      en: [Quantitative empirical study, Qualitative empirical study, Mixed methods, Review, Opinion or policy text, Other]
+  - type: text
+    label: {fr: Population, en: Population}
+    definition:
+      fr: Participants ou population visée, avec leurs caractéristiques (âge, sexe, autres).
+      en: Participants or population, with their characteristics (age, sex, other).
+  - type: number
+    label: {fr: Taille de l'échantillon, en: Sample size}
+    definition:
+      fr: Nombre de participants, s'il y a lieu.
+      en: Number of participants, if applicable.
+  - type: text
+    label: {fr: Concept, en: Concept}
+    definition:
+      fr: Ce que la source dit du concept de la revue (définition, modalités, composantes).
+      en: What the source says of the concept of the review (definition, modalities, components).
+  - type: text
+    label: {fr: Contexte, en: Context}
+    definition:
+      fr: Milieu, cadre culturel, géographique ou institutionnel.
+      en: Setting, cultural, geographical or institutional context.
+  - type: text
+    label: {fr: Devis et méthodes, en: Design and methods}
+    definition:
+      fr: Devis, méthodes de collecte et d'analyse des données.
+      en: Design, methods of data collection and analysis.
+  - type: text
+    label: {fr: Intervention et comparateur, en: Intervention and comparator}
+    definition:
+      fr: Type, durée et modalités de l'intervention et du comparateur, s'il y a lieu.
+      en: Type, duration and modalities of the intervention and comparator, if applicable.
+  - type: text
+    label: {fr: Résultats mesurés, en: Outcomes}
+    definition:
+      fr: Résultats mesurés et manière de les mesurer, s'il y a lieu.
+      en: Outcomes and how they were measured, if applicable.
+  - type: text
+    label: {fr: Principaux constats, en: Key findings}
+    definition:
+      fr: Constats qui se rapportent à la question de la revue.
+      en: Findings that relate to the review question.

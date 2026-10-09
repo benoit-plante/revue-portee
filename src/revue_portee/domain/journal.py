@@ -88,6 +88,10 @@ class EntryType:
     STUDY_LINK_ASSESSED = "study.link_assessed"
     STUDY_LINK_DECIDED = "study.link_decided"
     STUDY_PRIMARY_CHOSEN = "study.primary_chosen"
+    GRID_DRAFT_STARTED = "grid.draft_started"
+    GRID_DRAFT_EDITED = "grid.draft_edited"
+    GRID_DRAFT_DISCARDED = "grid.draft_discarded"
+    GRID_VERSION_CREATED = "grid.version_created"
 
 
 class JournalEntry(BaseModel):

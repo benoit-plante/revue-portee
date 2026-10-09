@@ -10,6 +10,7 @@ import yaml
 
 from revue_portee.ai.costs import PriceTable
 from revue_portee.ai.settings import AISettings
+from revue_portee.domain.grid import GridTemplate
 from revue_portee.domain.protocol import Checklist, OsfForm
 from revue_portee.reporting.flow import FlowTemplate
 from revue_portee.reporting.methods import ToolValidation
@@ -17,6 +18,7 @@ from revue_portee.reporting.methods import ToolValidation
 __all__ = [
     "default_ai_settings",
     "flow_template",
+    "grid_template",
     "load_yaml",
     "osf_form",
     "peters_checklist",
@@ -60,3 +62,9 @@ def flow_template() -> FlowTemplate:
 @cache
 def tool_validation() -> ToolValidation:
     return ToolValidation.model_validate(load_yaml("reporting/tool_validation.yaml"))
+
+
+@cache
+def grid_template() -> GridTemplate:
+    """Starting extraction grid (JBI, Pollock et al., 2023)."""
+    return GridTemplate.model_validate(load_yaml("extraction/jbi_pollock_2023.yaml"))
