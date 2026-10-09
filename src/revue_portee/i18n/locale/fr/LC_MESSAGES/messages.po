@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 07:56-0400\n"
+"POT-Creation-Date: 2026-10-09 08:31-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -88,6 +88,9 @@ msgstr "1. Essai pilote"
 
 msgid "2. Screening of the texts"
 msgstr "2. Tri des textes"
+
+msgid "3. Criteria changes"
+msgstr "3. Changements de critères"
 
 #, python-format
 msgid "95 % interval of the sensitivity"
@@ -804,6 +807,15 @@ msgstr ""
 msgid "Criteria changes"
 msgstr "Changements de critères"
 
+#, python-brace-format
+msgid ""
+"Criteria changes during the full-text screening: {changes}; texts reassessed (AI, then the person"
+" for the decisions it would change): {reassessed}; decisions changed: {changed}."
+msgstr ""
+"Changements de critères pendant le tri des textes intégraux : {changes} ; textes réévalués (l'IA,"
+" puis la personne pour les décisions qu'elle changerait) : {reassessed} ; décisions changées : "
+"{changed}."
+
 msgid "Criteria changes reassessed"
 msgstr "Changements de critères réévalués"
 
@@ -1172,6 +1184,16 @@ msgstr ""
 "Estimation aux tarifs du %(date)s, dans le cas le plus coûteux pour ce modèle (instructions "
 "écrites dans le cache des invites, sans remise de cache). Un repli sur un autre modèle est "
 "facturé à ses propres tarifs. Le coût réel est consigné avec l'appel."
+
+#, python-format
+msgid ""
+"Estimate at the prices of %(date)s, in the most expensive case for this model, at the price of "
+"the asynchronous batches. Each text is sent without its bibliography; no batch is sent that would"
+" pass its ceiling or the budget of the project."
+msgstr ""
+"Estimation aux tarifs du %(date)s, dans le cas le plus coûteux pour ce modèle, au prix des lots "
+"asynchrones. Chaque texte est envoyé sans sa bibliographie ; aucun lot n'est envoyé qui "
+"dépasserait son plafond ou le budget du projet."
 
 #, python-format
 msgid ""
@@ -1962,6 +1984,9 @@ msgstr "Aucune collecte pour l'instant."
 
 msgid "No criteria change since the screening started."
 msgstr "Aucun changement de critères depuis le début du tri."
+
+msgid "No criteria change since the start of the screening of the texts."
+msgstr "Aucun changement de critères depuis le début du tri des textes."
 
 msgid "No criterion yet."
 msgstr "Aucun critère pour l'instant."

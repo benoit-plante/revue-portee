@@ -14,14 +14,18 @@ from demo import (
     Demo,
     _factory,
     broaden_and_reassess,
+    build,
     create,
     deduplicate,
     reconcile,
     retrieve_texts,
     screen,
 )
+from revue_portee.domain.changes import ChangeType
+from revue_portee.domain.criteria import CriterionKind
 from revue_portee.jobs.runner import BackgroundJobs
-from revue_portee.screening import fulltext
+from revue_portee.protocol import criteria
+from revue_portee.screening import fulltext, reassessment
 from revue_portee.web.app import create_app
 from support import TOOL_VERSION, make_clock
 
@@ -176,3 +180,47 @@ def test_errors(demo: Demo, tmp_path: Path) -> None:
     assert post(client, "/textes/tri/commencer", mode="blind").status_code == 303  # type: ignore[attr-defined]
     assert post(client, "/textes/tri/commencer", mode="blind").status_code == 422  # type: ignore[attr-defined]
     assert post(client, "/textes/tri/ajouter").status_code == 303  # type: ignore[attr-defined]
+
+
+def test_criteria_change_reassessed_from_the_page(tmp_path: Path) -> None:
+    demo = build(tmp_path)
+    try:
+        ids = demo.ids()
+        criteria.update_criterion(
+            demo.folder, "P1", kind=CriterionKind.INCLUSION, text="People of any age.",
+            now=demo.clock, tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        criteria.activate_draft(
+            demo.folder, rationale="Tous les âges.", qualifications={"P1": ChangeType.BROADENING},
+            now=demo.clock, tool_version=TOOL_VERSION,
+        )  # fmt: skip
+        jobs = BackgroundJobs()
+        answers = AI_FT | {"housing": AI_FT["loneliness"]}
+        app = create_app(
+            demo.folder, now=make_clock(), tool_version=TOOL_VERSION,
+            provider_factory=_factory(answers), jobs=jobs, batch_wait=lambda _: None,
+        )  # fmt: skip
+        client = TestClient(app, base_url=BASE, follow_redirects=False)
+        page = text(client.get("/textes/tri"))
+        assert "Analyser l'impact de la version 3" in page
+        started = post(client, "/textes/tri/impact")
+        location = started.headers["location"]  # type: ignore[attr-defined]
+        assert location.startswith("/tri/reevaluation/")
+        impact_id = location.rsplit("/", 1)[1]
+        state = reassessment.reassessment_state(demo.folder, impact_id)
+        round_id = state.round.id
+        assert "Tri des textes intégraux" in text(client.get(location))
+        post(client, f"/tri/ia/{round_id}/estimation")
+        launched = post(client, f"/tri/ia/{round_id}/lancer", plafond="1")
+        assert launched.headers["location"].startswith(location)  # type: ignore[attr-defined]
+        jobs.wait(f"lots-{round_id}", timeout=30)
+        page = text(client.get(location))
+        # the answer is checked against this text, where these words are not
+        assert "« We interviewed 24 older adults » (page 2) — introuvable dans le texte" in page
+        done = post(client, location, reference=ids["housing"], valeur="include")
+        assert done.status_code == 303  # type: ignore[attr-defined]
+        assert post(client, f"{location}/terminer").status_code == 303  # type: ignore[attr-defined]
+        final = text(client.get("/textes/tri"))
+    finally:
+        demo.folder.close()
+    assert "Version 2 à 3 : références touchées : 1" in final

@@ -1,12 +1,16 @@
 """Screening by the AI through the provider's asynchronous batch API (ENF-COU-04).
 
-Used by the main screening and by the reassessment of references touched by a
-criteria change. References are sent in batches of at most ``BATCH_SIZE`` requests,
-recorded as soon as the provider accepts them (``ai_batch``) with the criteria version
-given to the model. The batch is followed until it ends; its results are then recorded
-one call at a time, each with its raw response (D-041), and the end of the batch last
-(``ai_batch_end``). Collecting again after an interruption skips the calls already
-recorded, so a batch is never paid twice.
+Used by the main screening, at the title and abstract stage and at the full-text
+stage (the full text after its pilot), and by the reassessment of references touched
+by a criteria change. Each stage gives its task, what the model sees, the check of an
+answer and the recording of the decision (``_StageTask``).
+
+References are sent in batches of at most ``BATCH_SIZE`` requests, recorded as soon as
+the provider accepts them (``ai_batch``) with the criteria version given to the model.
+The batch is followed until it ends; its results are then recorded one call at a time,
+each with its raw response (D-041), and the end of the batch last (``ai_batch_end``).
+Collecting again after an interruption skips the calls already recorded, so a batch is
+never paid twice.
 
 Before each batch, its estimated cost (batch price) is added to what is spent and to
 the estimates of the batches still running: no batch is sent that would pass the
@@ -20,15 +24,17 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from revue_portee.ai.base import BatchProvider, BatchStatus, ProviderCallError
+from revue_portee.ai.base import BatchProvider, BatchStatus, ProviderCallError, TaskSpec
 from revue_portee.ai.providers import ProviderFactory
-from revue_portee.ai.tasks.screening import SCREEN_REFERENCE, ScreenReferenceInput
+from revue_portee.ai.tasks.fulltext import SCREEN_FULLTEXT
+from revue_portee.ai.tasks.screening import SCREEN_REFERENCE
 from revue_portee.collect.enrichment import references_with_enrichment
 from revue_portee.domain.criteria import CriteriaVersion
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
-from revue_portee.domain.screening import AIBatch, AIBatchEnd, RoundKind, ScreeningRound
+from revue_portee.domain.screening import AIBatch, AIBatchEnd, RoundKind, ScreeningRound, Stage
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.protocol.ai_assist import (
@@ -53,6 +59,7 @@ from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import journal
 from revue_portee.storage.repositories import screening as screening_repo
+from revue_portee.storage.repositories.ai import StoredCall
 
 __all__ = [
     "BATCH_SIZE",
@@ -88,13 +95,17 @@ def _round(folder: ProjectFolder, round_id: str) -> ScreeningRound:
 
 
 def _label(screening: ScreeningRound) -> str:
+    if screening.stage is Stage.FULL_TEXT:
+        return french("Full-text screening")
     if screening.kind is RoundKind.MAIN:
         return french("Main screening")
     return french("Reassessment {number}").format(number=screening.number)
 
 
-def _provider(folder: ProjectFolder, factory: ProviderFactory) -> BatchProvider:
-    provider = factory(folder.ai_settings().enabled_task(SCREEN_REFERENCE.name))
+def _provider(
+    folder: ProjectFolder, factory: ProviderFactory, task: TaskSpec[Any, Any] = SCREEN_REFERENCE
+) -> BatchProvider:
+    provider = factory(folder.ai_settings().enabled_task(task.name))
     if not isinstance(provider, BatchProvider):
         raise NotBatchCapableError(provider.name)
     return provider
@@ -112,7 +123,8 @@ def pending_batches(folder: ProjectFolder, round_id: str) -> list[AIBatch]:
 
 def waiting_for_ai(folder: ProjectFolder, round_id: str) -> list[str]:
     """Members of the round, in order, that the AI has not decided, that no running
-    batch holds, and that have had fewer than ``MAX_ATTEMPTS`` calls."""
+    batch holds, and that have had fewer than ``MAX_ATTEMPTS`` calls (at the full-text
+    stage, texts it can read)."""
     screening = _round(folder, round_id)
     with folder.engine.connect() as connection:
         members = screening_repo.member_ids(connection, screening.id)
@@ -125,18 +137,86 @@ def waiting_for_ai(folder: ProjectFolder, round_id: str) -> list[str]:
             if screening_repo.batch_end(connection, batch.id) is None
             for item in batch.item_ids
         }
+    unreadable: set[str] = set()
+    if screening.stage is Stage.FULL_TEXT:  # texts without readable text: the person only
+        from revue_portee.screening import fulltext  # see _stage_task
+
+        unreadable = fulltext.unreadable_texts(folder)
     return [
         ref
         for ref in members
-        if ref not in decided and ref not in running and attempts.get(ref, 0) < MAX_ATTEMPTS
+        if ref not in decided
+        and ref not in running
+        and ref not in unreadable
+        and attempts.get(ref, 0) < MAX_ATTEMPTS
     ]
 
 
-def _inputs(
+@dataclass(frozen=True, slots=True)
+class _StageTask:
+    """How the AI screens the references of a stage in batches: the task, what the
+    model sees, the check of an answer and the recording of the decision."""
+
+    task: TaskSpec[Any, Any]
+    inputs: Callable[[ProjectFolder, CriteriaVersion, Sequence[str]], list[Any]]
+    check: Callable[[Any, Sequence[str]], None]
+    store: Callable[..., object]
+
+
+def _title_abstract_inputs(
     folder: ProjectFolder, version: CriteriaVersion, reference_ids: Sequence[str]
-) -> list[ScreenReferenceInput]:
+) -> list[Any]:
     references = {r.id: r for r in references_with_enrichment(folder)}
-    return inputs_for(folder, version, reference_ids, references)
+    return list(inputs_for(folder, version, reference_ids, references))
+
+
+def _store_title_abstract(
+    folder: ProjectFolder,
+    screening: ScreeningRound,
+    label: str,
+    stored: StoredCall,
+    output: Any,  # noqa: ANN401 - the output of the stage's task
+    reference_id: str,
+    version: CriteriaVersion,
+    *,
+    now: Clock,
+    tool_version: str,
+) -> object:
+    thresholds, calibration = thresholds_in_force(folder)
+    reference = {r.id: r for r in references_with_enrichment(folder)}[reference_id]
+    return store_ai_decision(
+        folder,
+        screening.id,
+        french("{label}: AI decision recorded").format(label=label),
+        stored,
+        output,
+        reference,
+        version,
+        thresholds,
+        calibration,
+        ai_reviewer(folder, stored, now=now, tool_version=tool_version),
+        now=now,
+        tool_version=tool_version,
+    )
+
+
+def _stage_task(screening: ScreeningRound) -> _StageTask:
+    if screening.stage is Stage.TITLE_ABSTRACT:
+        return _StageTask(
+            task=SCREEN_REFERENCE,
+            inputs=_title_abstract_inputs,
+            check=check_answer,
+            store=_store_title_abstract,
+        )
+    # Imported here: the full-text use cases import the reports, which import this module.
+    from revue_portee.screening import fulltext
+
+    return _StageTask(
+        task=SCREEN_FULLTEXT,
+        inputs=lambda folder, version, ids: fulltext.ai_inputs(folder, version, ids)[0],
+        check=fulltext.check_answer,
+        store=fulltext.store_batch_decision,
+    )
 
 
 def preview(
@@ -144,15 +224,16 @@ def preview(
 ) -> CostPreview:
     """Cost, at the batch price, of screening what the AI has not decided yet."""
     screening = _round(folder, round_id)
-    config = folder.ai_settings().enabled_task(SCREEN_REFERENCE.name)
-    provider = _provider(folder, factory)
-    items = _inputs(folder, active_criteria(folder), waiting_for_ai(folder, screening.id))
+    stage = _stage_task(screening)
+    config = folder.ai_settings().enabled_task(stage.task.name)
+    provider = _provider(folder, factory, stage.task)
+    items = stage.inputs(folder, active_criteria(folder), waiting_for_ai(folder, screening.id))
     return CostPreview(
-        task=SCREEN_REFERENCE.name,
+        task=stage.task.name,
         provider=provider.name,
         model=str(config.model),
         items=len(items),
-        estimate=provider.estimate_batch_cost(SCREEN_REFERENCE, items),
+        estimate=provider.estimate_batch_cost(stage.task, items),
         prices_as_of=price_table().as_of,
     )
 
@@ -182,9 +263,15 @@ def submit(
         spent = screening_repo.total_spent(connection)
     if budget is None:
         raise BudgetNotSetError
-    provider = _provider(folder, factory)
+    stage = _stage_task(screening)
+    if screening.stage is Stage.FULL_TEXT:
+        from revue_portee.screening import fulltext  # see _stage_task
+
+        if not fulltext.pilot_complete(folder):
+            raise fulltext.PilotRequiredError
+    provider = _provider(folder, factory, stage.task)
     version = active_criteria(folder)
-    items = _inputs(folder, version, waiting_for_ai(folder, screening.id))
+    items = stage.inputs(folder, version, waiting_for_ai(folder, screening.id))
     reserved = sum((b.estimate for b in pending_batches(folder, screening.id)), Decimal(0))
     submitted: list[AIBatch] = []
     this_submission = Decimal(0)
@@ -192,7 +279,7 @@ def submit(
     position = 0
     while position < len(items):
         chunk = items[position : position + size]
-        estimate = provider.estimate_batch_cost(SCREEN_REFERENCE, chunk).amount
+        estimate = provider.estimate_batch_cost(stage.task, chunk).amount
         room_project = budget.limit_amount - spent - reserved
         room_batch = batch_limit - this_submission
         room = min(room_project, room_batch)
@@ -203,8 +290,8 @@ def submit(
                 stopped = "project_budget" if room_project <= room_batch else "batch_budget"
                 break
             chunk = chunk[:fit]
-            estimate = provider.estimate_batch_cost(SCREEN_REFERENCE, chunk).amount
-        provider_batch_id = provider.submit_batch(SCREEN_REFERENCE, chunk)
+            estimate = provider.estimate_batch_cost(stage.task, chunk).amount
+        provider_batch_id = provider.submit_batch(stage.task, chunk)
         batch = _record_batch(
             folder,
             screening,
@@ -244,7 +331,7 @@ def _record_batch(
         batch = AIBatch(
             id=new_ulid(moment),
             round_id=screening.id,
-            task=SCREEN_REFERENCE.name,
+            task=_stage_task(screening).task.name,
             criteria_version_id=version.id,
             provider=provider,
             provider_batch_id=provider_batch_id,
@@ -321,14 +408,13 @@ def collect(
         screening = screening_repo.get_screening_round(connection, batch.round_id)
     assert version is not None  # noqa: S101 - a batch always points to a version
     assert screening is not None  # noqa: S101 - and to its round
-    provider = _provider(folder, factory)
+    stage = _stage_task(screening)
+    provider = _provider(folder, factory, stage.task)
     status = provider.batch_status(batch.provider_batch_id)
     if not status.ended:
         return status
-    references = {r.id: r for r in references_with_enrichment(folder)}
     remaining = [ref for ref in batch.item_ids if ref not in recorded]
-    inputs = inputs_for(folder, version, remaining, references)
-    thresholds, calibration = thresholds_in_force(folder)
+    inputs = stage.inputs(folder, version, remaining)
     with folder.engine.connect() as connection:
         attempts = screening_repo.batch_attempts(
             connection,
@@ -350,11 +436,11 @@ def collect(
                 tool_version=tool_version,
             )
 
-    for outcome in provider.batch_results(SCREEN_REFERENCE, batch.provider_batch_id, inputs):
+    for outcome in provider.batch_results(stage.task, batch.provider_batch_id, inputs):
         if isinstance(outcome, ProviderCallError):
             record_call(
                 folder,
-                task=SCREEN_REFERENCE.name,
+                task=stage.task.name,
                 item_id=outcome.item_id,
                 call=outcome.call,
                 raw_response=outcome.raw_response,
@@ -365,7 +451,7 @@ def collect(
             continue
         stored = record_call(
             folder,
-            task=SCREEN_REFERENCE.name,
+            task=stage.task.name,
             item_id=outcome.item_id,
             call=outcome.call,
             raw_response=outcome.raw_response,
@@ -373,22 +459,19 @@ def collect(
             tool_version=tool_version,
         )
         try:
-            check_answer(outcome.output, codes)
+            stage.check(outcome.output, codes)
         except UnusableAnswerError as error:
             record_unusable(folder, stored, error, now=now, tool_version=tool_version)
             failed_once(outcome.item_id)
             continue
-        store_ai_decision(
+        stage.store(
             folder,
-            screening.id,
-            french("{label}: AI decision recorded").format(label=label),
+            screening,
+            label,
             stored,
             outcome.output,
-            references[outcome.item_id],
+            outcome.item_id,
             version,
-            thresholds,
-            calibration,
-            ai_reviewer(folder, stored, now=now, tool_version=tool_version),
             now=now,
             tool_version=tool_version,
         )

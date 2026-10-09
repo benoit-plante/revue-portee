@@ -23,7 +23,7 @@
         <dt>{{ _("Tokens (estimate)") }}</dt><dd>{{ _("%(input)s in, %(output)s out", input=preview.estimate.input_tokens, output=preview.estimate.output_tokens) }}</dd>
         <dt>{{ _("Estimated cost") }}</dt><dd>{{ money(preview.estimate.amount, preview.estimate.currency) }}</dd>
       </dl>
-      <p class="small">{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model, one call per text. Each text is sent without its bibliography; no call is made that would pass the ceiling or the budget of the project.", date=preview.prices_as_of.isoformat()) }}</p>
+      <p class="small">{% if round_id == trial.id %}{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model, one call per text. Each text is sent without its bibliography; no call is made that would pass the ceiling or the budget of the project.", date=preview.prices_as_of.isoformat()) }}{% else %}{{ _("Estimate at the prices of %(date)s, in the most expensive case for this model, at the price of the asynchronous batches. Each text is sent without its bibliography; no batch is sent that would pass its ceiling or the budget of the project.", date=preview.prices_as_of.isoformat()) }}{% endif %}</p>
       <form method="post" action="/textes/tri/{{ round_id }}/ia" class="inline-form">
         {{ csrf() }}
         <label for="plafond-{{ round_id }}">{{ _("Ceiling of the batch in US dollars") }}</label>
@@ -103,4 +103,27 @@
     {% endif %}
   {% endif %}
 </section>
+
+{% if started %}
+<section aria-labelledby="changements">
+  <h2 id="changements">{{ _("3. Criteria changes") }}</h2>
+  {% if to_assess %}
+  <p>{{ _("Version %(number)s of the criteria came into force during the screening: its impact on the decisions already taken must be analysed.", number=to_assess.number) }}</p>
+  <form method="post" action="/textes/tri/impact">
+    {{ csrf() }}
+    <label class="inline"><input type="checkbox" name="toutes" value="1"> {{ _("Reassess every reference touched by a clarification (by default, a random sample of 20 %%, at least 20)") }}</label>
+    <button type="submit">{{ _("Analyse the impact of version %(number)s", number=to_assess.number) }}</button>
+  </form>
+  {% endif %}
+  {% if impacts %}
+  <ul>
+    {% for i in impacts %}
+    <li>{{ _("Version %(source)s to %(to)s: references touched: %(touched)s", source=versions[i.from_version_id], to=versions[i.to_version_id], touched=i.impact.touched | length) }}{% if i.reassessment_round_id %} — <a href="/tri/reevaluation/{{ i.id }}">{{ _("Reassessment") }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% elif not to_assess %}
+  <p>{{ _("No criteria change since the start of the screening of the texts.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}

@@ -193,7 +193,7 @@ def _fulltext_files(folder: ProjectFolder) -> dict[str, str]:
 
 def _fulltext_screening_files(folder: ProjectFolder) -> dict[str, str]:
     """State of the full-text screening of each text of the main round."""
-    from revue_portee.screening import fulltext
+    from revue_portee.screening import fulltext  # imported here: import cycle with the reports
 
     header = ("reference_id", "final_decision_id", "ai_decision_id", "primary_reason",
               "disagreement", "reconciled")  # fmt: skip
