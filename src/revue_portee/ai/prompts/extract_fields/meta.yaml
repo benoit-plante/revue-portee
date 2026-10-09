@@ -1,0 +1,7 @@
+id: extract_fields
+version: "1"
+task: extract_fields
+changelog:
+  - version: "1"
+    date: "2026-10-09"
+    change: First version (tranche 3.2), one call per study, a quote and its page per value.

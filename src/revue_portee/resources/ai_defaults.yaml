@@ -85,3 +85,13 @@ tasks:
       max_tokens: 8000
       effort: low
     expected_output_tokens: 1500
+  # Pre-filling of the extraction grid (tranche 3.2): one call per study, the text of
+  # its primary report by page. The fast model by default; a person checks every value.
+  extract_fields:
+    status: enabled
+    provider: anthropic
+    model: claude-haiku-5-5
+    params:
+      max_tokens: 16000
+      effort: low
+    expected_output_tokens: 4000

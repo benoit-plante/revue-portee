@@ -577,6 +577,60 @@ def study_benchmark(
 
 
 @app.command(
+    "banc-extraction",
+    help=_(
+        "Measure the AI's pre-filling against an extraction made by hand (CSV); with "
+        "--modele, write the file to fill instead; local, no model call."
+    ),
+)
+def extraction_benchmark(
+    dossier: Annotated[Path, typer.Argument(help=_("Project folder (.revue)."))],
+    fichier: Annotated[Path, typer.Argument(help=_("CSV file: reference, field, value."))],
+    modele: Annotated[
+        bool, typer.Option("--modele", help=_("Write the file to fill for the included studies."))
+    ] = False,
+    sortie: Annotated[Path, typer.Option("--sortie", help=_("Folder of the reports."))] = Path(
+        "docs/resultats"
+    ),
+) -> None:
+    from revue_portee.extraction import benchmark as bench
+    from revue_portee.extraction.prefill import extraction_state
+
+    try:
+        folder = open_project_folder(
+            dossier, now=utc_now, tool_version=tool_version(), record_opening=False
+        )
+    except ProjectFolderError as error:
+        raise _fail(str(error)) from error
+    try:
+        if modele:
+            state = extraction_state(folder)
+            if state.grid is None:
+                raise _fail(_("Activate a version of the extraction grid first."))
+            references = [s.primary.doi or s.primary.pmid or s.primary.id for s in state.studies]
+            fichier.write_text(bench.write_template(state.grid, references), encoding="utf-8")
+            typer.echo(_("File to fill written: {path}").format(path=fichier))
+            return
+        if not fichier.is_file():
+            raise _fail(_("File not found: {path}").format(path=fichier))
+        try:
+            test = bench.run_test(folder, bench.read_reference(fichier), now=utc_now())
+        except bench.NothingToCompareError as error:
+            raise _fail(str(error)) from error
+    finally:
+        folder.close()
+    sortie.mkdir(parents=True, exist_ok=True)
+    report = sortie / f"extraction-{fichier.stem}.md"
+    report.write_text(bench.report_markdown(test), encoding="utf-8")
+    accuracy = test.agreed / test.compared if test.compared else 0.0
+    typer.echo(
+        _("Studies compared: {studies}; values in agreement: {accuracy}; report: {path}").format(
+            studies=test.studies, accuracy=f"{accuracy:.1%}", path=report
+        )
+    )
+
+
+@app.command(
     "banc-pages",
     help=_(
         "Compare the text extraction by page of PyMuPDF, pypdf and pdfplumber on test PDFs; "

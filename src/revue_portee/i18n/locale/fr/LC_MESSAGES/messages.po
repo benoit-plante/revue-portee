@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 10:35-0400\n"
+"POT-Creation-Date: 2026-10-09 11:24-0400\n"
 "PO-Revision-Date: 2026-10-07 15:36+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -45,6 +45,12 @@ msgstr[0] ""
 msgstr[1] ""
 "%(num)s références retenues (inclure ou incertain), à importer dans un logiciel de gestion "
 "bibliographique (Zotero, EndNote) ou un outil de tri (Covidence, Rayyan)."
+
+#, python-format
+msgid "%(num)s report"
+msgid_plural "%(num)s reports"
+msgstr[0] "%(num)s rapport"
+msgstr[1] "%(num)s rapports"
 
 #, python-format
 msgid "%(num)s text obtained."
@@ -304,6 +310,9 @@ msgstr "Activez une version des critères à la page « Critères » avant le 
 
 msgid "Activate a version of the criteria on the Criteria page before the screening."
 msgstr "Activez une version des critères à la page « Critères » avant le tri."
+
+msgid "Activate a version of the extraction grid first."
+msgstr "Activez d'abord une version de la grille d'extraction."
 
 msgid "Activate the draft"
 msgstr "Activer le brouillon"
@@ -611,6 +620,9 @@ msgstr "Fichier CSV constitué par jeu-etudes."
 
 msgid "CSV file to write."
 msgstr "Fichier CSV à écrire."
+
+msgid "CSV file: reference, field, value."
+msgstr "Fichier CSV : reference, field, value."
 
 msgid "CSV file: title, abstract, label_included."
 msgstr "Fichier CSV : title, abstract, label_included."
@@ -1319,6 +1331,9 @@ msgstr "Estimer le coût de l'IA sur les textes"
 msgid "Estimate the cost of the AI screening"
 msgstr "Estimer le coût du tri par l'IA"
 
+msgid "Estimate the cost of the pre-filling"
+msgstr "Estimer le coût du pré-remplissage"
+
 msgid "Estimated cost"
 msgstr "Coût estimé"
 
@@ -1382,8 +1397,21 @@ msgstr ""
 "Exportez les résultats de la base au format RIS, puis choisissez le fichier. Le fichier est "
 "conservé tel quel dans le projet."
 
+msgid "Extraction"
+msgstr "Extraction"
+
 msgid "Extraction grid"
 msgstr "Grille d'extraction"
+
+#, python-brace-format
+msgid "Extraction: the AI could not pre-fill a study (attempts: {n})"
+msgstr "Extraction : l'IA n'a pas pu pré-remplir une étude (tentatives : {n})"
+
+#, python-brace-format
+msgid "Extraction: values proposed by the AI for a study (fields reported: {reported} of {fields})"
+msgstr ""
+"Extraction : valeurs proposées par l'IA pour une étude (champs rapportés : {reported} sur "
+"{fields})"
 
 msgid "Failed calls not linked to a round"
 msgstr "Appels échoués non rattachés à un tour"
@@ -1426,12 +1454,20 @@ msgstr "Champs de la grille de départ {template} ajoutés au brouillon"
 msgid "Fields of version %(number)s"
 msgstr "Champs de la version %(number)s"
 
+#, python-format
+msgid "Fields reported: %(reported)s of %(fields)s."
+msgstr "Champs rapportés : %(reported)s sur %(fields)s."
+
 msgid "File imported."
 msgstr "Fichier importé."
 
 #, python-brace-format
 msgid "File not found: {path}"
 msgstr "Fichier introuvable : {path}"
+
+#, python-brace-format
+msgid "File to fill written: {path}"
+msgstr "Fichier à remplir écrit : {path}"
 
 msgid "Files added"
 msgstr "Fichiers ajoutés"
@@ -1481,6 +1517,16 @@ msgstr "Suivre les lots en cours"
 
 msgid "Following the running batches."
 msgstr "Suivi des lots en cours."
+
+msgid ""
+"For each included study, the AI pre-fills the grid in force from the text of its primary report: "
+"a value, the exact quote it rests on and its page, or « not reported ». The tool checks each "
+"value against its field and looks for each quote in the text. You check every value."
+msgstr ""
+"Pour chaque étude incluse, l'IA pré-remplit la grille en vigueur à partir du texte de son rapport"
+" principal : une valeur, la citation exacte qui l'appuie et sa page, ou « non rapporté ». L'outil"
+" vérifie chaque valeur selon son champ et cherche chaque citation dans le texte. Vous vérifiez "
+"chaque valeur."
 
 msgid ""
 "For each reference not looked for yet, the tool asks OpenAlex, then Unpaywall (by DOI), for a "
@@ -1654,6 +1700,10 @@ msgstr "Donnez la raison pour laquelle le texte intégral ne peut pas être obte
 msgid "Grid"
 msgstr "Grille"
 
+#, python-format
+msgid "Grid version %(number)s, %(fields)s fields."
+msgstr "Grille, version %(number)s, %(fields)s champs."
+
 #, python-brace-format
 msgid "Grid version {number} in force"
 msgstr "Version {number} de la grille en vigueur"
@@ -1740,6 +1790,9 @@ msgstr "Inclure"
 
 msgid "Included"
 msgstr "Incluses"
+
+msgid "Included studies and their extraction"
+msgstr "Études incluses et leur extraction"
 
 msgid "Inclusion"
 msgstr "Inclusion"
@@ -1895,6 +1948,10 @@ msgid "Last AI batch: %(screened)s pairs examined, %(failed)s failed."
 msgstr "Dernier lot de l'IA : %(screened)s paires examinées, %(failed)s en échec."
 
 #, python-format
+msgid "Last AI batch: %(screened)s studies pre-filled, %(failed)s failed."
+msgstr "Dernier lot de l'IA : %(screened)s études pré-remplies, %(failed)s en échec."
+
+#, python-format
 msgid "Last AI batch: %(screened)s texts screened, %(failed)s failed."
 msgstr "Dernier lot de l'IA : %(screened)s textes triés, %(failed)s en échec."
 
@@ -2007,6 +2064,13 @@ msgstr "Mesure"
 
 msgid "Measure the AI screener on a labelled SYNERGY dataset (calls the model)."
 msgstr "Mesurer le tri par l'IA sur un jeu SYNERGY étiqueté (appelle le modèle)."
+
+msgid ""
+"Measure the AI's pre-filling against an extraction made by hand (CSV); with --modele, write the "
+"file to fill instead; local, no model call."
+msgstr ""
+"Mesurer le pré-remplissage de l'IA par rapport à une extraction faite à la main (CSV) ; avec "
+"--modele, écrire plutôt le fichier à remplir ; local, sans appel au modèle."
 
 msgid "Measure the deduplication on held-out annotated sets (ASySD CSV files); local, no model call."
 msgstr ""
@@ -2195,6 +2259,9 @@ msgstr ""
 msgid "No query yet: save the search strategy on the Search page."
 msgstr "Pas encore de requête : enregistrez la stratégie de recherche dans la page Recherche."
 
+msgid "No readable text: extract it from the PDF."
+msgstr "Aucun texte lisible : extrayez-la à partir du PDF."
+
 #, python-brace-format
 msgid "No reference found (add it with --reference): {file}"
 msgstr "Aucune référence trouvée (l'ajouter avec --reference) : {file}"
@@ -2220,6 +2287,12 @@ msgstr "Aucune référence pour l'instant : collectez ou importez des référen
 msgid "No report is included at the full text yet."
 msgstr "Aucun rapport n'est encore inclus au texte intégral."
 
+msgid "No study is included yet."
+msgstr "Aucune étude n'est encore incluse."
+
+msgid "No study of the file is pre-filled in the project."
+msgstr "Aucune étude du fichier n'est pré-remplie dans le projet."
+
 msgid "No text left to screen in this round."
 msgstr "Aucun texte à trier dans ce tour."
 
@@ -2244,6 +2317,9 @@ msgstr "Non regroupées automatiquement :"
 
 msgid "Not looked for yet"
 msgstr "Pas encore cherchés"
+
+msgid "Not pre-filled yet."
+msgstr "Pas encore pré-remplie."
 
 msgid "Note (for example, minutes of a team meeting)"
 msgstr "Note (par exemple, compte rendu d'une réunion d'équipe)"
@@ -2489,6 +2565,12 @@ msgstr "Population"
 msgid "Portuguese"
 msgstr "portugais"
 
+msgid "Pre-filling by the AI"
+msgstr "Pré-remplissage par l'IA"
+
+msgid "Pre-filling started in the background."
+msgstr "Pré-remplissage lancé en arrière-plan."
+
 msgid "Precision"
 msgstr "Précision"
 
@@ -2633,6 +2715,9 @@ msgstr "Qualifier les changements"
 #, python-format
 msgid "Queries of version %(number)s"
 msgstr "Requêtes de la version %(number)s"
+
+msgid "Quote and page"
+msgstr "Citation et page"
 
 msgid "Quotes of the AI found in the title or abstract"
 msgstr "Citations de l'IA retrouvées dans le titre ou le résumé"
@@ -3275,6 +3360,9 @@ msgstr "Lancer le tri par l'IA (confirmer le coût)"
 msgid "Start the criteria"
 msgstr "Commencer les critères"
 
+msgid "Start the pre-filling (confirm the cost)"
+msgstr "Lancer le pré-remplissage (confirmer le coût)"
+
 msgid "Start the screening"
 msgstr "Commencer le tri"
 
@@ -3307,12 +3395,26 @@ msgstr "Arrêté : %(why)s."
 msgid "Strategy saved."
 msgstr "Stratégie enregistrée."
 
+msgid "Studies"
+msgstr "Études"
+
 msgid "Studies and their reports"
 msgstr "Études et rapports"
+
+#, python-brace-format
+msgid "Studies compared: {studies}; values in agreement: {accuracy}; report: {path}"
+msgstr "Études comparées : {studies} ; valeurs concordantes : {accuracy} ; rapport : {path}"
 
 #, python-format
 msgid "Studies included: %(studies)s, from %(reports)s reports"
 msgstr "Études incluses : %(studies)s, à partir de %(reports)s rapports"
+
+#, python-format
+msgid "Studies to pre-fill: %(count)s."
+msgstr "Études à pré-remplir : %(count)s."
+
+msgid "Study (primary report)"
+msgstr "Étude (rapport principal)"
 
 #, python-format
 msgid ""
@@ -3502,6 +3604,9 @@ msgstr "L'IA inclut à partir de (de 0 à 1)"
 
 msgid "The AI is examining the pairs…"
 msgstr "L'IA examine les paires…"
+
+msgid "The AI is pre-filling the studies…"
+msgstr "L'IA pré-remplit les études…"
 
 msgid "The AI is screening the texts…"
 msgstr "L'IA trie les textes…"
@@ -4247,6 +4352,9 @@ msgstr "Tour inconnu."
 msgid "Unknown source"
 msgstr "Source inconnue"
 
+msgid "Unknown study."
+msgstr "Étude inconnue."
+
 #, python-brace-format
 msgid "Unknown suggestion: {id}."
 msgstr "Suggestion inconnue : {id}."
@@ -4283,6 +4391,9 @@ msgstr "Valeur"
 
 msgid "Value of the « filter » parameter of the OpenAlex API (works)."
 msgstr "Valeur du paramètre « filter » de l'API OpenAlex (works)."
+
+msgid "Values of the study, field by field"
+msgstr "Valeurs de l'étude, champ par champ"
 
 #, python-format
 msgid "Version %(number)s"
@@ -4352,6 +4463,9 @@ msgid ""
 msgstr ""
 "Écrire l'ébauche de la section méthode sur l'IA au tri (Markdown et DOCX, en français et en "
 "anglais) dans le dossier des exports."
+
+msgid "Write the file to fill for the included studies."
+msgstr "Écrire le fichier à remplir pour les études incluses."
 
 msgid "Write the flow diagram of the screening (SVG, French and English) in the exports folder."
 msgstr "Écrire le diagramme de flux du tri (SVG, en français et en anglais) dans le dossier des exports."
@@ -4540,6 +4654,9 @@ msgstr "contient la bibliographie"
 
 msgid "context of interest (Framing and Criteria pages)"
 msgstr "contexte d'intérêt (pages « Cadrage » et « Critères »)"
+
+msgid "corrected"
+msgstr "corrigée"
 
 #, python-brace-format
 msgid "criteria version {number}"
@@ -4780,6 +4897,9 @@ msgstr "non satisfait"
 msgid "not reached"
 msgstr "non atteintes"
 
+msgid "not reported"
+msgstr "non rapporté"
+
 msgid "not retrievable"
 msgstr "introuvable"
 
@@ -4862,6 +4982,9 @@ msgstr "probabilité d'inclusion : %(p)s"
 msgid "prompt template version {versions}"
 msgstr "gabarit d'invite version {versions}"
 
+msgid "proposed by the AI, to check"
+msgstr "proposée par l'IA, à vérifier"
+
 msgid "publication type left out"
 msgstr "type de publication écarté"
 
@@ -4919,6 +5042,9 @@ msgstr "références non triées par la personne : {count}"
 #, python-format
 msgid "references: %(count)s, seed %(seed)s"
 msgstr "références : %(count)s, graine : %(seed)s"
+
+msgid "rejected"
+msgstr "rejetée"
 
 msgid "removed"
 msgstr "retrait"
@@ -5007,6 +5133,10 @@ msgstr "texte"
 msgid "the AI"
 msgstr "l'IA"
 
+#, python-format
+msgid "the AI gave page %(page)s"
+msgstr "l'IA indiquait la page %(page)s"
+
 msgid ""
 "the AI screens first; you decide with its assessment, quotes and pages in view, and your decision"
 " is final. Faster, but the AI may anchor your decision (RAISE 2)."
@@ -5076,6 +5206,9 @@ msgstr "inattendus :"
 
 msgid "unreadable line"
 msgstr "ligne illisible"
+
+msgid "validated"
+msgstr "validée"
 
 #, python-brace-format
 msgid "version {before} to {after}"
