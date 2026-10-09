@@ -9,7 +9,7 @@ import pytest
 from demo import build, create, deduplicate, run_pilot
 from revue_portee.domain.changes import ChangeType
 from revue_portee.protocol.document import ExportFormat
-from revue_portee.reporting.document import Paragraph
+from revue_portee.reporting.document import Heading, Paragraph
 from revue_portee.screening.methods import export_methods, methods_data, methods_document
 from support import TOOL_VERSION, make_clock
 
@@ -144,6 +144,34 @@ def test_export_in_both_languages(tmp_path: Path) -> None:
     assert text.startswith("# Soutien à la parentalité et santé mentale des enfants : usage de")
     placeholders = [b for b in french.blocks if isinstance(b, Paragraph) and b.placeholder]
     assert len(placeholders) == 3  # rationale, limitations of the review, funding
+
+
+def test_complete_section_counted_by_hand(tmp_path: Path) -> None:
+    """Every step of the demonstration (README): AI calls by task, the pair of duplicates
+    decided by the person, no registration nor search run from the tool."""
+    from demo import build_extracted
+
+    demo = build_extracted(tmp_path)
+    try:
+        found = methods_data(demo.folder, now=demo.clock, tool_version=TOOL_VERSION)
+        document = methods_document(demo.folder, language="fr", now=demo.clock,
+                                    tool_version=TOOL_VERSION)  # fmt: skip
+    finally:
+        demo.folder.close()
+    # titles and abstracts: 5 references, then 2 reassessed after P1 was broadened;
+    # full texts: 2 at the pilot, 2 in the main round
+    assert [(t.task, t.calls, t.models_returned) for t in found.ai_tasks] == [
+        ("screen_fulltext", 4, ("fake-model-2026-10-07",)),
+        ("screen_reference", 7, ("fake-model-2026-10-07",)),
+    ]
+    assert (found.pairs_decided, found.dedup_algorithm) == (1, "1")  # the « Loneliness » pair
+    assert (found.registration, found.deviations, found.search) == (None, (), ())
+    assert found.consultation is not None
+    assert found.consultation.stakeholders == 0
+    titles = [b.text for b in document.blocks if isinstance(b, Heading) and b.level == 2]
+    assert titles[:2] == ["Protocole et écarts", "Recherche et dédoublonnage"]
+    assert "Consultation des parties prenantes" not in titles  # no one consulted
+    assert titles[-1] == "Annexe : déclaration de l'usage de l'IA"
 
 
 def test_extraction_counted_by_hand(tmp_path: Path) -> None:

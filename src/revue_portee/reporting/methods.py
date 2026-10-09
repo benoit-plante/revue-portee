@@ -33,14 +33,22 @@ from revue_portee.reporting.formats import date, fixed, integer, number, percent
 from revue_portee.reporting.protocol import change_labels
 
 __all__ = [
+    "AI_REPORTING_ELEMENTS",
+    "AITaskUse",
     "ChangeSummary",
+    "ConsultationSummary",
     "CostLine",
+    "DeviationLine",
     "ExtractionSummary",
     "FieldAgreementLine",
+    "LayLine",
     "MethodsData",
     "ModelUse",
     "PilotSummary",
+    "RegistrationLine",
     "ScreeningSummary",
+    "SearchLine",
+    "SynthesisSummary",
     "ThresholdSummary",
     "ToolValidation",
     "ValidationDataset",
@@ -234,6 +242,73 @@ class ExtractionSummary(BaseModel):
     narrative_revised: int = 0  # fields whose synthesis the person revised
 
 
+class AITaskUse(BaseModel):
+    """One AI task of the project, as reported in the table of AI use (RAISE, CEE)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    task: str
+    provider: str
+    models_returned: tuple[str, ...]  # exact versions returned by the API
+    template_versions: tuple[str, ...]
+    calls: int
+    amount: Decimal
+
+
+class RegistrationLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    doi: str
+    registered_on: dt.date
+
+
+class DeviationLine(BaseModel):
+    """A version of the criteria or of the grid activated after the registration."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["criteria", "grid"]
+    number: int
+    activated_on: dt.date
+    rationale: str
+
+
+class SearchLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    database: str
+    executed_on: dt.date
+    records: int
+
+
+class LayLine(BaseModel):
+    """A plain-language summary revised by the person, with its readability."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    level: str  # general, informed, professional
+    formula: str
+    index: float
+    target: float
+
+
+class SynthesisSummary(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    gap_comments: int = 0  # gaps of the evidence maps commented by the person
+    lay: tuple[LayLine, ...] = ()
+
+
+class ConsultationSummary(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    stakeholders: int
+    by_role: dict[str, int]  # comments by role of their author
+    comments: int
+    answered: int
+    by_action: dict[str, int]  # changed, noted, declined, deferred
+
+
 class CostLine(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -271,6 +346,14 @@ class MethodsData(BaseModel):
     retrieval: RetrievalCounts | None = None  # full texts of the reports sought
     full_text: FulltextSummary | None = None  # the full-text screening, once started
     extraction: ExtractionSummary | None = None  # once a grid is in force and values exist
+    registration: RegistrationLine | None = None
+    deviations: tuple[DeviationLine, ...] = ()
+    search: tuple[SearchLine, ...] = ()  # latest count of each database query
+    dedup_algorithm: str = ""
+    pairs_decided: int = 0  # pairs of possible duplicates decided by the person
+    synthesis: SynthesisSummary | None = None
+    consultation: ConsultationSummary | None = None
+    ai_tasks: tuple[AITaskUse, ...] = ()  # every AI task of the project
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -1063,6 +1146,241 @@ def _extraction(_: Translate, data: MethodsData, language: str) -> list[Block]:
     return blocks
 
 
+def _protocol(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Registration and deviations from the protocol (EF-VER-07)."""
+    blocks: list[Block] = [Heading(level=2, text=_("Protocol and deviations"))]
+    if data.registration is None:
+        blocks.append(_todo(_, _("where the protocol was published or registered")))
+        return blocks
+    blocks.append(
+        Paragraph(
+            text=_("The protocol was registered on OSF on {date} (DOI {doi}).").format(
+                date=data.registration.registered_on.isoformat(), doi=data.registration.doi
+            )
+        )
+    )
+    if not data.deviations:
+        blocks.append(Paragraph(text=_("No version of the criteria or of the extraction grid "
+                                       "was activated after the registration.")))  # fmt: skip
+        return blocks
+    labels = {"criteria": _("Criteria version {number}"),
+              "grid": _("Extraction grid version {number}")}  # fmt: skip
+    blocks += [
+        Paragraph(
+            text=_(
+                "Versions activated after the registration (deviations from the "
+                "protocol), each with its rationale:"
+            )
+        ),
+        BulletList(
+            items=tuple(
+                _("{version} ({date}): {rationale}").format(
+                    version=labels[d.kind].format(number=d.number),
+                    date=d.activated_on.isoformat(),
+                    rationale=_quoted(d.rationale, language) if d.rationale else "—",
+                )
+                for d in data.deviations
+            )
+        ),
+    ]
+    return blocks
+
+
+def _search(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    blocks: list[Block] = [Heading(level=2, text=_("Search and deduplication"))]
+    if data.search:
+        blocks.append(
+            BulletList(
+                items=tuple(
+                    _("{database}: {records} records (search of {date})").format(
+                        database=s.database, records=integer(s.records, language),
+                        date=s.executed_on.isoformat(),
+                    )
+                    for s in data.search
+                )
+            )
+        )  # fmt: skip
+    elif data.flow.identified_by_source:
+        blocks.append(
+            Paragraph(
+                text=_("Records imported by database: {sources}.").format(
+                    sources=separator(language).join(
+                        f"{name} ({integer(n, language)})"
+                        for name, n in data.flow.identified_by_source.items()
+                    )
+                )
+            )
+        )
+        blocks.append(_todo(_, _("the date of each search")))
+    text = _(
+        "Duplicates were found by the tool's rules (algorithm version {version}) on "
+        "identifiers and bibliographic fields; the person decided the ambiguous pairs "
+        "({pairs}). Duplicates removed: {removed}."
+    ).format(version=data.dedup_algorithm or "—", pairs=integer(data.pairs_decided, language),
+             removed=integer(data.flow.duplicates_removed, language))  # fmt: skip
+    return [*blocks, Paragraph(text=text)]
+
+
+def _synthesis(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Tables, maps and plain-language summaries (EF-SYN-01 to 03, EF-CON-01)."""
+    found = data.synthesis
+    if found is None:
+        return []
+    blocks: list[Block] = [
+        Heading(level=2, text=_("Synthesis and plain-language summaries")),
+        Paragraph(
+            text=_(
+                "The data decided by the person were summarized in frequency tables, cross "
+                "tables and evidence maps of two fields; empty or sparse cells were flagged as "
+                "gaps, of which {comments} were commented by the person."
+            ).format(comments=integer(found.gap_comments, language))
+        ),
+    ]
+    if found.lay:
+        levels = {"general": _("general public"), "informed": _("informed readers"),
+                  "professional": _("professionals")}  # fmt: skip
+        blocks += [
+            Paragraph(
+                text=_(
+                    "Plain-language summaries, revised by the person, with their readability index:"
+                )
+            ),
+            BulletList(
+                items=tuple(
+                    _("{level}: {index} ({formula}), target {target} or more").format(
+                        level=levels.get(line.level, line.level),
+                        index=fixed(line.index, 1, language),
+                        formula=line.formula,
+                        target=fixed(line.target, 0, language),
+                    )
+                    for line in found.lay
+                )
+            ),
+        ]
+    return blocks
+
+
+def _consultation(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Consultation of stakeholders (EF-CON-02), after Pollock et al. (2022)."""
+    found = data.consultation
+    if found is None or not found.stakeholders:
+        return []
+    actions = {"changed": _("the review was changed"),
+               "noted": _("taken into account without a change"),
+               "declined": _("not followed"), "deferred": _("left for later")}  # fmt: skip
+    roles = separator(language).join(
+        f"{role} ({integer(n, language)})" for role, n in sorted(found.by_role.items())
+    )
+    done = separator(language).join(
+        f"{actions.get(a, a)} ({integer(n, language)})" for a, n in sorted(found.by_action.items())
+    )
+    return [
+        Heading(level=2, text=_("Consultation of stakeholders")),
+        Paragraph(
+            text=_(
+                "{people} stakeholders were consulted and made {comments} comments (by role of "
+                "their author: {roles}). Responses given: {done}; awaiting a "
+                "response: {pending}."
+            ).format(
+                people=integer(found.stakeholders, language),
+                comments=integer(found.comments, language),
+                roles=roles or "—",
+                done=done or "—",
+                pending=integer(found.comments - found.answered, language),
+            )
+        ),
+        _todo(_, _("how the stakeholders were chosen and involved")),
+    ]
+
+
+def _ai_use(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    """Every AI task of the project (RAISE; CEE reporting guidance)."""
+    if not data.ai_tasks:
+        return []
+    return [
+        Heading(level=2, text=_("Use of AI by task")),
+        Paragraph(
+            text=_(
+                "Each call is recorded with the exact model version returned by the provider "
+                "and the version of its prompt template; costs are estimated from the "
+                "provider's prices of {date}."
+            ).format(date=data.prices_as_of)
+        ),
+        Table(
+            header=(
+                _("Task"),
+                _("Model (exact version returned)"),
+                _("Prompt template"),
+                _("Calls"),
+                _("Cost"),
+            ),
+            rows=tuple(
+                (
+                    t.task,
+                    separator(language).join(t.models_returned) or "—",
+                    separator(language).join(t.template_versions) or "—",
+                    integer(t.calls, language),
+                    _money(t.amount, language),
+                )
+                for t in data.ai_tasks
+            ),
+        ),
+    ]
+
+
+# Elements of the reporting of AI use required by EF-DEC-03 (RAISE, CEE), with the
+# heading of this section that reports each: the appendix for the external reviewer.
+AI_REPORTING_ELEMENTS: tuple[tuple[str, str], ...] = (
+    ("tool and version", "Description and rationale"),
+    ("models and exact versions", "Use of AI by task"),
+    ("tasks", "Use of AI by task"),
+    ("supervision mode", "Description and rationale"),
+    ("calibration results", "Description and rationale"),
+    ("thresholds", "Description and rationale"),
+    ("share of decisions where the AI took part", "Results of the screening with the AI"),
+    ("disagreements and their resolution", "Results of the screening with the AI"),
+    ("limitations", "Limitations and ethics"),
+    ("costs", "Use of AI by task"),
+    ("conflicts of interest", "Funding and conflicts of interest"),
+)
+
+
+def _coverage(_: Translate, data: MethodsData, language: str) -> list[Block]:
+    labels = {
+        "tool and version": _("tool and version"),
+        "models and exact versions": _("models and exact versions"),
+        "tasks": _("tasks"),
+        "supervision mode": _("supervision mode"),
+        "calibration results": _("calibration results"),
+        "thresholds": _("thresholds"),
+        "share of decisions where the AI took part": _("share of decisions where the AI took part"),
+        "disagreements and their resolution": _("disagreements and their resolution"),
+        "limitations": _("limitations"),
+        "costs": _("costs"),
+        "conflicts of interest": _("conflicts of interest"),
+    }
+    headings = {
+        "Description and rationale": _("Description and rationale"),
+        "Use of AI by task": _("Use of AI by task"),
+        "Results of the screening with the AI": _("Results of the screening with the AI"),
+        "Limitations and ethics": _("Limitations and ethics"),
+        "Funding and conflicts of interest": _("Funding and conflicts of interest"),
+    }
+    return [
+        Heading(level=2, text=_("Appendix: reporting of the use of AI")),
+        Paragraph(
+            text=_(
+                "For the review of this section: where each element of the reporting of AI use "
+                "(RAISE; CEE guidance, Macura et al., 2025) is reported above."
+            )
+        ),
+        Table(
+            header=(_("Element"), _("Section")),
+            rows=tuple((labels[e], headings[h]) for e, h in AI_REPORTING_ELEMENTS),
+        ),
+    ]
+
+
 def _limitations(_: Translate, data: MethodsData, language: str) -> list[Block]:
     smallest = min(data.validation.datasets, key=lambda d: d.included)
     items = [
@@ -1127,7 +1445,9 @@ _REFERENCES = (
 def build_methods(data: MethodsData, *, language: str) -> Document:
     """The draft methods section in ``language`` (fr or en)."""
     _ = translator(language)
-    if data.full_text is None:
+    if data.extraction is not None:
+        title = _("{title}: methods and use of AI (draft)")
+    elif data.full_text is None:
         title = _("{title}: use of AI in title and abstract screening (methods, draft)")
     else:
         title = _("{title}: use of AI in screening (methods, draft)")
@@ -1149,15 +1469,24 @@ def build_methods(data: MethodsData, *, language: str) -> Document:
                 )
             )
         )
+    complete = data.extraction is not None  # the review went beyond the screening
+    if complete:
+        blocks += _protocol(_, data, language)
+        blocks += _search(_, data, language)
     blocks += _description(_, data, language)
     blocks += _validation(_, data, language)
     blocks += _results(_, data, language)
     blocks += _retrieval(_, data, language)
     blocks += _fulltext(_, data, language)
     blocks += _extraction(_, data, language)
+    blocks += _synthesis(_, data, language)
+    blocks += _consultation(_, data, language)
+    blocks += _ai_use(_, data, language)
     blocks += _limitations(_, data, language)
     blocks += _funding(_)
     blocks += [Heading(level=2, text=_("References")), BulletList(items=_REFERENCES)]
+    if complete:
+        blocks += _coverage(_, data, language)
     return Document(
         title=title,
         language=language,
