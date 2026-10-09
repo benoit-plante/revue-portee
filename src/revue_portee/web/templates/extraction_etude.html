@@ -25,6 +25,15 @@
       <td>{% if not v or v.status == "rejected" %}—{% elif not v.reported %}<em>{{ _("not reported") }}</em>{% elif v.value is sameas true %}{{ _("yes") }}{% elif v.value is sameas false %}{{ _("no") }}{% elif v.value is iterable and v.value is not string %}{{ v.value | join("; ") }}{% else %}{{ v.value }}{% endif %}</td>
       <td>{% if v and v.quote %}«&nbsp;{{ v.quote }}&nbsp;»{% if v.page %} ({{ _("page %(page)s", page=v.page) }}){% endif %}{% if v.quote_check %} — {{ check_labels[v.quote_check] }}{% endif %}{% if v.quote_check == "other_page" and v.model_page %} <span class="small">({{ _("the AI gave page %(page)s", page=v.model_page) }})</span>{% endif %}{% else %}—{% endif %}</td>
       <td>{% if v %}{{ status_labels[v.status] }}{% if v.note %} <span class="small">— {{ v.note }}</span>{% endif %}{% else %}—{% endif %}
+        {% if f.code in study.to_review %}
+        <p class="small"><strong>{{ _("To review: given under a former definition of the field.") }}</strong></p>
+        {% if v.reviewer_kind == "human" %}
+        <form method="post" action="/extraction/{{ ref.id }}/{{ f.code }}" class="inline-form">
+          {{ csrf() }}
+          <button type="submit" name="action" value="confirmer">{{ _("Confirm under the field in force") }}</button>
+        </form>
+        {% endif %}
+        {% endif %}
         {% if v and v.reviewer_kind == "ai" %}
         <form method="post" action="/extraction/{{ ref.id }}/{{ f.code }}" class="inline-form">
           {{ csrf() }}

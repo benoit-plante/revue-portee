@@ -6,7 +6,9 @@ page, or « not reported ». The tool checks every value against the type of its
 (an answer that does not fit is asked again once) and looks for every quote in the
 text (``domain.extraction.place_quote``). The values of a study are recorded together,
 after the call and its raw response (D-041); the project and batch ceilings are checked
-before each call. A study is pre-filled once for each version of the grid.
+before each call. A study is pre-filled once; after a change of the grid, only on the
+fields added or modified since (``domain.extraction.fields_due``), so a value the person
+checked is never proposed again unless its field changed (tranche 3.4).
 """
 
 from collections.abc import Callable, Sequence
@@ -31,11 +33,14 @@ from revue_portee.domain.extraction import (
     InvalidValueError,
     ValueStatus,
     current_values,
+    fields_due,
+    holds_value,
     parse_value,
     place_quote,
+    stale,
 )
 from revue_portee.domain.fulltext import FulltextDocument, PagedText
-from revue_portee.domain.grid import GridVersion
+from revue_portee.domain.grid import GridField, GridVersion
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.project import ReviewerKind
@@ -102,12 +107,22 @@ class StudyExtraction:
     reports: list[str]  # the reports of the study
     readable: bool  # its primary report has readable text
     values: dict[str, ExtractionValue] = field(default_factory=dict)  # by field code
-    # grid versions the AI pre-filled it with (its values may since be checked by a person)
-    ai_versions: frozenset[str] = frozenset()
+    due: tuple[str, ...] = ()  # fields the AI is to pre-fill (codes)
+    to_review: tuple[str, ...] = ()  # fields whose value was given under another definition
 
     @property
     def prefilled(self) -> bool:
         return bool(self.values)
+
+    def checked(self, grid: GridVersion) -> int:
+        """Fields of ``grid`` whose value in force a person decided under it."""
+        return sum(
+            1
+            for f in grid.fields
+            if (v := self.values.get(f.code)) is not None
+            and v.reviewer_kind is ReviewerKind.HUMAN
+            and f.code not in self.to_review
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,32 +135,48 @@ class ExtractionState:
         """Studies with readable text the AI has not pre-filled with this grid version."""
         if self.grid is None:
             return []
-        version = self.grid.id
-        return [s for s in self.studies if s.readable and version not in s.ai_versions]
+        return [s for s in self.studies if s.readable and s.due]
 
 
 def extraction_state(folder: ProjectFolder) -> ExtractionState:
     with folder.engine.connect() as connection:
         grid = grid_repo.get_active_version(connection)
         stored = extraction_repo.list_values(connection)
+        versions = {v.id: v for v in grid_repo.list_versions(connection)}
+        pilots = extraction_repo.list_pilots(connection)
     values = current_values(stored)
-    ai_versions: dict[str, set[str]] = {}
+    by_study: dict[str, list[ExtractionValue]] = {}
     for value in stored:
-        if value.reviewer_kind is ReviewerKind.AI:
-            ai_versions.setdefault(value.reference_id, set()).add(value.grid_version_id)
+        by_study.setdefault(value.reference_id, []).append(value)
+    in_pilot = set() if not pilots else set(pilots[-1].reference_ids)
     included = studies.included_reports(folder)
     found = []
     for study in studies.study_state(folder).studies:
         reference, document = included[study.primary]
+        current = {code: value for (ref, code), value in values.items() if ref == study.primary}
+        due: tuple[str, ...] = ()
+        to_review: tuple[str, ...] = ()
+        if grid is not None:
+            due = tuple(
+                f.code
+                for f in fields_due(
+                    grid, versions, by_study.get(study.primary, ()),
+                    pilot=study.primary in in_pilot,
+                )
+            )  # fmt: skip
+            to_review = tuple(
+                f.code
+                for f in grid.sorted_fields()
+                if holds_value(current.get(f.code)) and stale(current[f.code], versions, f)
+            )
         found.append(
             StudyExtraction(
                 primary=reference,
                 reports=study.reports,
                 readable=not document.needs_ocr,
-                values={
-                    code: value for (ref, code), value in values.items() if ref == study.primary
-                },
-                ai_versions=frozenset(ai_versions.get(study.primary, ())),
+                values=current,
+                due=due,
+                to_review=to_review,
             )
         )
     return ExtractionState(grid=grid, studies=found)
@@ -160,7 +191,7 @@ def _documents(folder: ProjectFolder) -> dict[str, tuple[Reference, FulltextDocu
 
 def _input(
     folder: ProjectFolder,
-    grid: GridVersion,
+    fields: Sequence[GridField],
     reference: Reference,
     text: PagedText,
     language: str,
@@ -170,7 +201,7 @@ def _input(
         item_id=reference.id,
         language=language,
         review_question=question,
-        fields=tuple(FieldText.of(f) for f in grid.sorted_fields()),
+        fields=tuple(FieldText.of(f) for f in fields),
         report=ReportText(
             title=reference.title,
             year=reference.year,
@@ -194,7 +225,9 @@ def _inputs(
     for study in waiting:
         reference, document = documents[study.primary.id]
         text = retrieval.paged_text(folder, document)
-        found.append((_input(folder, grid, reference, text, language, question), text))
+        fields = [f for f in grid.sorted_fields() if f.code in study.due]
+        item = _input(folder, fields, reference, text, language, question)
+        found.append((item, text))
     return found
 
 
@@ -207,16 +240,16 @@ def preview_ai(
     return preview(folder, EXTRACT_FIELDS, items, factory=factory)
 
 
-def check_answer(output: ExtractFieldsOutput, grid: GridVersion) -> dict[str, JsonValue]:
-    """The value of each field, checked against its type (None: not reported).
+def check_answer(output: ExtractFieldsOutput, fields: Sequence[GridField]) -> dict[str, JsonValue]:
+    """The value of each field asked, checked against its type (None: not reported).
     UnusableAnswerError unless each field is answered exactly once with a valid value."""
-    codes = [f.code for f in grid.fields]
+    by_code = {f.code: f for f in fields}
+    codes = list(by_code)
     if sorted(v.code for v in output.values) != sorted(codes):
         raise UnusableAnswerError("each field must be answered exactly once")
     values: dict[str, JsonValue] = {}
     for answer in output.values:
-        grid_field = grid.field(answer.code)
-        assert grid_field is not None  # noqa: S101 - checked above
+        grid_field = by_code[answer.code]
         if not answer.reported:
             values[answer.code] = None
             continue
@@ -247,6 +280,8 @@ def _store(
         moment = now()
         recorded = []
         for grid_field in grid.sorted_fields():
+            if grid_field.code not in values:
+                continue
             answer = answers[grid_field.code]
             reported = values[grid_field.code] is not None
             quote = answer.quote.strip() if reported else ""
@@ -345,7 +380,8 @@ def run_ai(
             )  # fmt: skip
             spent += stored.record.cost_estimate
             try:
-                values = check_answer(result.output, grid)
+                asked = [f for f in grid.sorted_fields() if f.code in {x.code for x in item.fields}]
+                values = check_answer(result.output, asked)
             except UnusableAnswerError as error:
                 record_unusable(folder, stored, error, now=now, tool_version=tool_version)
                 continue

@@ -4,16 +4,22 @@ Exports are written in ``exports/`` (regenerable files, docs/03-architecture.md 
 ``protocole-<langue>.md`` and ``protocole-<langue>.docx``.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
 from revue_portee.domain.criteria import VersionStatus
+from revue_portee.domain.grid import GridVersion, diff_versions
 from revue_portee.domain.project import ReviewerKind
-from revue_portee.domain.protocol import ProtocolText
+from revue_portee.domain.protocol import ProtocolRegistration, ProtocolText
 from revue_portee.reporting.document import Document, render_docx, render_markdown
-from revue_portee.reporting.protocol import Deviation, ProtocolData, build_protocol
+from revue_portee.reporting.protocol import (
+    Deviation,
+    GridDeviation,
+    ProtocolData,
+    build_protocol,
+)
 from revue_portee.resources import osf_form, peters_checklist
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
@@ -29,6 +35,37 @@ __all__ = ["ExportFormat", "export_protocol", "protocol_data", "protocol_documen
 class ExportFormat(StrEnum):
     MARKDOWN = "md"
     DOCX = "docx"
+
+
+def _grid_deviations(
+    versions: Sequence[GridVersion], registration: ProtocolRegistration | None
+) -> tuple[GridDeviation, ...]:
+    """Versions of the grid activated after the registration, from version 2 on (the
+    first version is the grid of the protocol)."""
+    if registration is None:
+        return ()
+    by_id = {v.id: v for v in versions}
+    found = []
+    for version in versions:
+        parent = None if version.parent_id is None else by_id.get(version.parent_id)
+        if (
+            parent is None
+            or version.activated_at is None
+            or version.activated_at < registration.created_at
+        ):
+            continue
+        delta = diff_versions(parent, version)
+        found.append(
+            GridDeviation(
+                number=version.number,
+                activated_at=version.activated_at,
+                rationale=version.rationale,
+                added=tuple(f.code for f in delta.added),
+                modified=tuple(m.code for m in delta.modified),
+                removed=tuple(f.code for f in delta.removed),
+            )
+        )
+    return tuple(found)
 
 
 def protocol_data(
@@ -48,6 +85,8 @@ def protocol_data(
             for v in versions
             if v.after_protocol_registration and v.activated_at is not None
         )
+        registration = protocol_repo.latest_registration(connection)
+        grid_deviations = _grid_deviations(grid_repo.list_versions(connection), registration)
         search = search_repo.latest_strategy_version(connection)
         queries = (
             ()
@@ -71,8 +110,9 @@ def protocol_data(
             criteria=next((v for v in versions if v.status is VersionStatus.ACTIVE), None),
             text=ProtocolText() if text is None else text.text,
             ai=folder.ai_settings(),
-            registration=protocol_repo.latest_registration(connection),
+            registration=registration,
             deviations=deviations,
+            grid_deviations=grid_deviations,
             search=search,
             queries=queries,
             counts=tuple(latest_counts.values()),

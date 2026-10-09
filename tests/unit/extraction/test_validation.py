@@ -46,7 +46,7 @@ def test_only_values_decided_by_the_person_go_into_the_synthesis(tmp_path: Path)
         assert [(r["field"], r["value"], r["status"]) for r in rows] == [
             ("D1", "", ""), ("D2", "", ""), ("D3", "", ""),
         ]  # fmt: skip
-        assert all(value is None for _s, _f, value in validation.synthesis_rows(folder))
+        assert all(row.value is None for row in validation.synthesis_rows(folder))
 
         validated = validation.validate_value(folder, ref, "D2", note="ok", **kwargs)
         corrected = validation.record_value(

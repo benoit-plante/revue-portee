@@ -36,6 +36,7 @@ from revue_portee.reporting.document import (
 )
 from revue_portee.reporting.protocol import (
     Deviation,
+    GridDeviation,
     ProtocolData,
     build_protocol,
     checklist_status,
@@ -195,6 +196,15 @@ def test_registration_and_deviations() -> None:
     assert "Enregistrement : DOI 10.17605/OSF.IO/ABCDE, enregistré le 2026-10-01." in text
     assert "Le protocole est enregistré sur OSF : DOI 10.17605/OSF.IO/ABCDE." in text
     assert "Version 2 des critères (2026-10-07) : Adolescents — P1 (élargissement)" in text
+    grid = GridDeviation(
+        number=2, activated_at=NOW, rationale="Taille définie", added=("D4",),
+        modified=("D2",), removed=("D3",),
+    )  # fmt: skip
+    with_grid = render_markdown(build(data(registration=registration, grid_deviations=(grid,))))
+    assert (
+        "Version 2 de la grille d'extraction (2026-10-07) : Taille définie — D4 (ajout), "
+        "D2 (modification), D3 (retrait)"
+    ) in with_grid
     unregistered = render_markdown(build(data()))
     assert "pas encore enregistré" in unregistered
 

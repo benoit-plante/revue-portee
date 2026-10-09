@@ -27,11 +27,13 @@ from revue_portee.domain.extraction import (
     ValueStatus,
     current_values,
     for_synthesis,
+    holds_value,
     parse_value,
     place_quote,
     same_value,
+    stale,
 )
-from revue_portee.domain.grid import GridField, GridVersion
+from revue_portee.domain.grid import GridField, GridVersion, field_sort_key
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.project import ReviewerKind
@@ -43,15 +45,21 @@ from revue_portee.i18n import gettext as _
 from revue_portee.screening import studies
 from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import extraction as extraction_repo
+from revue_portee.storage.repositories import grid as grid_repo
 from revue_portee.storage.repositories import journal
 
 __all__ = [
     "PILOT_SIZE",
+    "ArchivedValue",
     "FieldAgreement",
     "NoAIValueError",
     "NotAStudyError",
+    "NothingToConfirmError",
     "PilotState",
+    "SynthesisRow",
+    "archived_values",
     "blind",
+    "confirm_value",
     "export_extraction",
     "pilot_state",
     "record_value",
@@ -139,12 +147,13 @@ def validate_value(
     tool_version: str,
 ) -> ExtractionValue:  # fmt: skip
     """Keep the AI's value: the person's validation is a new value, equal to it."""
-    _study(folder, reference_id, field_code)
+    grid, _field = _study(folder, reference_id, field_code)
     ai = _ai_value(folder, reference_id, field_code)
     moment = now()
     value = ai.model_copy(
         update={
             "id": new_ulid(moment),
+            "grid_version_id": grid.id,  # validated under the field in force
             "status": ValueStatus.VALIDATED,
             "reviewer_id": folder.reviewer_id,
             "reviewer_kind": ReviewerKind.HUMAN,
@@ -158,6 +167,41 @@ def validate_value(
         folder, value, french("Extraction: value of {field} validated").format(field=field_code),
         tool_version=tool_version,
     )  # fmt: skip
+
+
+class NothingToConfirmError(ValueError):
+    def __init__(self) -> None:
+        super().__init__(_("There is no value of yours to confirm on this field."))
+
+
+def confirm_value(
+    folder: ProjectFolder, reference_id: str, field_code: str, *, note: str = "", now: Clock,
+    tool_version: str,
+) -> ExtractionValue:  # fmt: skip
+    """Keep a value the person gave under a former definition of its field: a new value,
+    equal to it, given under the grid in force (tranche 3.4)."""
+    grid, grid_field = _study(folder, reference_id, field_code)
+    current = _current(folder, reference_id, field_code)
+    if (
+        current is None
+        or current.reviewer_kind is not ReviewerKind.HUMAN
+        or not holds_value(current)
+        or not stale(current, _versions(folder), grid_field)
+    ):
+        raise NothingToConfirmError
+    moment = now()
+    value = current.model_copy(
+        update={
+            "id": new_ulid(moment),
+            "grid_version_id": grid.id,
+            "reviewer_id": folder.reviewer_id,
+            "supersedes_id": current.id,
+            "note": note.strip() or current.note,
+            "created_at": moment,
+        }
+    )
+    summary = french("Extraction: value of {field} confirmed under the field in force")
+    return _record(folder, value, summary.format(field=field_code), tool_version=tool_version)
 
 
 def reject_value(
@@ -342,11 +386,14 @@ def pilot_state(folder: ProjectFolder) -> PilotState | None:
     with folder.engine.connect() as connection:
         stored = extraction_repo.list_values(connection)
     values = [v for v in stored if v.reference_id in pilot.reference_ids]
+    versions = _versions(folder)
+    by_code = {f.code: f for f in fields}
     human: dict[str, dict[str, ExtractionValue]] = {}
     ai: dict[str, dict[str, ExtractionValue]] = {}
     for value in sorted(values, key=lambda v: (v.created_at, v.id)):
-        if grid is not None and value.grid_version_id != grid.id:
-            continue
+        grid_field = by_code.get(value.field_code)
+        if grid_field is None or stale(value, versions, grid_field):
+            continue  # compared only under the field in force
         target = ai if value.reviewer_kind is ReviewerKind.AI else human
         target.setdefault(value.reference_id, {})[value.field_code] = value
     result = PilotState(pilot=pilot, human=human, ai=ai, fields=fields)
@@ -379,44 +426,115 @@ def _shown(value: JsonValue) -> str:
     return "" if value is None else str(value)
 
 
-def synthesis_rows(
-    folder: ProjectFolder,
-) -> list[tuple[StudyExtraction, GridField, ExtractionValue | None]]:
-    """For each study and each field of the grid in force, the value a person decided
-    (None when no one did yet): only these go into the synthesis (EF-EXT-04)."""
+@dataclass(frozen=True, slots=True)
+class SynthesisRow:
+    study: StudyExtraction
+    field: GridField
+    value: ExtractionValue | None  # the value a person decided, None when no one did yet
+    to_review: bool  # given under another definition of the field (tranche 3.4)
+
+
+def _versions(folder: ProjectFolder) -> dict[str, GridVersion]:
+    with folder.engine.connect() as connection:
+        return {v.id: v for v in grid_repo.list_versions(connection)}
+
+
+def synthesis_rows(folder: ProjectFolder) -> list[SynthesisRow]:
+    """For each study and each field of the grid in force, the value a person decided:
+    only these go into the synthesis (EF-EXT-04)."""
     state = extraction_state(folder)
     if state.grid is None:
         return []
     with folder.engine.connect() as connection:
         kept = for_synthesis(extraction_repo.list_values(connection))
-    return [
-        (study, grid_field, kept.get((study.primary.id, grid_field.code)))
-        for study in state.studies
-        for grid_field in state.grid.sorted_fields()
-    ]
+    versions = _versions(folder)
+    rows = []
+    for study in state.studies:
+        for grid_field in state.grid.sorted_fields():
+            value = kept.get((study.primary.id, grid_field.code))
+            rows.append(
+                SynthesisRow(
+                    study=study,
+                    field=grid_field,
+                    value=value,
+                    to_review=value is not None and stale(value, versions, grid_field),
+                )
+            )
+    return rows
+
+
+@dataclass(frozen=True, slots=True)
+class ArchivedValue:
+    study: StudyExtraction
+    label: str  # the label of the field when the value was given
+    value: ExtractionValue
+
+
+def archived_values(folder: ProjectFolder) -> list[ArchivedValue]:
+    """The values in force on fields removed from the grid: out of the synthesis, kept
+    recorded (EF-VER-06)."""
+    state = extraction_state(folder)
+    if state.grid is None:
+        return []
+    versions = _versions(folder)
+    in_force = {f.code for f in state.grid.fields}
+    found = []
+    for study in state.studies:
+        for code, value in sorted(study.values.items(), key=lambda kv: field_sort_key(kv[0])):
+            if code in in_force or not holds_value(value):
+                continue
+            made = versions.get(value.grid_version_id)
+            old = None if made is None else made.field(code)
+            found.append(ArchivedValue(study, code if old is None else old.label, value))
+    return found
+
+
+def _write(path: Path, header: tuple[str, ...], rows: list[tuple[object, ...]]) -> None:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(buffer.getvalue(), encoding="utf-8")
+
+
+def _cells(value: ExtractionValue | None) -> tuple[object, ...]:
+    if value is None:
+        return ("", "", "", "")
+    return (
+        "oui" if value.reported else "non",
+        _shown(value.value),
+        "" if value.page is None else value.page,
+        value.status.value,
+    )
 
 
 def export_extraction(folder: ProjectFolder) -> tuple[Path, int]:
     """Write ``exports/donnees-extraites.csv``: the values a person decided, one row per
-    study and field (empty when no one did yet). Returns the file and the values
-    written."""
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, lineterminator="\n")
-    writer.writerow(("study", "title", "year", "field", "label", "reported", "value", "page",
-                     "status"))  # fmt: skip
-    written = 0
-    for study, grid_field, value in synthesis_rows(folder):
-        written += value is not None
-        writer.writerow(
-            (
-                study.primary.id, study.primary.title, study.primary.year or "", grid_field.code,
-                grid_field.label, "" if value is None else ("oui" if value.reported else "non"),
-                "" if value is None else _shown(value.value),
-                "" if value is None or value.page is None else value.page,
-                "" if value is None else value.status.value,
-            )
-        )  # fmt: skip
+    study and field (empty when no one did yet), flagged when given under another
+    definition of the field; and, when fields were removed, their archived values in
+    ``exports/donnees-archivees.csv``. Returns the first file and the values written."""
+    rows = synthesis_rows(folder)
     target = folder.path / "exports" / "donnees-extraites.csv"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(buffer.getvalue(), encoding="utf-8")
-    return target, written
+    _write(
+        target,
+        ("study", "title", "year", "field", "label", "reported", "value", "page", "status",
+         "to_review"),
+        [
+            (r.study.primary.id, r.study.primary.title, r.study.primary.year or "", r.field.code,
+             r.field.label, *_cells(r.value), "oui" if r.to_review else "")
+            for r in rows
+        ],
+    )  # fmt: skip
+    archived = archived_values(folder)
+    if archived:
+        _write(
+            folder.path / "exports" / "donnees-archivees.csv",
+            ("study", "title", "year", "field", "label", "reported", "value", "page", "status"),
+            [
+                (a.study.primary.id, a.study.primary.title, a.study.primary.year or "",
+                 a.value.field_code, a.label, *_cells(a.value))
+                for a in archived
+            ],
+        )  # fmt: skip
+    return target, sum(1 for r in rows if r.value is not None)

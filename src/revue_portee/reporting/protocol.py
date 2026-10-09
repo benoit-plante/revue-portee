@@ -54,6 +54,7 @@ from revue_portee.reporting.formats import date, integer, number, separator
 __all__ = [
     "ChecklistStatus",
     "Deviation",
+    "GridDeviation",
     "ProtocolData",
     "build_protocol",
     "change_labels",
@@ -75,6 +76,20 @@ class Deviation(BaseModel):
     changes: tuple[CriterionChange, ...] = ()
 
 
+class GridDeviation(BaseModel):
+    """A version of the extraction grid activated after the protocol was registered,
+    with the codes of its fields added, modified and removed (EF-VER-07)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    number: int
+    activated_at: AwareDatetime
+    rationale: str
+    added: tuple[str, ...] = ()
+    modified: tuple[str, ...] = ()
+    removed: tuple[str, ...] = ()
+
+
 class ProtocolData(BaseModel):
     """Everything the protocol is generated from (read by ``protocol/document.py``)."""
 
@@ -88,6 +103,7 @@ class ProtocolData(BaseModel):
     ai: AISettings
     registration: ProtocolRegistration | None
     deviations: tuple[Deviation, ...] = ()
+    grid_deviations: tuple[GridDeviation, ...] = ()
     search: StrategyVersion | None = None
     queries: tuple[QueryVersion, ...] = ()  # of the search version, one per database
     counts: tuple[SearchRun, ...] = ()  # latest count of each query
@@ -680,6 +696,20 @@ def _deviations(_: Translate, data: ProtocolData) -> list[Block]:
                     rationale=deviation.rationale,
                 )
                 + (f" — {changes}" if changes else "")
+            )
+        )
+    for grid in data.grid_deviations:
+        fields = ", ".join(
+            [f"{code} ({_('added')})" for code in grid.added]
+            + [f"{code} ({_('modified')})" for code in grid.modified]
+            + [f"{code} ({_('removed')})" for code in grid.removed]
+        )
+        blocks.append(
+            Paragraph(
+                text=_("Extraction grid version {number} ({date}): {rationale}").format(
+                    number=grid.number, date=date(grid.activated_at), rationale=grid.rationale
+                )
+                + (f" — {fields}" if fields else "")
             )
         )
     return [

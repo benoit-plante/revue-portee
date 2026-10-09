@@ -5,6 +5,13 @@ the exact quote it rests on and its page, or says the report does not give it. A
 is never changed: the person's validation, correction or rejection is a new value that
 supersedes the AI's (tranche 3.3), and the latest value on a field is in force.
 
+When a new version of the grid is activated (EF-VER-06, tranche 3.4), each change
+touches studies: an added field leaves every included study to complete; a modified
+field flags the values given under its former definition, to review; a removed field
+archives its values, which leave the synthesis but stay recorded (``grid_impact``). A
+value is to review as long as the field it was given for differs from the field in
+force (``stale``), whatever the versions in between.
+
 Every quote is looked for in the text (``domain.fulltext.check_quote``). A quote found
 at another page than the one given is placed at the page where it is, the page the
 model gave being kept; a quote found nowhere is kept, flagged, and the value has no
@@ -20,21 +27,27 @@ from enum import StrEnum
 from pydantic import AwareDatetime, BaseModel, ConfigDict, JsonValue
 
 from revue_portee.domain.fulltext import QuoteCheck, TextPage, canonical, locate_quote
-from revue_portee.domain.grid import FieldType, GridField
+from revue_portee.domain.grid import FieldType, GridDiff, GridField, GridVersion, field_changes
 from revue_portee.domain.project import ReviewerKind
 
 __all__ = [
     "HUMAN_KEPT",
+    "ChangeKind",
     "ExtractionPilot",
     "ExtractionValue",
+    "GridChangeImpact",
     "InvalidValueError",
     "ValueStatus",
     "current_values",
+    "fields_due",
     "for_synthesis",
+    "grid_impact",
+    "holds_value",
     "parse_value",
     "place_quote",
     "quote_summary",
     "same_value",
+    "stale",
 ]
 
 
@@ -215,3 +228,88 @@ class ExtractionPilot(BaseModel):
     reference_ids: tuple[str, ...]
     created_at: AwareDatetime
     reviewer_id: str
+
+
+# --- Changes of the grid (EF-VER-06) ------------------------------------------------
+
+
+class ChangeKind(StrEnum):
+    ADDED = "added"  # every included study to complete
+    MODIFIED = "modified"  # the values given under the former definition, to review
+    REMOVED = "removed"  # the values archived: out of the synthesis, kept recorded
+
+
+class GridChangeImpact(BaseModel):
+    """The studies one change of the grid touches."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: ChangeKind
+    code: str
+    label: str
+    changed: tuple[str, ...] = ()  # attributes of a modified field
+    studies: tuple[str, ...]
+
+
+def holds_value(value: ExtractionValue | None) -> bool:
+    """Whether a value in force gives the field a value (« not reported » included): a
+    rejection without another value leaves the field empty."""
+    return value is not None and value.status is not ValueStatus.REJECTED
+
+
+def grid_impact(
+    diff: GridDiff, studies: Sequence[str], values: Iterable[ExtractionValue]
+) -> tuple[GridChangeImpact, ...]:
+    """The studies each change from one version to the next touches, in the order of
+    ``studies`` (the included studies, by their primary report): an added field, every
+    study; a modified or removed field, the studies whose value in force gives it."""
+    current = current_values(values)
+
+    def holding(code: str) -> tuple[str, ...]:
+        return tuple(s for s in studies if holds_value(current.get((s, code))))
+
+    return (
+        *(GridChangeImpact(kind=ChangeKind.ADDED, code=f.code, label=f.label,
+                           studies=tuple(studies)) for f in diff.added),
+        *(GridChangeImpact(kind=ChangeKind.MODIFIED, code=m.code, label=m.after.label,
+                           changed=m.changed, studies=holding(m.code)) for m in diff.modified),
+        *(GridChangeImpact(kind=ChangeKind.REMOVED, code=f.code, label=f.label,
+                           studies=holding(f.code)) for f in diff.removed),
+    )  # fmt: skip
+
+
+def stale(value: ExtractionValue, versions: Mapping[str, GridVersion], field: GridField) -> bool:
+    """Whether ``value`` was given for a field that differs from ``field``, the field in
+    force: the value is then to review."""
+    made = versions.get(value.grid_version_id)
+    before = None if made is None else made.field(value.field_code)
+    return before is None or bool(field_changes(before, field))
+
+
+def fields_due(
+    grid: GridVersion,
+    versions: Mapping[str, GridVersion],
+    values: Iterable[ExtractionValue],
+    *,
+    pilot: bool = False,
+) -> tuple[GridField, ...]:
+    """The fields of one study the AI is to pre-fill: those it has not answered under
+    their definition in force, unless the person already gave them a value under it.
+    In a pilot, every field the AI has not answered, to compare with the person."""
+    found = list(values)
+    current = {code: v for (_ref, code), v in current_values(found).items()}
+    latest_ai = {
+        code: v
+        for (_ref, code), v in current_values(
+            v for v in found if v.reviewer_kind is ReviewerKind.AI
+        ).items()
+    }
+    due = []
+    for field in grid.sorted_fields():
+        ai = latest_ai.get(field.code)
+        if ai is not None and not stale(ai, versions, field):
+            continue
+        given = current.get(field.code)
+        if pilot or given is None or stale(given, versions, field):
+            due.append(field)
+    return tuple(due)
