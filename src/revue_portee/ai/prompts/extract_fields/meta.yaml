@@ -1,7 +1,10 @@
 id: extract_fields
-version: "1"
+version: "2"
 task: extract_fields
 changelog:
   - version: "1"
     date: "2026-10-09"
     change: First version (tranche 3.2), one call per study, a quote and its page per value.
+  - version: "2"
+    date: "2026-10-09"
+    change: A single choice goes in "value", never in "selected"; when several choices seem to apply, the one that covers them, otherwise the closest (real trial, 4 answers of 11 unusable).

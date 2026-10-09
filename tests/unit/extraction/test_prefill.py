@@ -140,3 +140,34 @@ def test_unusable_answers_ceilings_and_grid(tmp_path: Path) -> None:
     assert stopped.stopped == "batch_budget"
     assert project.stopped == "project_budget"
     assert sum(1 for e in entries if e.entry_type == EntryType.EXTRACTION_AI_FAILED) == 2
+
+
+def test_single_choice_answered_in_selected() -> None:
+    """Real trial of v1: the model sometimes put a single choice in « selected »."""
+    from revue_portee.ai.tasks.extraction import ExtractFieldsOutput
+    from revue_portee.domain.grid import GridField
+    from revue_portee.screening.ai_screening import UnusableAnswerError
+
+    focus = GridField(
+        code="D7", label="Objet", type=FieldType.SINGLE_CHOICE,
+        choices=("Adherence", "Non-adherence", "Adherence and non-adherence"),
+    )  # fmt: skip
+    settings_ = GridField(
+        code="D2", label="Milieu", type=FieldType.MULTIPLE_CHOICE, choices=("A", "B")
+    )
+
+    def output(**d7: object) -> ExtractFieldsOutput:
+        return ExtractFieldsOutput.model_validate(
+            {"values": [{"code": "D7", "reported": True, **d7},
+                        {"code": "D2", "reported": True, "selected": ["B", "A"]}]}
+        )  # fmt: skip
+
+    fields = [focus, settings_]
+    one = prefill.check_answer(output(selected=["Non-adherence"]), fields)
+    assert one == {"D7": "Non-adherence", "D2": ["A", "B"]}
+    both = prefill.check_answer(output(value="Adherence", selected=["Non-adherence"]), fields)
+    assert both["D7"] == "Adherence"  # the value prevails
+    with pytest.raises(UnusableAnswerError, match="D7: one value expected"):
+        prefill.check_answer(output(selected=["Adherence", "Non-adherence"]), fields)
+    with pytest.raises(UnusableAnswerError):
+        prefill.check_answer(output(value="Other"), fields)

@@ -107,9 +107,23 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Rédaction | Écrit d'un seul jet : pour chaque champ de la grille en vigueur, « non rapporté » ou une valeur conforme à son type, avec la citation exacte et sa page; consigne de ne rien inférer. L'outil vérifie le type de chaque valeur et cherche chaque citation dans le texte (placée à la page où elle se trouve, signalée si elle est introuvable). La grille va dans l'invite système, mise en cache |
 | Données de mise au point | **Aucune.** Exécuté seulement avec le fournisseur factice des tests |
 | Versions essayées | Aucune autre |
-| Appels réels | Aucun |
-| Données de test | À désigner : 20 études extraites à la main (critère de la tranche 3.2), distinctes de toute donnée de mise au point |
-| Résultats | Aucun |
+| Appels réels | 2026-10-09, avec l'accord de Benoit (plafond de 5 $ US) : essai réel sur les 11 études en libre accès des 22 incluses par Seunanden et al. 2025 (BMC Public Health, PMC12004696); 16 appels (11 études, nouvelles tentatives comprises), 0,030 $ US; 7 études pré-remplies, 4 refusées après deux tentatives |
+| Données de test | Les 7 études pré-remplies, comparées au tableau d'extraction des auteurs, figé avant les appels. Le gabarit n'avait été ni écrit ni ajusté sur elles : résultat de test, sur un petit échantillon |
+| Résultats | [resultats/essai-extract-fields.md](resultats/essai-extract-fields.md) : 37 valeurs concordantes sur 49 (75,5 %); 41 citations retrouvées sur 43 |
+| Problème connu | Pour un champ à choix unique, le modèle range parfois sa réponse dans « selected » (prévu pour le choix multiple), parfois avec plusieurs choix : 4 études refusées sur 11. Corrigé par la v2 |
+
+### extract_fields v2
+
+| Élément | Description |
+|---|---|
+| Date | 2026-10-09 |
+| Motif | Essai réel de la v1 : 4 études sur 11 refusées, toutes pour la même raison. Dans un champ à choix unique (« Objet de l'étude », une fois « Devis »), le modèle range sa réponse dans « selected », souvent en cochant deux choix (« Adherence » et « Non-adherence ») au lieu du choix qui les réunit (« Adherence and non-adherence ») |
+| Changement | Invite système : un choix unique va dans « value », « selected » reste vide; quand plusieurs choix semblent s'appliquer, le choix qui les couvre s'il existe, sinon le plus proche; « selected » ne sert qu'au choix multiple. Descriptions des clés « value » et « selected » du schéma de sortie, dans le même sens (version de la tâche 2). L'outil accepte en outre un seul choix rangé dans « selected » quand « value » est vide; il refuse toujours plusieurs choix |
+| Données de mise au point | Les réponses brutes de la v1 sur les 11 études de l'essai (Seunanden et al. 2025). Ces 11 études ne peuvent plus servir à mesurer la v2 |
+| Versions essayées | La v2 seule, sur les 4 études refusées par la v1 : 4 appels, 0,008 $ US; 4 réponses utilisables au premier essai, aucun choix unique rangé dans « selected » (la tolérance de l'outil n'a pas servi) |
+| Appels réels | 2026-10-09, avec l'accord de Benoit : les 4 appels ci-dessus |
+| Données de test | Aucune à ce jour : une autre revue, distincte de Seunanden et al. 2025, sera nécessaire pour mesurer la v2 |
+| Résultats | Résultats de développement seulement : [resultats/essai-extract-fields.md](resultats/essai-extract-fields.md) (23 valeurs concordantes sur 28 pour les 4 études) |
 
 ### draft_synthesis v1
 

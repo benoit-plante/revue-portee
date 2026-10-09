@@ -40,7 +40,7 @@ from revue_portee.domain.extraction import (
     stale,
 )
 from revue_portee.domain.fulltext import FulltextDocument, PagedText
-from revue_portee.domain.grid import GridField, GridVersion
+from revue_portee.domain.grid import FieldType, GridField, GridVersion
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
 from revue_portee.domain.project import ReviewerKind
@@ -242,7 +242,9 @@ def preview_ai(
 
 def check_answer(output: ExtractFieldsOutput, fields: Sequence[GridField]) -> dict[str, JsonValue]:
     """The value of each field asked, checked against its type (None: not reported).
-    UnusableAnswerError unless each field is answered exactly once with a valid value."""
+    UnusableAnswerError unless each field is answered exactly once with a valid value.
+    A field other than a multiple choice answered with one choice in ``selected`` and
+    nothing in ``value`` takes that choice; several are refused (real trial, v1)."""
     by_code = {f.code: f for f in fields}
     codes = list(by_code)
     if sorted(v.code for v in output.values) != sorted(codes):
@@ -253,7 +255,13 @@ def check_answer(output: ExtractFieldsOutput, fields: Sequence[GridField]) -> di
         if not answer.reported:
             values[answer.code] = None
             continue
-        raw: JsonValue = list(answer.selected) if answer.selected else answer.value
+        raw: JsonValue = answer.value
+        if grid_field.type is FieldType.MULTIPLE_CHOICE:
+            raw = list(answer.selected) if answer.selected else answer.value
+        elif not answer.value.strip() and len(answer.selected) == 1:
+            raw = answer.selected[0]
+        elif not answer.value.strip() and answer.selected:
+            raise UnusableAnswerError(f"{answer.code}: one value expected")
         try:
             values[answer.code] = parse_value(grid_field, raw)
         except InvalidValueError as error:

@@ -168,7 +168,7 @@ def test_extraction_counted_by_hand(tmp_path: Path) -> None:
     assert summary is not None
     # D1 proposed, not checked; D2 validated; D3 corrected. D2's quote is on page 2, not 3.
     assert (summary.grid_version, summary.fields, summary.studies) == (1, 3, 1)
-    assert (summary.ai_studies, summary.template_version) == (1, "1")
+    assert (summary.ai_studies, summary.template_version) == (1, "2")
     assert (summary.validated, summary.corrected, summary.rejected) == (1, 1, 0)
     assert (summary.extracted, summary.pending) == (0, 1)
     assert (summary.quotes_at_page, summary.quotes_other_page, summary.quotes_not_found) == (
