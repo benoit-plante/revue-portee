@@ -523,6 +523,7 @@ def methods_data(folder: ProjectFolder, *, now: Clock, tool_version: str) -> Met
         currency=prices.currency,
         prices_as_of=prices.as_of.isoformat(),
         validation=tool_validation(),
+        simulation=folder.replication is not None,
     )
 
 

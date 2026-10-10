@@ -83,6 +83,7 @@ from revue_portee.screening.ai_screening import (
     UnusableAnswerError,
     _answer_text,
     ai_reviewer,
+    decision_context,
     record_ai_failure,
 )
 from revue_portee.screening.main import NotADisagreementError
@@ -493,6 +494,7 @@ def _ai_decision(
     call_id: str,
     tool_version: str,
     moment: datetime,
+    context: DecisionContext = DecisionContext.INDEPENDENT,
 ) -> Decision:
     """The AI decision derived from an answer: the same answer and text always give the
     same decision (how a decision is rebuilt without calling the model again)."""
@@ -528,6 +530,7 @@ def _ai_decision(
         thresholds=thresholds,
         criteria_version_id=version.id,
         language=detect_language(reference.language, reference.title, reference.abstract),
+        context=context,
         ai_call_id=call_id,
         tool_version=tool_version,
         created_at=moment,
@@ -562,6 +565,7 @@ def _store_ai_decision(
             call_id=stored.id,
             tool_version=tool_version,
             moment=moment,
+            context=decision_context(folder),
         )
         checks: dict[str, JsonValue] = {
             a.code: None if a.quote_check is None else a.quote_check.value
@@ -634,9 +638,10 @@ def run_ai(
     """Screen with the AI the texts of the round it has not screened yet, one call at a
     time. The main round needs a completed pilot (docs/10, decision 3). Before each
     call, the project ceiling and ``batch_limit`` are checked (ENF-COU-02); what was
-    screened stays recorded."""
+    screened stays recorded. A replication project has no pilot: no one screens in
+    it (D-104)."""
     screening = _any_round(folder, round_id)
-    if screening.kind is RoundKind.MAIN and not pilot_complete(folder):
+    if screening.kind is RoundKind.MAIN and not pilot_complete(folder) and not folder.replication:
         raise PilotRequiredError
     with folder.engine.connect() as connection:
         budget = screening_repo.latest_budget(connection)
@@ -778,6 +783,7 @@ def replay_decision(folder: ProjectFolder, decision_id: str) -> Decision:
         call_id=stored.id,
         tool_version=found.tool_version,
         moment=found.created_at,
+        context=found.context,
     )
 
 
@@ -943,7 +949,7 @@ class FulltextState:
     human: dict[str, Decision]  # blind or assisted decisions, the pilot's included
     ai: dict[str, Decision]
     reconciled: dict[str, Decision]
-    final: dict[str, Decision]  # the latest human decision on each text
+    final: dict[str, Decision]  # the latest human decision (replication: the AI's) on each
     unreadable: list[str]  # scanned: the AI cannot screen them
     order: list[str]  # codes of the criteria, for the primary reasons
     disagreements: list[str] = field(default_factory=list)
@@ -995,6 +1001,8 @@ def main_state(folder: ProjectFolder, round_id: str | None = None) -> FulltextSt
             connection, [main.id], reviewer_kind=HUMAN, contexts=["reconciliation"]
         )
         final = screening_repo.latest_by_reference(
+            connection, [main.id], reviewer_kind=AI, contexts=[DecisionContext.REPLICATION]
+        ) | screening_repo.latest_by_reference(
             connection, [*rounds, *reassessed], reviewer_kind=HUMAN
         )
     documents = _documents(folder)

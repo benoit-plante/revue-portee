@@ -159,7 +159,7 @@ def narrative_state(folder: ProjectFolder) -> NarrativeState:
         drafts = narrative_repo.list_drafts(connection)
         versions = {v.id: v for v in grid_repo.list_versions(connection)}
         language = projects.get_project(connection).language
-    kept = for_synthesis(stored)
+    kept = for_synthesis(stored, replication=folder.replication is not None)
     current, revised = current_drafts(drafts), revised_drafts(drafts)
     fields = []
     for grid_field in state.grid.sorted_fields():

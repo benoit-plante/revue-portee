@@ -1,0 +1,18 @@
+# Extraction grid of the fictitious review (format of the starting grids,
+# src/revue_portee/resources/extraction/). Its fields become D1, D2 and D3.
+id: fictive-marche-anxiete
+version: "1"
+date: 2026-10-09
+source: Grille transcrite d'une revue fictive (jeu de test du banc de réplication).
+fields:
+  - type: single_choice
+    label: {fr: Devis}
+    definition: {fr: Devis de l'étude.}
+    choices: {fr: [Essai randomisé, Quasi expérimental, Qualitatif]}
+  - type: single_choice
+    label: {fr: Milieu}
+    definition: {fr: Milieu où le programme a lieu.}
+    choices: {fr: [Communauté, Résidence, Hôpital]}
+  - type: boolean
+    label: {fr: Suivi après le programme}
+    definition: {fr: Les participants sont revus après la fin du programme.}

@@ -241,10 +241,18 @@ def add_field(
         return field
 
 
-def add_template(folder: ProjectFolder, *, now: Clock, tool_version: str) -> list[GridField]:
+def add_template(
+    folder: ProjectFolder,
+    *,
+    template: dom.GridTemplate | None = None,
+    now: Clock,
+    tool_version: str,
+) -> list[GridField]:
     """Add the fields of the starting grid (JBI, Pollock et al., 2023) to the draft, in
-    the language of the project; the team adapts them before activating the grid."""
-    template = grid_template()
+    the language of the project; the team adapts them before activating the grid.
+    ``template`` gives another grid in the same format (the grid transcribed from a
+    published review, for the replication benchmark)."""
+    template = template or grid_template()
     with folder.engine.connect() as connection:
         language = projects.get_project(connection).language
     with folder.write() as connection:

@@ -285,6 +285,8 @@ def test_project_of_tranche_1_1_is_migrated_after_a_backup(tmp_path: Path) -> No
     folder = new_project(tmp_path)
     folder.close()
     new_tables = (
+        # tranche 3.8 (0018)
+        "replication_marker",
         # tranche 4.2 (0017)
         "stakeholder",
         "stakeholder_comment",

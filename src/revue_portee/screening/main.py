@@ -336,7 +336,7 @@ class MainState:
     human: dict[str, Decision]  # independent decisions, the pilot's included
     ai: dict[str, Decision]
     reconciled: dict[str, Decision]
-    final: dict[str, Decision]  # the latest human decision on each reference
+    final: dict[str, Decision]  # the latest human decision (replication: the AI's) on each
     disagreements: list[str] = field(default_factory=list)  # in screening order
     queue: list[str] = field(default_factory=list)  # disagreements not reconciled yet
 
@@ -362,7 +362,10 @@ def main_state(folder: ProjectFolder, round_id: str) -> MainState:
             for impact in screening_repo.list_impacts(connection, main.id)
             if impact.reassessment_round_id is not None
         ]
+        # Only a replication project holds decisions of the AI that are final (D-104).
         final = screening_repo.latest_by_reference(
+            connection, [main.id], reviewer_kind=AI, contexts=[DecisionContext.REPLICATION]
+        ) | screening_repo.latest_by_reference(
             connection, [*rounds, *reassessed], reviewer_kind=HUMAN
         )
     disagreements = [

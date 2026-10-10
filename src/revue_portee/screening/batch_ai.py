@@ -66,6 +66,7 @@ __all__ = [
     "NotBatchCapableError",
     "SubmitResult",
     "collect",
+    "exhausted",
     "follow",
     "pending_batches",
     "preview",
@@ -149,6 +150,28 @@ def waiting_for_ai(folder: ProjectFolder, round_id: str) -> list[str]:
         and ref not in running
         and ref not in unreadable
         and attempts.get(ref, 0) < MAX_ATTEMPTS
+    ]
+
+
+def exhausted(folder: ProjectFolder, round_id: str) -> list[str]:
+    """Members of the round, in order, that the AI has not decided after
+    ``MAX_ATTEMPTS`` calls (unusable answers or errors) and that no batch holds."""
+    screening = _round(folder, round_id)
+    with folder.engine.connect() as connection:
+        members = screening_repo.member_ids(connection, screening.id)
+        decided = screening_repo.latest_by_reference(connection, [screening.id], reviewer_kind="ai")
+        batches = screening_repo.list_ai_batches(connection, screening.id)
+        attempts = screening_repo.batch_attempts(connection, [b.provider_batch_id for b in batches])
+        running = {
+            item
+            for batch in batches
+            if screening_repo.batch_end(connection, batch.id) is None
+            for item in batch.item_ids
+        }
+    return [
+        ref
+        for ref in members
+        if ref not in decided and ref not in running and attempts.get(ref, 0) >= MAX_ATTEMPTS
     ]
 
 
@@ -267,8 +290,8 @@ def submit(
     if screening.stage is Stage.FULL_TEXT:
         from revue_portee.screening import fulltext  # see _stage_task
 
-        if not fulltext.pilot_complete(folder):
-            raise fulltext.PilotRequiredError
+        if not fulltext.pilot_complete(folder) and not folder.replication:
+            raise fulltext.PilotRequiredError  # no one screens a replication (D-104)
     provider = _provider(folder, factory, stage.task)
     version = active_criteria(folder)
     items = stage.inputs(folder, version, waiting_for_ai(folder, screening.id))

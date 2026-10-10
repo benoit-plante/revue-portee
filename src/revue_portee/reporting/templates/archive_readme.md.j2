@@ -1,6 +1,10 @@
 # {{ title }}
 
 **Archive {{ "publique" if public else "complète" }} / {{ "public" if public else "complete" }} archive** — revue-portee {{ tool_version }}, {{ date }}.
+{% if simulation.fr %}
+
+**{{ simulation.fr }} / {{ simulation.en }}**
+{% endif %}
 
 [Français](#français) · [English](#english)
 

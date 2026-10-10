@@ -103,6 +103,7 @@ class DecisionContext(StrEnum):
     REASSESSMENT = "reassessment"
     AUDIT = "audit"
     ASSISTED = "assisted"  # full text, the AI's assessment in view (D-102)
+    REPLICATION = "replication"  # the AI's decision is final: replication projects only
 
 
 class ScreeningMode(StrEnum):

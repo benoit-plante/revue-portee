@@ -48,7 +48,7 @@ from revue_portee.fulltext.convert import (
 )
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
-from revue_portee.screening.report import retained_references
+from revue_portee.screening.report import sought_references
 from revue_portee.sources.http import SourceError
 from revue_portee.sources.records import OpenAccessLocation
 from revue_portee.storage.project_folder import ProjectFolder
@@ -116,8 +116,8 @@ class RetrievalReport:
 
 def retrieval_report(folder: ProjectFolder) -> RetrievalReport:
     """Status of every reference sought for its full text (kept at the title and
-    abstract stage, D-079)."""
-    sought = [item.reference for item in retained_references(folder)]
+    abstract stage, D-079; ``screening.report.sought_references``)."""
+    sought = sought_references(folder)
     with folder.engine.connect() as connection:
         documents = fulltext_repo.list_documents(connection)
         notes = fulltext_repo.list_notes(connection)

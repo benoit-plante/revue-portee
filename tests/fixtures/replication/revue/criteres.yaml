@@ -1,0 +1,17 @@
+# Criteria of the fictitious review (format of banc-synergy).
+review_question: >-
+  Quels programmes de marche ont été étudiés pour réduire l'anxiété des adultes âgés ?
+language: fr
+criteria:
+  - code: P1
+    pcc_element: population
+    kind: inclusion
+    text: Adultes de 65 ans ou plus.
+  - code: C1
+    pcc_element: concept
+    kind: inclusion
+    text: Programme de marche structuré, avec une mesure de l'anxiété.
+  - code: O1
+    pcc_element: other
+    kind: exclusion
+    text: Revue de littérature, éditorial ou protocole sans résultats.

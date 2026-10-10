@@ -29,6 +29,7 @@ from revue_portee.reporting.document import (
     Table,
 )
 from revue_portee.reporting.flow import FlowNumbers, ReassessmentCounts, pending_items
+from revue_portee.reporting.flow_svg import simulation_mention
 from revue_portee.reporting.formats import date, fixed, integer, number, percent, separator
 from revue_portee.reporting.protocol import change_labels
 
@@ -354,6 +355,7 @@ class MethodsData(BaseModel):
     synthesis: SynthesisSummary | None = None
     consultation: ConsultationSummary | None = None
     ai_tasks: tuple[AITaskUse, ...] = ()  # every AI task of the project
+    simulation: bool = False  # a replication project (D-104): not a review
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -1461,6 +1463,8 @@ def build_methods(data: MethodsData, *, language: str) -> Document:
             ).format(version=data.tool_version, date=date(data.generated_at))
         ),
     ]
+    if data.simulation:
+        blocks.insert(1, Paragraph(text=simulation_mention(_)))
     if data.flow.provisional:
         blocks.append(
             Paragraph(

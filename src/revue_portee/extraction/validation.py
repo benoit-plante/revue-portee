@@ -449,7 +449,9 @@ def synthesis_rows(folder: ProjectFolder) -> list[SynthesisRow]:
     if state.grid is None:
         return []
     with folder.engine.connect() as connection:
-        kept = for_synthesis(extraction_repo.list_values(connection))
+        kept = for_synthesis(
+            extraction_repo.list_values(connection), replication=folder.replication is not None
+        )
     versions = _versions(folder)
     rows = []
     for study in state.studies:

@@ -997,6 +997,145 @@ def synergy_benchmark(
 
 
 @app.command(
+    "banc-replication",
+    help=_(
+        "Replay a published review with the tool alone and measure its concordance with the "
+        "published review (calls the model)."
+    ),
+)
+def replication_benchmark(
+    dossier: Annotated[Path, typer.Argument(help=_("Folder of the review to replay."))],
+    plafond: Annotated[str, typer.Option("--plafond", help=_("Ceiling of the run in US dollars."))],
+    mode: Annotated[
+        str, typer.Option("--mode", help=_("par-etape or en-chaine (docs/11 §3)."))
+    ] = "en-chaine",
+    sortie: Annotated[
+        Path, typer.Option("--sortie", help=_("Folder of the Markdown report."))
+    ] = Path(),
+    oui: Annotated[bool, typer.Option("--oui", help=_("Do not ask to confirm the cost."))] = False,
+    poursuivre: Annotated[
+        bool,
+        typer.Option(
+            "--poursuivre",
+            help=_("Go on without the missing full texts (declared not retrievable)."),
+        ),
+    ] = False,
+    sans_libre_acces: Annotated[
+        bool,
+        typer.Option(
+            "--sans-libre-acces", help=_("Do not look for open access texts (OpenAlex, Unpaywall).")
+        ),
+    ] = False,
+) -> None:
+    from decimal import Decimal, InvalidOperation
+
+    from revue_portee.ai.costs import UnknownPriceError
+    from revue_portee.ai.providers import UnknownProviderError
+    from revue_portee.ai.settings import TaskNotAvailableError
+    from revue_portee.config.secrets import MissingSecretError
+    from revue_portee.protocol.ai_assist import CostPreview
+    from revue_portee.replication import bench, inputs, report
+    from revue_portee.screening.batch_ai import NotBatchCapableError
+    from revue_portee.sources import OpenAccessSources, SourceError
+
+    modes = {slug: value for value, slug in bench.MODE_SLUGS.items()}
+    if mode not in modes:
+        raise _fail(_("Unknown mode: {mode} (par-etape or en-chaine).").format(mode=mode))
+    try:
+        ceiling = Decimal(plafond.replace(",", "."))
+    except InvalidOperation as error:
+        raise _fail(_("The ceiling must be a positive amount.")) from error
+    if not ceiling.is_finite() or ceiling <= 0:
+        raise _fail(_("The ceiling must be a positive amount."))
+
+    def confirm(step: str, preview: CostPreview) -> bool:
+        typer.echo(
+            _(
+                "{step}: {count} items with {provider} — {model}: at most {amount} USD "
+                "(prices of {date})."
+            ).format(
+                step=step, count=preview.items, provider=preview.provider, model=preview.model,
+                amount=preview.estimate.amount, date=preview.prices_as_of.isoformat(),
+            )
+        )  # fmt: skip
+        return oui or typer.confirm(_("Go on?"))
+
+    chosen = modes[mode]
+    try:
+        review = inputs.read_inputs(dossier)
+        has_standard = (dossier / inputs.STANDARD_FOLDER / "incluses.csv").is_file()
+        standard = inputs.read_standard(dossier) if has_standard else None
+        outcome = bench.run_bench(
+            review,
+            bench.BenchSettings(
+                mode=chosen, ceiling=ceiling, go_on_without_texts=poursuivre,
+                open_access=not sans_libre_acces,
+            ),
+            standard=standard, finder=OpenAccessSources, confirm=confirm,
+            say=typer.echo, now=utc_now, tool_version=tool_version(),
+        )  # fmt: skip
+    except (
+        inputs.ReplicationInputError,
+        ProjectFolderError,
+        MissingSecretError,
+        SourceError,
+        NotBatchCapableError,
+        TaskNotAvailableError,
+        UnknownPriceError,
+        UnknownProviderError,
+    ) as error:
+        raise _fail(str(error)) from error
+    typer.echo(
+        _("Project: {path}; spent: {amount} USD of {ceiling}.").format(
+            path=outcome.project, amount=outcome.spent, ceiling=ceiling
+        )
+    )
+    if outcome.stopped is bench.Stop.REFUSED:
+        raise _fail(_("Stopped before the step « {step} »: cost not confirmed.").format(
+            step=outcome.step))  # fmt: skip
+    if outcome.stopped is bench.Stop.CEILING:
+        typer.echo(
+            _(
+                "Ceiling reached at the step « {step} »: the run stopped before the next call; "
+                "what was done is kept. Run the command again with a higher ceiling."
+            ).format(step=outcome.step)
+        )
+        return
+    if outcome.stopped is bench.Stop.TEXTS:
+        typer.echo(
+            _(
+                "Full texts to upload: {count}. Put their PDFs in {folder}, then run the command "
+                "again (or add --poursuivre to go on without them)."
+            ).format(count=len(outcome.missing), folder=dossier / inputs.TEXT_FOLDER)
+        )
+        for reference in outcome.missing:
+            typer.echo(f"- {reference.doi or reference.pmid or reference.id} — {reference.title}")
+        return
+    if standard is None:
+        typer.echo(_("Every step done; no reference standard yet (norme/incluses.csv): no report."))
+        return
+    measures = report.measure_review(
+        dossier, review.sheet, standard, now=utc_now, tool_version=tool_version()
+    )
+    unmatched = sorted({sid for m in measures for sid in m.unmatched_ids})
+    if unmatched:
+        typer.echo(
+            _("Studies of the reference standard matched to no reference: {studies}").format(
+                studies=", ".join(unmatched)
+            )
+        )
+    sortie.mkdir(parents=True, exist_ok=True)
+    target = sortie / f"replication-{review.sheet.id}.md"
+    target.write_text(
+        report.report_markdown(
+            review.sheet, standard, measures, generated_at=utc_now(), tool_version=tool_version()
+        ),
+        encoding="utf-8",
+    )
+    typer.echo(_("Report written: {path}").format(path=target))
+
+
+@app.command(
     "banc-doublons",
     help=_(
         "Measure the deduplication on held-out annotated sets (ASySD CSV files); local, "

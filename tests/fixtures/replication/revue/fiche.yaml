@@ -1,0 +1,17 @@
+# Fictitious review of the test set (tests/fixtures/replication/README.md): no real
+# review is ever put in the repository.
+id: Fictive_2026_marche_anxiete
+doi: 10.5555/fict.9999
+role: developpement
+strate: B
+recherche:
+  date_origine: [2025-03-01]
+  bases: [Base fictive]
+  interrogeables_par_outil: []
+  export_ris_requis: [Base fictive]
+  litterature_grise: oui  # one master's thesis included (S6)
+emplacements:
+  criteres: "Méthodes, 2.1"
+  strategie: "Méthodes, 2.2"
+  incluses: "Tableau 1"
+  extraction: "Tableau 1"

@@ -7,6 +7,10 @@ reassessments. The diagram is written in ``exports/`` as ``diagramme-<langue>.sv
 
 The references kept for the full text (include or uncertain) are exported as RIS and
 CSV (``references-retenues.ris`` and ``.csv``) for the next steps of the review.
+
+In a replication project (D-104), the references sought for their full text also
+include those the AI could not screen (kept, and counted by the benchmark); replayed
+stepwise, they are the included studies of the published review instead.
 """
 
 from collections.abc import Callable
@@ -17,6 +21,8 @@ from pathlib import Path
 
 from revue_portee.collect.deduplication import dedup_state
 from revue_portee.domain.fulltext import RetrievalCounts, retrieval_counts
+from revue_portee.domain.project import ReplicationMode
+from revue_portee.domain.references import Reference, SourceKind
 from revue_portee.domain.screening import DecisionValue, keeps
 from revue_portee.reporting.flow import (
     FlowNumbers,
@@ -33,6 +39,7 @@ from revue_portee.storage.project_folder import ProjectFolder
 from revue_portee.storage.repositories import criteria as criteria_repo
 from revue_portee.storage.repositories import fulltext as fulltext_repo
 from revue_portee.storage.repositories import projects
+from revue_portee.storage.repositories import references as references_repo
 from revue_portee.storage.repositories import screening as screening_repo
 
 __all__ = [
@@ -45,6 +52,7 @@ __all__ = [
     "full_text_counts",
     "full_text_screening",
     "retained_references",
+    "sought_references",
 ]
 
 
@@ -162,6 +170,7 @@ def flow_report(
         criteria_version=None if active is None else active.number,
         tool_version=tool_version,
         generated_at=now(),
+        simulation=folder.replication is not None,
     )
     return FlowReport(numbers=numbers, context=context)
 
@@ -180,7 +189,7 @@ def export_flow(
 
 def full_text_counts(folder: ProjectFolder) -> RetrievalCounts:
     """Counts of the full texts of the references kept for them."""
-    return _retrieval(folder, [item.reference.id for item in retained_references(folder)])
+    return _retrieval(folder, [reference.id for reference in sought_references(folder)])
 
 
 # --- References kept for the full text ----------------------------------------------
@@ -219,6 +228,27 @@ def retained_references(folder: ProjectFolder) -> list[RetainedReference]:
         if ref in dedup.references and ref not in duplicates and keeps(decision.value)
     ]
     return sorted(kept, key=lambda r: (r.reference.title.casefold(), r.reference.id))
+
+
+def sought_references(folder: ProjectFolder) -> list[Reference]:
+    """References whose full text is sought, sorted by title: those kept at the title
+    and abstract stage; in a replication project (D-104), with those the AI could not
+    screen, or, replayed stepwise, the included studies of the published review."""
+    marker = folder.replication
+    if marker is not None and marker.mode is ReplicationMode.STEPWISE:
+        dedup = dedup_state(folder)
+        with folder.engine.connect() as connection:
+            ids = references_repo.reference_ids_by_source(connection, SourceKind.REFERENCE_STANDARD)
+        found = [dedup.references[ref] for ref in ids if ref in dedup.references]
+    else:
+        found = [item.reference for item in retained_references(folder)]
+        started = main.main_round(folder)
+        if marker is not None and started is not None:
+            from revue_portee.screening.batch_ai import exhausted  # reads the AI batches
+
+            references = dedup_state(folder).references
+            found += [references[ref] for ref in exhausted(folder, started.id)]
+    return sorted(found, key=lambda r: (r.title.casefold(), r.id))
 
 
 def export_retained(

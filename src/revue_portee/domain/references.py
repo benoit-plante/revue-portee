@@ -38,6 +38,8 @@ class SourceKind(StrEnum):
     OPENALEX = "openalex"
     PUBMED = "pubmed"
     RIS = "ris"
+    # An included study of a published review, replayed stepwise (replication, D-104).
+    REFERENCE_STANDARD = "reference_standard"
 
 
 class Reference(BaseModel):

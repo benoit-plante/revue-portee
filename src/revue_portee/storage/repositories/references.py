@@ -127,6 +127,16 @@ def list_provenance(connection: Connection, *, reference_id: str | None = None) 
     ]
 
 
+def reference_ids_by_source(connection: Connection, source: SourceKind) -> list[str]:
+    """References given by ``source``, in the order they were first given."""
+    rows = connection.execute(
+        select(provenance.c.reference_id)
+        .where(provenance.c.source == source.value)
+        .order_by(provenance.c.created_at, provenance.c.id)
+    ).scalars()
+    return list(dict.fromkeys(str(ref) for ref in rows))
+
+
 def count_by_source(connection: Connection) -> dict[str, int]:
     """Distinct references given by each source (a reference may come from several)."""
     rows = connection.execute(

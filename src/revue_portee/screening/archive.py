@@ -30,16 +30,16 @@ from revue_portee.config.secret_scan import scan_text
 from revue_portee.config.secrets import redact
 from revue_portee.domain.fulltext import current_documents, retrieval_statuses
 from revue_portee.domain.journal import EntryType
-from revue_portee.i18n import EXPORT_LANGUAGES, french
+from revue_portee.i18n import EXPORT_LANGUAGES, french, translator
 from revue_portee.i18n import gettext as _
 from revue_portee.protocol.document import ExportFormat
 from revue_portee.reporting.document import render_docx, render_markdown
-from revue_portee.reporting.flow_svg import render_flow_svg
+from revue_portee.reporting.flow_svg import render_flow_svg, simulation_mention
 from revue_portee.reporting.methods import build_methods
 from revue_portee.resources import flow_template
 from revue_portee.screening import main
 from revue_portee.screening.methods import methods_data
-from revue_portee.screening.report import flow_report, retained_references
+from revue_portee.screening.report import flow_report, sought_references
 from revue_portee.storage.archive import (
     csv_text,
     database_copy,
@@ -165,7 +165,7 @@ def _screening_files(folder: ProjectFolder, state: DedupState) -> dict[str, str]
 def _fulltext_files(folder: ProjectFolder) -> dict[str, str]:
     """Status of the full text of each reference sought: never the PDF, its text, its
     URL nor its file name (D-092)."""
-    sought = [item.reference.id for item in retained_references(folder)]
+    sought = [reference.id for reference in sought_references(folder)]
     with folder.engine.connect() as connection:
         documents = fulltext_repo.list_documents(connection)
         notes = fulltext_repo.list_notes(connection)
@@ -363,6 +363,7 @@ def archive_files(
         files[DATABASE_FILE] = database_copy(folder)
     with folder.engine.connect() as connection:
         title = projects.get_project(connection).title
+    simulated = folder.replication is not None
     readme = (
         _environment()
         .get_template("archive_readme.md.j2")
@@ -371,6 +372,10 @@ def archive_files(
             public=kind is ArchiveKind.PUBLIC,
             tool_version=tool_version,
             date=moment.date().isoformat(),
+            simulation={
+                language: simulation_mention(translator(language)) if simulated else ""
+                for language in EXPORT_LANGUAGES
+            },
         )
     )
     files["LISEZMOI.md"] = readme.encode()

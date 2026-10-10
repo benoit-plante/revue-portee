@@ -1,3 +1,5 @@
 ﻿* text=auto eol=lf
 # Real exports keep their exact bytes (Windows line ends are a variant under test).
 tests/fixtures/ris/*.ris -text
+# The fictitious review of the replication benchmark: its GEL.sha256 hashes the bytes.
+tests/fixtures/replication/revue/** -text

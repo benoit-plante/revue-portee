@@ -13,6 +13,9 @@
   <rect x="0" y="0" width="{{ width }}" height="{{ height }}" fill="#ffffff"/>
   <text x="{{ band_x }}" y="28" font-size="16" font-weight="bold">{{ title }}</text>
   <text x="{{ band_x }}" y="50" font-size="13">{{ project_title }}</text>
+{% if simulation %}
+  <text x="{{ band_x }}" y="70" font-size="13" font-weight="bold" fill="#c0392b">{{ simulation }}</text>
+{% endif %}
 {% for band in bands %}
   <rect x="{{ band_x }}" y="{{ band.y }}" width="{{ band_width }}" height="{{ band.height }}" rx="4" fill="#dbe7f3" stroke="#5b7fa6"/>
   <text x="{{ band.center[0] }}" y="{{ band.center[1] }}" transform="rotate(-90 {{ band.center[0] }} {{ band.center[1] }})" text-anchor="middle" dominant-baseline="central" font-weight="bold">{{ band.label }}</text>

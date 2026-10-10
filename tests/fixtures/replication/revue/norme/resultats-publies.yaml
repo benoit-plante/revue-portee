@@ -1,0 +1,14 @@
+# Numbers of the published flow diagram and distributions of the fictitious review.
+diagramme:
+  identifies: 30
+  apres_doublons: 27
+  tries: 27
+  textes_evalues: 8
+  inclus_rapports: 7
+  inclus_etudes: 6
+distributions:
+  - champ: D1
+    n: 6
+    categories: {Essai randomisé: 1, Quasi expérimental: 3, Qualitatif: 2}
+  - champ: Milieu
+    categories: {Communauté: 2, Résidence: 2, Hôpital: 2}
