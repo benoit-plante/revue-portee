@@ -1,6 +1,6 @@
 # 11 — Plan des tests de réplication
 
-> **Statut** : ébauche du 9 octobre 2026; **décisions du §13 tranchées par Benoit le 2026-10-09**, puis révisées le même jour : **aucun arbitrage ni jugement humain des écarts**, et les conclusions narratives retirées de l'étude. Rien n'est lancé.
+> **Statut** : ébauche du 9 octobre 2026; **décisions du §13 tranchées par Benoit le 2026-10-09**, puis révisées le même jour : **aucun arbitrage ni jugement humain des écarts**, et les conclusions narratives retirées de l'étude. **Outil livré** le 2026-10-09 (tranche 3.8, benoit-plante/revue-portee#52; décisions proposées D-105 à D-111). Aucune revue n'est encore lancée.
 > **Objet** : rejouer des revues de portée publiées en psychologie avec revue-portee **sans révision humaine**, de la recherche à la synthèse, et mesurer à quel point l'outil, laissé seul, **se rapproche des résultats obtenus par des humains**.
 > **Renvois** : [05-plan-de-validation.md](05-plan-de-validation.md) et 09 (protocole de l'étude de validation, branche `tranche/1.8-preenregistrement`) pour le tri des titres et résumés; [10-conception-texte-integral.md](10-conception-texte-integral.md) pour le texte intégral; [resultats/](resultats/README.md).
 > **Bassin de revues candidates** : classeur `candidates-replication.xlsx`, à garder **hors du dépôt**, par exemple dans `~/revue-portee-donnees/replication/` (§5.4).
@@ -31,11 +31,11 @@ Les deux études ont des revues **distinctes** (§5.3, décision 3).
 
 ## 2. Mode « réplication » : une exception encadrée au principe 1
 
-Le principe 1 interdit toute exclusion par l'IA seule. Pour la réplication, l'IA doit pourtant décider seule. **Accepté par Benoit le 2026-10-09** (décision 1), à consigner au journal des décisions :
+Le principe 1 interdit toute exclusion par l'IA seule. Pour la réplication, l'IA doit pourtant décider seule. **Accepté par Benoit le 2026-10-09** (décision 1), consigné au journal des décisions (D-104; mise en œuvre : D-105, D-106, D-108) :
 
-> **D-1xx (décidée, numéro à attribuer) — Mode « réplication », réservé aux bancs d'essai.** Une commande de banc (`banc-replication`) crée un projet `.revue` marqué `replication` dans `projet.toml`. Dans ce projet seulement, les décisions de l'IA sont finales (nouveau contexte de décision `replication_ai`) et passent d'une étape à l'autre sans personne. Le mode **ne peut pas** être activé dans un projet ordinaire, ni un projet de réplication converti en projet ordinaire (test). Le diagramme, la section méthode et l'archive portent la mention « Simulation de réplication — ne constitue pas une revue ». Toute la traçabilité reste la même (ENF-TRA-01, ajout seulement, réponses brutes).
+> **D-104 — Mode « réplication », réservé aux bancs d'essai.** Une commande de banc (`banc-replication`) crée un projet `.revue` marqué `replication` dans `projet.toml`. Dans ce projet seulement, les décisions de l'IA sont finales (nouveau contexte de décision `replication`) et passent d'une étape à l'autre sans personne. Le mode **ne peut pas** être activé dans un projet ordinaire, ni un projet de réplication converti en projet ordinaire (test). Le diagramme, la section méthode et l'archive portent la mention « Simulation de réplication — ne constitue pas une revue ». Toute la traçabilité reste la même (ENF-TRA-01, ajout seulement, réponses brutes).
 
-Règle de décision en mode réplication : une référence « incertaine » est **conservée** (elle passe à l'étape suivante), comme une personne la trierait. La règle EF-SEL-07 s'applique. Une réponse inutilisable après une nouvelle tentative est conservée, et comptée.
+Règle de décision en mode réplication : une référence « incertaine » est **conservée** (elle passe à l'étape suivante), comme une personne la trierait. La règle EF-SEL-07 s'applique. Une réponse inutilisable après une nouvelle tentative est conservée, et comptée : sans décision enregistrée (ENF-TRA-05 interdit une décision de l'IA sans confiance), la référence est conservée par règle (D-106). Au texte intégral, un texte « incertain » est inclus pour la suite (D-108).
 
 ## 3. Devis : deux modes d'exécution, un troisième en option
 
@@ -125,8 +125,21 @@ Le dépôt est public, et les sessions de développement des gabarits ne doivent
     │   ├── extraction-publiee.csv
     │   └── resultats-publies.yaml
     ├── textes/                      # PDF, jamais publiés
-    └── replication.revue/           # projet en mode réplication
+    ├── replication-en-chaine.revue/ # projet en mode réplication, en chaîne
+    └── replication-par-etape.revue/ # projet en mode réplication, par étape
 ```
+
+Un projet par mode (D-107) : un projet n'a qu'une obtention et qu'un tri du texte intégral. Le tri des titres et résumés n'est rejoué qu'en chaîne; le mode par étape commence à l'obtention, avec les études incluses publiées.
+
+Formats (D-110) :
+
+- `criteres.yaml` au format de `banc-synergy`; `grille.yaml` au format des grilles de départ (`src/revue_portee/resources/extraction/`); `recherche/` : exports RIS et, au besoin, `strategie.yaml` (`bases`, `limites.annee_min` et `annee_max`, `blocs` de termes);
+- `GEL.sha256` au format de `sha256sum`, couvrant `criteres.yaml`, `grille.yaml` et tout `recherche/`; seules les empreintes comptent (attention aux fins de ligne : elles changent l'empreinte);
+- `norme/incluses.csv` : `study_id, doi, pmid, citation, retrievable` (`oui` ou `hors_recherche`), colonne `title` facultative;
+- `norme/extraction-publiee.csv` : `study_id, field, value` (code D1… ou libellé; vide si non rapporté; choix multiples séparés par « | »);
+- `norme/resultats-publies.yaml` : `diagramme` (`identifies`, `apres_doublons`, `tries`, `textes_evalues`, `inclus_rapports`, `inclus_etudes`) et `distributions` (`champ`, `categories`, `n` facultatif).
+
+Un exemple complet, inventé, se trouve dans `tests/fixtures/replication/` du dépôt, avec le décompte à la main de chaque mesure.
 
 Seuls les rapports chiffrés vont dans `docs/resultats/replication-<id>.md` (même règle que D-074 et D-092 : aucun résumé, aucun texte, aucune réponse brute).
 
@@ -283,9 +296,11 @@ Pour 3 revues de développement et 5 de réplication : **environ 30 $ US**; **pl
 
 ## 12. Ce qu'il faut ajouter à l'outil
 
-À proposer à Claude Code comme une tranche (par exemple `tranche/3.8-banc-replication`) :
+**Réalisé** dans la tranche 3.8 (benoit-plante/revue-portee#52; D-105 à D-111). Commande : `revue-portee banc-replication <dossier-revue> --plafond <$> [--mode par-etape|en-chaine] [--oui] [--sortie <dossier>] [--poursuivre] [--sans-libre-acces]`; le rapport `replication-<id>.md` réunit les deux modes (D-111). Non repris : comparaison de la strate A, mode « question seule », liste publiée des exclusions au texte intégral, analyse groupée du §8.
 
-1. **Mode réplication** (§2) : marqueur de projet, contexte de décision `replication_ai`, refus dans un projet ordinaire, mentions sur les exports. Tests.
+Ce qui était demandé :
+
+1. **Mode réplication** (§2) : marqueur de projet, contexte de décision `replication`, refus dans un projet ordinaire, mentions sur les exports. Tests.
 2. **`banc-replication <dossier-revue>`** : crée le projet, vérifie `GEL.sha256`, enchaîne les étapes dans un mode donné (`--mode par-etape|en-chaine`), affiche le coût estimé et demande confirmation, respecte un `--plafond`, reprend après interruption sans repayer (D-059, D-080).
 3. **Import de la norme de référence** (`incluses.csv`) et appariement aux références par DOI, PMID, puis titre (règles du dédoublonnage), avec liste des non appariées.
 4. **Comparateurs**, fonctions pures avec tests calculés à la main : retrouvabilité, cascade des pertes, rappel, précision, F1, Jaccard de bout en bout; concordance des champs catégoriels de l'extraction (accord, kappa, AC1); écarts de distributions; descripteurs automatiques des écarts (§9).
@@ -295,7 +310,7 @@ Pour 3 revues de développement et 5 de réplication : **environ 30 $ US**; **pl
 
 | # | Question | Décision |
 |---|---|---|
-| 1 | Mode réplication | **Accepté**, limité aux bancs d'essai (§2); à consigner au journal (D-1xx) |
+| 1 | Mode réplication | **Accepté**, limité aux bancs d'essai (§2); consigné au journal (D-104) |
 | 2 | Nombre de revues | **3 de développement + 5 de réplication** : étude pilote descriptive (§8) |
 | 3 | Relation avec le protocole 09 | **Exclusion mutuelle** : le 09 fera son propre repérage après son gel (§5.3) |
 | 4 | Études hors recherche | **Deux rappels** : au dénominateur du rappel de bout en bout, plus un rappel « sur les études retrouvables » rapporté à côté |
@@ -307,7 +322,7 @@ Pour 3 revues de développement et 5 de réplication : **environ 30 $ US**; **pl
 
 **Conséquences à reporter ailleurs** :
 - protocole 09, §3.2 : ajouter l'exclusion des revues examinées pour la réplication;
-- journal des décisions : D-1xx (mode réplication) et une entrée pour le présent plan;
+- journal des décisions : D-104 (mode réplication) et D-103 (présent plan), faits; mise en œuvre : D-105 à D-111;
 - feuille de route : une tranche `banc-replication` (§12), avec arrêt et reprise après l'étape 4.
 
 ## 14. Limites prévisibles

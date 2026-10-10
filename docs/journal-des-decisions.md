@@ -1661,3 +1661,118 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
 - **Justification** : choix de Benoit; l'option 1 mesure le vrai code, et les garde-fous gardent le principe 1 intact pour toute revue réelle.
 - **Conséquences** : nouvelle valeur de `DecisionContext`; marqueur de projet; mention sur les exports; tranche 3.8.
 - **Renvois** : principe 1 (CLAUDE.md); D-103; D-065, D-068 (valeur de l'IA), D-069 (plafond), D-080 (lots), D-059 (reprise).
+
+Propositions de la tranche 3.8 (2026-10-09), mises en œuvre dans la demande de fusion benoit-plante/revue-portee#52 :
+
+### D-105 — Marqueur du mode réplication, dans la base et dans projet.toml
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** :
+  - le mode réplication (D-104) est marqué à deux endroits : la section `[replication]` de `projet.toml` (revue et mode) et une ligne de la table `replication_marker`, écrite dans la transaction qui crée le projet;
+  - la base refuse elle-même le marqueur hors de cette transaction : il doit renvoyer à l'entrée `project.created`, seule du journal, dont la charge (scellée dans la chaîne d'empreintes) déclare la même revue et le même mode; il n'est jamais modifié ni supprimé;
+  - un déclencheur refuse toute décision de contexte `replication` dans un projet sans marqueur;
+  - un dossier dont `projet.toml` et la base ne s'accordent pas n'est pas ouvert.
+- **Contexte** : D-104 demande que le mode ne puisse être ni activé dans un projet ordinaire, ni retiré d'un projet de réplication. Un marqueur dans `projet.toml` seulement se modifie à la main.
+- **Options envisagées** :
+  1. **Marqueur double, gardé par la base** : la règle tient même pour du code qui contourne les cas d'usage, comme l'ajout seulement (D-028).
+  2. Marqueur dans `projet.toml` seulement, vérifié par le code.
+- **Justification** : l'option 1 garde le principe 1 intact pour toute revue réelle, quoi qu'on fasse du fichier.
+- **Conséquences** : migration 0018; **écart à 03-architecture.md** (nouvelle table); tests des garde-fous dans `tests/unit/replication/test_mode.py`.
+- **Renvois** : D-104, D-028, ENF-TRA-02.
+
+### D-106 — Réponse inutilisable conservée par règle, sans décision fabriquée
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** : en mode réplication, une référence que l'IA n'a pas pu trier après deux tentatives (réponses inutilisables ou en erreur) n'a pas de décision : elle est **conservée par règle**, calculée à partir des lots (`batch_ai.exhausted`), et comptée dans le rapport (« conservées faute de réponse utilisable »). Même règle pour un texte numérisé que l'IA ne peut pas lire.
+- **Contexte** : D-104 conserve et compte ces références. ENF-TRA-05 et la contrainte `ck_decision_ai_traceable` interdisent une décision de l'IA sans confiance ni décision du modèle.
+- **Options envisagées** :
+  1. **Conservation calculée** à partir des appels consignés.
+  2. Décision de l'IA « incertain » sans confiance : contraire à ENF-TRA-05.
+  3. Décision attribuée à la personne : fausse sur le type de réviseur (ENF-TRA-01).
+- **Justification** : l'option 1 garde une traçabilité exacte; le nombre se recalcule à partir des appels.
+- **Conséquences** : les références cherchées pour le texte intégral (`screening.report.sought_references`) et les rapports inclus (`studies.included_reports`) comprennent ces références dans un projet de réplication.
+- **Renvois** : D-104, D-080, ENF-TRA-01, ENF-TRA-05.
+
+### D-107 — Un projet par mode; tri des résumés rejoué une seule fois
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** :
+  - `banc-replication` crée un projet par mode dans le dossier de la revue : `replication-en-chaine.revue` et `replication-par-etape.revue`;
+  - le tri des titres et résumés n'est rejoué qu'**en chaîne**; le mode par étape fait la recherche et le dédoublonnage (pour la retrouvabilité), puis commence à l'obtention des textes avec les études incluses publiées, importées de `incluses.csv` (provenance `reference_standard`, avec les champs de leur notice collectée quand elle existe);
+  - par étape, les étapes 6 à 8 reçoivent toutes les études publiées dont le texte est obtenu, quelle que soit la décision de l'IA au texte intégral, qui est mesurée sans se propager.
+- **Contexte** : le §5.4 du plan 11 prévoyait un seul projet `replication.revue`; un projet n'a qu'une obtention et qu'un tri du texte intégral. Le §3 donne le même intrant au tri des résumés dans les deux modes, et le §11 ne le compte qu'une fois.
+- **Options envisagées** :
+  1. **Deux projets, tri des résumés en chaîne seulement** : rien n'est payé deux fois.
+  2. Deux projets complets : le tri des résumés payé deux fois pour un résultat identique.
+- **Justification** : l'option 1 suit le tableau du §3 et le coût du §11.
+- **Conséquences** : le rapport réunit les deux modes dans un seul fichier; les mesures du tri des résumés sont dans la section « en chaîne »; **écart à 03-architecture.md** : nouvelle provenance `reference_standard` (un `import_file` au format `csv`).
+- **Renvois** : D-103, D-104; [11-plan-de-replication.md](11-plan-de-replication.md) §3, §5.4, §11.
+
+### D-108 — Décisions de l'IA finales aux étapes suivantes
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** : en mode réplication,
+  - une décision « incertain » au texte intégral conserve le texte, qui est inclus pour la suite;
+  - le verdict de l'IA sur une paire de rapports est final : « même étude » joint les rapports, « différente » et « incertain » les gardent séparés (décision enregistrée au nom du réviseur IA);
+  - les paires de doublons à examiner restent sans décision (références séparées); seuls les groupements automatiques s'appliquent (règles version 1, D-062);
+  - le pilote du texte intégral n'est pas exigé : personne ne trie;
+  - les valeurs extraites par l'IA entrent dans la synthèse (`for_synthesis(replication=True)`).
+- **Contexte** : D-104 rend les décisions de l'IA finales sans dire comment chaque étape les reçoit. Le §2 du plan 11 conserve une référence incertaine « comme une personne la trierait ».
+- **Options envisagées** :
+  1. **Conserver ce qui est incertain, séparer ce qui n'est pas clairement joint.**
+  2. Traiter « incertain » comme une exclusion : contraire au §2.
+- **Justification** : l'option 1 est la plus prudente pour le rappel, mesure principale de l'étude.
+- **Conséquences** : le diagramme d'un projet de réplication reste « provisoire » (textes incertains, textes non triés par une personne).
+- **Renvois** : D-104, D-062, D-102; [11-plan-de-replication.md](11-plan-de-replication.md) §2.
+
+### D-109 — Définitions des mesures de concordance
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** :
+  - une étude publiée est **retrouvable** quand elle est dans une base interrogée ou qu'elle a été collectée malgré tout;
+  - le **Jaccard** divise les études publiées retrouvées par les études publiées plus les études de l'outil qui n'en retrouvent aucune (deux études de l'outil peuvent retrouver la même étude publiée si leurs rapports n'ont pas été joints);
+  - dans l'accord sur un champ catégoriel, « non rapporté » est une catégorie, aussi comptée de chaque côté; l'AC1 de Gwet prend q = catégories utilisées par l'un ou l'autre;
+  - dans une répartition, le dénominateur de l'outil est le nombre de ses études ayant une valeur rapportée (un choix multiple compte dans chacune de ses catégories); celui de la revue publiée est `n` s'il est donné, sinon la somme des effectifs;
+  - au diagramme, « textes évalués » compte les textes du tour principal du texte intégral, et « triées » compte aussi les références conservées faute de réponse utilisable;
+  - cascade : hors de toute base interrogée, recherche, tri des résumés, obtention, texte intégral.
+- **Contexte** : le §7 et le §9 du plan 11 nomment les mesures sans en fixer les cas limites.
+- **Options envisagées** : les définitions ci-dessus, chacune vérifiée par un test calculé à la main (`tests/unit/domain/test_replication.py`, `tests/fixtures/replication/README.md`).
+- **Justification** : elles gardent chaque nombre recalculable et ne jugent aucun écart (D-103).
+- **Conséquences** : fonctions pures dans `domain/replication.py`; `cohen_kappa_nominal` et `gwet_ac1_nominal` dans `domain/metrics.py`.
+- **Renvois** : D-103; [11-plan-de-replication.md](11-plan-de-replication.md) §7, §9.
+
+### D-110 — Formats du dossier d'une revue à rejouer
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** :
+  - `criteres.yaml` au format de `banc-synergy`; `grille.yaml` au format des grilles de départ (`resources/extraction/`); `recherche/` : exports RIS et, au besoin, `strategie.yaml` (`bases`, `limites.annee_min` et `annee_max`, `blocs` de termes au format de l'outil);
+  - `GEL.sha256` au format de `sha256sum`, couvrant `criteres.yaml`, `grille.yaml` et tout `recherche/` (ni `fiche.yaml`, ni `norme/`, constituée après le gel); seules les empreintes comptent;
+  - `norme/incluses.csv` : `study_id, doi, pmid, citation, retrievable` (`oui` ou `hors_recherche`), colonne `title` facultative; appariement par DOI, PMID, puis titre (règles du dédoublonnage; sans `title`, un titre d'au moins 4 mots trouvé dans la citation);
+  - `norme/extraction-publiee.csv` : `study_id, field, value` (code D1… ou libellé; vide si non rapporté; choix multiples séparés par « | »);
+  - `norme/resultats-publies.yaml` : `diagramme` (`identifies`, `apres_doublons`, `tries`, `textes_evalues`, `inclus_rapports`, `inclus_etudes`) et `distributions` (`champ`, `categories`, `n` facultatif).
+- **Contexte** : le §5.4 du plan 11 nomme les fichiers sans fixer leurs colonnes.
+- **Options envisagées** : réutiliser les formats existants de l'outil plutôt qu'en créer de nouveaux.
+- **Justification** : les transcriptions se font avec des formats déjà vérifiés par l'outil.
+- **Conséquences** : un dossier dont un fichier ne suit pas ces formats est refusé avec un message en français; les fins de ligne comptent pour les empreintes (la revue fictive du dépôt garde ses octets, `.gitattributes`).
+- **Renvois** : D-074, D-103; [11-plan-de-replication.md](11-plan-de-replication.md) §4, §5.4.
+
+### D-111 — Exécution et rapport du banc de réplication
+
+- **Date** : 2026-10-09
+- **Statut** : proposée
+- **Décision** :
+  - un seul rapport `replication-<id>.md` par revue, avec une section par mode exécuté jusqu'au bout, écrit dans `--sortie` (par défaut le dossier courant), en français écrit en dur comme les autres rapports de banc; chiffres et configuration seulement;
+  - la liste des études de la norme non appariées s'affiche dans la console et le journal, jamais dans le rapport;
+  - le libre accès (OpenAlex, Unpaywall) est cherché par défaut, désactivable par `--sans-libre-acces`;
+  - la commande attend la fin des lots (sondage toutes les 60 s) et reprend sans repayer si elle est interrompue; elle s'arrête après l'obtention tant que des textes manquent, et `--poursuivre` les déclare non obtenus.
+- **Contexte** : le §12 du plan 11 décrit la commande et le rapport sans ces détails.
+- **Options envisagées** : un rapport par mode ou un rapport par revue; l'option retenue montre la propagation des erreurs d'un coup d'œil.
+- **Justification** : le rapport unique compare les deux modes; les identifiants d'études restent hors du rapport, qui pourra être publié.
+- **Conséquences** : **écart à 03-architecture.md** : nouveau paquet `replication/` (`inputs.py`, `bench.py`, `report.py`), entrées de journal `replication.standard_imported` et `replication.run_ended`.
+- **Renvois** : D-059, D-069, D-074, D-080, D-092; [11-plan-de-replication.md](11-plan-de-replication.md) §12.
