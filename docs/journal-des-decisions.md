@@ -1616,3 +1616,48 @@ Propositions de la tranche 1.5 (2026-10-08), mises en œuvre dans la demande de 
   - la vérification des conditions des éditeurs reste la responsabilité de l'équipe, ce que la documentation rappelle;
   - l'étude de validation (09) trie les revues de test en mode aveugle.
 - **Renvois** : D-079, D-080, D-092; [10-conception-texte-integral.md](10-conception-texte-integral.md); [01-etat-de-l-art.md](01-etat-de-l-art.md).
+
+### D-103 — Étude de réplication : concordance de l'outil seul avec des revues publiées
+
+- **Date** : 2026-10-09
+- **Statut** : décidée par Benoit
+- **Décision** : une étude de réplication, décrite dans [11-plan-de-replication.md](11-plan-de-replication.md), rejoue des revues de portée publiées en psychologie avec revue-portee **sans aucune révision humaine**, de la recherche à la synthèse, et mesure sa **concordance** avec la revue publiée. Choix de Benoit :
+  1. 3 revues de développement, passées **une à la fois** avec un journal des enjeux, puis **5 revues de réplication** tirées au hasard, sans aucune correction entre elles;
+  2. **aucun arbitrage** : la revue publiée est la référence par définition; la concordance est une borne prudente de la justesse;
+  3. conclusions narratives et champs d'extraction en texte libre **hors de la mesure** : tout est calculé automatiquement;
+  4. revues **distinctes** de celles de l'étude de validation (09);
+  5. études incluses hors de toute base : deux rappels rapportés (toutes les études; études retrouvables);
+  6. textes payants téléversés par l'accès UQTR; repérage manuel de revues francophones;
+  7. plafond de **40 $ US** pour toute l'étude.
+- **Contexte** : le protocole 09 mesure le tri des titres et résumés dans l'usage prévu (l'IA comme second réviseur). Benoit veut aussi savoir à quelle distance des humains l'outil se trouve sans validation, de bout en bout, sans recommander cet usage.
+- **Options envisagées** :
+  1. **Concordance sans arbitrage**, entièrement automatique.
+  2. Arbitrage des écarts par Benoit, à l'aveugle de la source.
+  3. Jugement des conclusions narratives par un autre modèle.
+- **Justification** : choix de Benoit; l'option 1 répond à la question posée (« l'outil seul, comparé aux humains, sans jugement humain »).
+- **Conséquences** :
+  - étude pilote descriptive (environ ± 0,05 sur le rappel de bout en bout);
+  - le bassin de revues candidates et le journal des enjeux restent **hors du dépôt** (`~/revue-portee-donnees/replication/`), pour que les sessions de mise au point des gabarits ne voient jamais les revues de réplication;
+  - un enjeu qui touche une invite suit le journal des gabarits (08), jamais une correction sur les revues de réplication;
+  - exige le mode réplication (D-104) et une tranche `banc-replication` (3.8).
+- **Renvois** : D-104; [11-plan-de-replication.md](11-plan-de-replication.md); [05-plan-de-validation.md](05-plan-de-validation.md).
+
+### D-104 — Mode « réplication », réservé aux bancs d'essai
+
+- **Date** : 2026-10-09
+- **Statut** : décidée par Benoit (exception encadrée au principe 1)
+- **Décision** : un projet `.revue` créé par `revue-portee banc-replication` est marqué `replication` dans `projet.toml`. Dans ce projet seulement :
+  - les décisions de l'IA sont **finales** et passent d'une étape à l'autre sans personne (nouveau contexte de décision `replication`);
+  - une référence « incertaine » est conservée, la règle EF-SEL-07 s'applique, et une réponse inutilisable après une nouvelle tentative est conservée et comptée.
+  Garde-fous :
+  - le mode ne peut être activé dans aucun projet ordinaire, et un projet de réplication ne peut pas devenir un projet ordinaire (tests);
+  - un projet ordinaire refuse toute décision de contexte `replication` (test);
+  - diagramme, section méthode et archive portent la mention « Simulation de réplication — ne constitue pas une revue »;
+  - la traçabilité est inchangée (ENF-TRA-01, ajout seulement, réponses brutes conservées).
+- **Contexte** : l'étude de réplication (D-103) mesure l'outil seul. Le principe 1 interdit toute exclusion par l'IA seule dans une revue.
+- **Options envisagées** :
+  1. **Mode réservé aux bancs, dans l'outil** : réutilise les cas d'usage réels, donc mesure l'outil tel qu'il est.
+  2. Scripts externes qui enchaînent les sorties de l'IA : n'importe quoi de l'outil pourrait diverger de ce qui est mesuré.
+- **Justification** : choix de Benoit; l'option 1 mesure le vrai code, et les garde-fous gardent le principe 1 intact pour toute revue réelle.
+- **Conséquences** : nouvelle valeur de `DecisionContext`; marqueur de projet; mention sur les exports; tranche 3.8.
+- **Renvois** : principe 1 (CLAUDE.md); D-103; D-065, D-068 (valeur de l'IA), D-069 (plafond), D-080 (lots), D-059 (reprise).
