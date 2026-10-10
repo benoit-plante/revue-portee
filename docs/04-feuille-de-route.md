@@ -183,6 +183,7 @@
 | 3.5 Tableaux et cartes | Fréquences, tableaux croisés, cartes de données probantes, lacunes | EF-SYN-01 à 03 | Nombres vérifiés à la main sur le jeu de démonstration; export CSV, XLSX, SVG, HTML |
 | 3.6 Synthèse narrative assistée | Ébauche par catégorie, rattachée aux études | EF-SYN-04 | Chaque phrase rattachée à au moins une étude incluse; révision humaine obligatoire |
 | 3.7 Modèle local | `LocalLLMProvider` (API compatible Ollama/OpenAI) | — | Mêmes tâches et mêmes tests que Claude avec `FakeProvider`; banc SYNERGY exécuté avec au moins un modèle local |
+| 3.8 Banc de réplication | Mode réplication réservé aux bancs (D-104); commande `banc-replication` qui rejoue une revue publiée « par étape » ou « en chaîne »; import de la norme de référence; comparateurs de concordance; rapport chiffré ([11](11-plan-de-replication.md), §12) | — | Le mode est refusé dans un projet ordinaire (tests); essai à sec de bout en bout avec `FakeProvider` sur une revue fictive, dans les deux modes, avec arrêt après l'obtention des textes et reprise sans nouvel appel; chaque comparateur vérifié sur un cas calculé à la main; plafond respecté, nouvelles tentatives comprises; rapport sans titre, résumé ni réponse brute |
 
 ---
 
