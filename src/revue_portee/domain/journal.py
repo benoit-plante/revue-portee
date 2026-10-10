@@ -107,6 +107,8 @@ class EntryType:
     STAKEHOLDER_ADDED = "stakeholder.added"
     STAKEHOLDER_COMMENT_RECORDED = "stakeholder.comment_recorded"
     STAKEHOLDER_COMMENT_ANSWERED = "stakeholder.comment_answered"
+    REPLICATION_STANDARD_IMPORTED = "replication.standard_imported"
+    REPLICATION_RUN_ENDED = "replication.run_ended"
 
 
 class JournalEntry(BaseModel):

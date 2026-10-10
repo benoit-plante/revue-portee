@@ -86,6 +86,7 @@ __all__ = [
     "qualification_proposal",
     "query",
     "reference",
+    "replication_marker",
     "retrieval_note",
     "reviewer",
     "round_member",
@@ -1085,6 +1086,16 @@ comment_response = Table(
     Column("supersedes_id", String(26), ForeignKey("comment_response.id")),
     Column("created_at", UTCDateTime, nullable=False),
     Column("reviewer_id", String(26), ForeignKey("reviewer.id"), nullable=False),
+    _journal_column(),
+)
+
+replication_marker = Table(
+    "replication_marker",
+    metadata,
+    Column("project_id", String(26), ForeignKey("project.id"), primary_key=True),
+    Column("review_id", Text, nullable=False),
+    Column("mode", String(16), nullable=False),
+    Column("created_at", UTCDateTime, nullable=False),
     _journal_column(),
 )
 

@@ -85,7 +85,9 @@ def study_data(folder: ProjectFolder) -> tuple[GridVersion, list[StudyData]]:
     if state.grid is None:
         raise NoGridError
     with folder.engine.connect() as connection:
-        kept = for_synthesis(extraction_repo.list_values(connection))
+        kept = for_synthesis(
+            extraction_repo.list_values(connection), replication=folder.replication is not None
+        )
     codes = {f.code for f in state.grid.fields}
     found = []
     for study in state.studies:

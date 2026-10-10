@@ -1,0 +1,19 @@
+study_id,field,value
+S1,D1,Essai randomisé
+S1,D2,Communauté
+S1,D3,oui
+S2,D1,Quasi expérimental
+S2,D2,Résidence
+S2,D3,oui
+S3,D1,Quasi expérimental
+S3,D2,Hôpital
+S3,D3,non
+S4,D1,Qualitatif
+S4,D2,Résidence
+S4,D3,
+S5,D1,Quasi expérimental
+S5,D2,Hôpital
+S5,D3,oui
+S6,D1,Qualitatif
+S6,D2,Communauté
+S6,D3,non

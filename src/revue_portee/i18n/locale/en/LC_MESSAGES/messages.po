@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: revue-portee VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 18:18-0400\n"
+"POT-Creation-Date: 2026-10-09 20:54-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -740,6 +740,14 @@ msgstr "Ceiling of the batch in US dollars"
 msgid "Ceiling of the run in US dollars."
 msgstr "Ceiling of the run in US dollars."
 
+#, python-brace-format
+msgid ""
+"Ceiling reached at the step « {step} »: the run stopped before the next call; what was done is "
+"kept. Run the command again with a higher ceiling."
+msgstr ""
+"Ceiling reached at the step “{step}”: the run stopped before the next call; what was done is "
+"kept. Run the command again with a higher ceiling."
+
 #, python-format
 msgid "Ceiling: %(limit)s; spent so far on model calls: %(spent)s."
 msgstr "Ceiling: %(limit)s; spent so far on model calls: %(spent)s."
@@ -851,6 +859,10 @@ msgstr "Collect every record in %(database)s"
 
 msgid "Collect with the APIs"
 msgstr "Collect with the APIs"
+
+#, python-brace-format
+msgid "Collected in {database}: {count} records"
+msgstr "Collected in {database}: {count} records"
 
 msgid "Collection"
 msgstr "Collection"
@@ -1225,6 +1237,10 @@ msgstr "Deduplication: two references grouped as duplicates"
 msgid "Deduplication: two references kept apart"
 msgstr "Deduplication: two references kept apart"
 
+#, python-brace-format
+msgid "Deduplication: {references} references compared"
+msgstr "Deduplication: {references} references compared"
+
 msgid "Definition"
 msgstr "Definition"
 
@@ -1309,6 +1325,9 @@ msgstr "Discard the draft"
 
 msgid "Do not ask to confirm the cost."
 msgstr "Do not ask to confirm the cost."
+
+msgid "Do not look for open access texts (OpenAlex, Unpaywall)."
+msgstr "Do not look for open access texts (OpenAlex, Unpaywall)."
 
 msgid "Does the report give it?"
 msgstr "Does the report give it?"
@@ -1588,6 +1607,9 @@ msgstr ""
 msgid "Every criteria version activated from now on is a deviation from the protocol, to be reported."
 msgstr "Every criteria version activated from now on is a deviation from the protocol, to be reported."
 
+msgid "Every step done; no reference standard yet (norme/incluses.csv): no report."
+msgstr "Every step done; no reference standard yet (norme/incluses.csv): no report."
+
 msgid "Evidence map"
 msgstr "Evidence map"
 
@@ -1823,11 +1845,18 @@ msgstr "Flow diagram of the screening, in French; its numbers are in the table a
 msgid "Flow diagram written: {path}"
 msgstr "Flow diagram written: {path}"
 
+#, python-brace-format
+msgid "Folder not found: {path}"
+msgstr "Folder not found: {path}"
+
 msgid "Folder of the Markdown report."
 msgstr "Folder of the Markdown report."
 
 msgid "Folder of the reports."
 msgstr "Folder of the reports."
+
+msgid "Folder of the review to replay."
+msgstr "Folder of the review to replay."
 
 msgid "Folder to create (.revue is added)."
 msgstr "Folder to create (.revue is added)."
@@ -1988,6 +2017,14 @@ msgstr "Full texts of the references sought"
 
 #, python-brace-format
 msgid ""
+"Full texts to upload: {count}. Put their PDFs in {folder}, then run the command again (or add "
+"--poursuivre to go on without them)."
+msgstr ""
+"Full texts to upload: {count}. Put their PDFs in {folder}, then run the command again (or add "
+"--poursuivre to go on without them)."
+
+#, python-brace-format
+msgid ""
 "Full texts: {obtained} obtained of {sought} sought ({open_access} in open access, {share}; "
 "{uploaded} added by the team); not found: {not_found}; not retrievable: {not_retrievable}; never "
 "looked for: {not_sought}."
@@ -2107,6 +2144,12 @@ msgstr "Give the value"
 
 msgid "Give two different fields, one for the rows and one for the columns."
 msgstr "Give two different fields, one for the rows and one for the columns."
+
+msgid "Go on without the missing full texts (declared not retrievable)."
+msgstr "Go on without the missing full texts (declared not retrievable)."
+
+msgid "Go on?"
+msgstr "Go on?"
 
 msgid "Grid"
 msgstr "Grid"
@@ -2238,6 +2281,10 @@ msgstr "Included studies"
 
 msgid "Included studies and their extraction"
 msgstr "Included studies and their extraction"
+
+#, python-brace-format
+msgid "Included studies of the published review imported: {count}"
+msgstr "Included studies of the published review imported: {count}"
 
 #, python-format
 msgid "Included studies: %(count)s."
@@ -2653,6 +2700,10 @@ msgid "Narrative synthesis"
 msgstr "Narrative synthesis"
 
 #, python-brace-format
+msgid "Narrative synthesis of {field}"
+msgstr "Narrative synthesis of {field}"
+
+#, python-brace-format
 msgid "Narrative synthesis of {field}: draft proposed by the AI"
 msgstr "Narrative synthesis of {field}: draft proposed by the AI"
 
@@ -2905,6 +2956,10 @@ msgstr ""
 
 msgid "Open access versions"
 msgstr "Open access versions"
+
+#, python-brace-format
+msgid "Open access: looked for {looked_for}, obtained {obtained}"
+msgstr "Open access: looked for {looked_for}, obtained {obtained}"
 
 #, python-brace-format
 msgid "Open http://{host}:{port}/ in your browser (Ctrl+C to stop)."
@@ -3203,6 +3258,10 @@ msgstr "Project journal"
 msgid "Project opened with revue-portee {version}"
 msgstr "Project opened with revue-portee {version}"
 
+#, python-brace-format
+msgid "Project: {path}; spent: {amount} USD of {ceiling}."
+msgstr "Project: {path}; spent: {amount} USD of {ceiling}."
+
 msgid "Prompt template"
 msgstr "Prompt template"
 
@@ -3298,6 +3357,9 @@ msgstr "PubMed query."
 msgid "Public (to deposit)"
 msgstr "Public (to deposit)"
 
+msgid "Published search strategy, rebuilt"
+msgstr "Published search strategy, rebuilt"
+
 msgid "Qualification of criteria changes (broadening, narrowing, clarification)"
 msgstr "Qualification of criteria changes (broadening, narrowing, clarification)"
 
@@ -3326,6 +3388,10 @@ msgstr "RIS file"
 #, python-brace-format
 msgid "RIS file imported ({database}), records: {count}"
 msgstr "RIS file imported ({database}), records: {count}"
+
+#, python-brace-format
+msgid "RIS file imported: {file}"
+msgstr "RIS file imported: {file}"
 
 msgid "RIS imports"
 msgstr "RIS imports"
@@ -3670,6 +3736,42 @@ msgstr "Removed: %(code)s"
 msgid "Replace with another version"
 msgstr "Replace with another version"
 
+msgid ""
+"Replay a published review with the tool alone and measure its concordance with the published "
+"review (calls the model)."
+msgstr ""
+"Replay a published review with the tool alone and measure its concordance with the published "
+"review (calls the model)."
+
+msgid "Replayed stepwise, the reference standard is needed."
+msgstr "Replayed stepwise, the reference standard is needed."
+
+#, python-brace-format
+msgid "Replication of {review} ({mode})"
+msgstr "Replication of {review} ({mode})"
+
+msgid "Replication simulation — not a review"
+msgstr "Replication simulation — not a review"
+
+msgid "Replication: every step done"
+msgstr "Replication: every step done"
+
+#, python-brace-format
+msgid ""
+"Replication: included studies of the published review imported: {count} (matched to the "
+"collection: {matched})"
+msgstr ""
+"Replication: included studies of the published review imported: {count} (matched to the "
+"collection: {matched})"
+
+#, python-brace-format
+msgid "Replication: stopped at the step « {step} » ({reason})"
+msgstr "Replication: stopped at the step “{step}” ({reason})"
+
+#, python-brace-format
+msgid "Replication: verdict of the AI ({verdict})"
+msgstr "Replication: verdict of the AI ({verdict})"
+
 msgid "Report"
 msgstr "Report"
 
@@ -3693,6 +3795,9 @@ msgstr "Reports"
 #, python-brace-format
 msgid "Reports excluded, by primary reason: {reasons}."
 msgstr "Reports excluded, by primary reason: {reasons}."
+
+msgid "Reports of a same study"
+msgstr "Reports of a same study"
 
 #, python-brace-format
 msgid "Reports of a same study: pair examined by the AI ({verdict})"
@@ -3747,6 +3852,9 @@ msgstr "Resume"
 
 msgid "Retrieval of full texts"
 msgstr "Retrieval of full texts"
+
+msgid "Retrieval of the full texts"
+msgstr "Retrieval of the full texts"
 
 msgid "Review protocol"
 msgstr "Review protocol"
@@ -4106,6 +4214,10 @@ msgstr "Status"
 msgid "Stopped"
 msgstr "Stopped"
 
+#, python-brace-format
+msgid "Stopped before the step « {step} »: cost not confirmed."
+msgstr "Stopped before the step “{step}”: cost not confirmed."
+
 msgid "Stopped by the ceiling"
 msgstr "Stopped by the ceiling"
 
@@ -4142,6 +4254,10 @@ msgstr "Studies included: %(studies)s, from %(reports)s reports"
 
 msgid "Studies of the pilot drawn: extract them without the AI."
 msgstr "Studies of the pilot drawn: extract them without the AI."
+
+#, python-brace-format
+msgid "Studies of the reference standard matched to no reference: {studies}"
+msgstr "Studies of the reference standard matched to no reference: {studies}"
 
 #, python-brace-format
 msgid "Studies placed: {placed}; without a value on either field: {unplaced}."
@@ -4314,6 +4430,10 @@ msgstr "Text of the protocol"
 
 msgid "Texts"
 msgstr "Texts"
+
+#, python-brace-format
+msgid "Texts added from textes/: {count}"
+msgstr "Texts added from textes/: {count}"
 
 #, python-brace-format
 msgid "Texts converted again: {count}"
@@ -4543,6 +4663,10 @@ msgstr "The PDF is protected by a password."
 msgid "The [ia] section of {file} is invalid."
 msgstr "The [ia] section of {file} is invalid."
 
+#, python-brace-format
+msgid "The [replication] section of {file} is invalid."
+msgstr "The [replication] section of {file} is invalid."
+
 msgid "The answer of the model could not be used; the call is recorded."
 msgstr "The answer of the model could not be used; the call is recorded."
 
@@ -4645,8 +4769,20 @@ msgid "The file {file} is unreadable."
 msgstr "The file {file} is unreadable."
 
 #, python-brace-format
+msgid "The file {path} is unreadable."
+msgstr "The file {path} is unreadable."
+
+#, python-brace-format
+msgid "The file {path} needs an id made of letters, digits, dots, dashes or underscores."
+msgstr "The file {path} needs an id made of letters, digits, dots, dashes or underscores."
+
+#, python-brace-format
 msgid "The file {path} needs the columns title, abstract and label_included."
 msgstr "The file {path} needs the columns title, abstract and label_included."
+
+#, python-brace-format
+msgid "The file {path} needs the columns {columns}."
+msgstr "The file {path} needs the columns {columns}."
 
 msgid "The first year comes after the last year."
 msgstr "The first year comes after the last year."
@@ -4712,6 +4848,10 @@ msgstr "The full-text screening has not started."
 
 msgid "The grid needs at least one field."
 msgstr "The grid needs at least one field."
+
+#, python-brace-format
+msgid "The grid {path} does not follow the format of the starting grids: {error}"
+msgstr "The grid {path} does not follow the format of the starting grids: {error}"
 
 msgid "The language must be a two-letter ISO 639-1 code, for example fr or en."
 msgstr "The language must be a two-letter ISO 639-1 code, for example fr or en."
@@ -4912,6 +5052,14 @@ msgstr ""
 "block (free-text words and phrases searched in titles and abstracts, with truncation, and subject"
 " headings) are combined with OR."
 
+#, python-brace-format
+msgid "The search strategy {path} is invalid ({error})."
+msgstr "The search strategy {path} is invalid ({error})."
+
+#, python-brace-format
+msgid "The search strategy {path} names no database to collect (pubmed, openalex)."
+msgstr "The search strategy {path} names no database to collect (pubmed, openalex)."
+
 msgid "The seed must be a whole number."
 msgstr "The seed must be a whole number."
 
@@ -5026,6 +5174,9 @@ msgstr "This collection is already finished."
 #, python-brace-format
 msgid "This file was already imported on {date} (as « {name} »)."
 msgstr "This file was already imported on {date} (as “{name}”)."
+
+msgid "This project is not a replication project."
+msgstr "This project is not a replication project."
 
 msgid "This reference is not a disagreement between you and the AI: nothing to reconcile."
 msgstr "This reference is not a disagreement between you and the AI: nothing to reconcile."
@@ -5310,6 +5461,10 @@ msgstr "Unknown level."
 #, python-brace-format
 msgid "Unknown level: {level}."
 msgstr "Unknown level: {level}."
+
+#, python-brace-format
+msgid "Unknown mode: {mode} (par-etape or en-chaine)."
+msgstr "Unknown mode: {mode} (par-etape or en-chaine)."
 
 msgid "Unknown pilot round."
 msgstr "Unknown pilot round."
@@ -6033,6 +6188,21 @@ msgstr "no readable text (scanned PDF): read it without the tool"
 msgid "no study"
 msgstr "no study"
 
+#, python-brace-format
+msgid ""
+"norme/extraction-publiee.csv: the value of {field} for {study} is not among the categories of the"
+" grid."
+msgstr ""
+"norme/extraction-publiee.csv: the value of {field} for {study} is not among the categories of the"
+" grid."
+
+msgid "norme/incluses.csv changed since it was imported in this project."
+msgstr "norme/incluses.csv changed since it was imported in this project."
+
+#, python-brace-format
+msgid "norme/resultats-publies.yaml: unknown field of the grid: {field}."
+msgstr "norme/resultats-publies.yaml: unknown field of the grid: {field}."
+
 msgid "not checked yet"
 msgstr "not checked yet"
 
@@ -6120,6 +6290,9 @@ msgstr "pairs of possible duplicates to examine: {count}"
 #, python-brace-format
 msgid "pairs of reports of a possible same study to decide: {count}"
 msgstr "pairs of reports of a possible same study to decide: {count}"
+
+msgid "par-etape or en-chaine (docs/11 §3)."
+msgstr "par-etape or en-chaine (docs/11 §3)."
 
 msgid "patient partner, clinician, manager…"
 msgstr "patient partner, clinician, manager…"
@@ -6568,6 +6741,22 @@ msgid "{file} and the database describe different projects."
 msgstr "{file} and the database describe different projects."
 
 #, python-brace-format
+msgid ""
+"{file} and the database disagree on the replication mode: the mode is set only when banc-"
+"replication creates a project, and never removed."
+msgstr ""
+"{file} and the database disagree on the replication mode: the mode is set only when banc-"
+"replication creates a project, and never removed."
+
+#, python-brace-format
+msgid "{file} is missing: freeze the inputs before the run (docs/11 §4)."
+msgstr "{file} is missing: freeze the inputs before the run (docs/11 §4)."
+
+#, python-brace-format
+msgid "{folder} holds no RIS export nor search strategy."
+msgstr "{folder} holds no RIS export nor search strategy."
+
+#, python-brace-format
 msgid "{folder} is not a revue-portee project folder."
 msgstr "{folder} is not a revue-portee project folder."
 
@@ -6596,6 +6785,14 @@ msgid "{low} to {high}"
 msgstr "{low} to {high}"
 
 #, python-brace-format
+msgid "{name} changed since the freeze: its SHA-256 does not match {file}. The run is refused."
+msgstr "{name} changed since the freeze: its SHA-256 does not match {file}. The run is refused."
+
+#, python-brace-format
+msgid "{name} is not frozen: its SHA-256 is missing from {file}."
+msgstr "{name} is not frozen: its SHA-256 is missing from {file}."
+
+#, python-brace-format
 msgid "{name}: recall {recall}, precision {precision}; report: {path}"
 msgstr "{name}: recall {recall}, precision {precision}; report: {path}"
 
@@ -6606,6 +6803,18 @@ msgstr "{name}: right page for {rate} of {count} passages"
 #, python-brace-format
 msgid "{part} of {whole} ({share})"
 msgstr "{part} of {whole} ({share})"
+
+#, python-brace-format
+msgid "{path} is not the replication project of this review in this mode."
+msgstr "{path} is not the replication project of this review in this mode."
+
+#, python-brace-format
+msgid "{path} needs one row per included study, each with its own study_id."
+msgstr "{path} needs one row per included study, each with its own study_id."
+
+#, python-brace-format
+msgid "{path}, line {line}: retrievable must be oui or hors_recherche."
+msgstr "{path}, line {line}: retrievable must be oui or hors_recherche."
 
 #, python-brace-format
 msgid ""
@@ -6634,6 +6843,10 @@ msgstr "{service} refused the request (HTTP error {status})."
 #, python-brace-format
 msgid "{service} sent an answer that cannot be read."
 msgstr "{service} sent an answer that cannot be read."
+
+#, python-brace-format
+msgid "{step}: {count} items with {provider} — {model}: at most {amount} USD (prices of {date})."
+msgstr "{step}: {count} items with {provider} — {model}: at most {amount} USD (prices of {date})."
 
 #, python-brace-format
 msgid "{template}, version {version} ({calls} calls)"

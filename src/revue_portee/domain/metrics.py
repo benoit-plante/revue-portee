@@ -19,9 +19,11 @@ __all__ = [
     "PilotMetrics",
     "Stability",
     "cohen_kappa",
+    "cohen_kappa_nominal",
     "confusion",
     "disagreements_by_criterion",
     "gwet_ac1",
+    "gwet_ac1_nominal",
     "pilot_metrics",
     "stability",
     "threshold_curve",
@@ -78,6 +80,45 @@ def gwet_ac1(c: Confusion) -> float | None:
     observed = (c.tp + c.tn) / c.n
     pi = ((c.tp + c.fp) / c.n + (c.tp + c.fn) / c.n) / 2
     expected = 2 * pi * (1 - pi)
+    return None if expected == 1 else (observed - expected) / (1 - expected)
+
+
+def _shares(pairs: Sequence[tuple[str, str]]) -> tuple[float, dict[str, float], dict[str, float]]:
+    """Observed agreement and the share of each category for each rater."""
+    n = len(pairs)
+    first = Counter(a for a, _b in pairs)
+    second = Counter(b for _a, b in pairs)
+    observed = sum(1 for a, b in pairs if a == b) / n
+    categories = sorted(first.keys() | second.keys())
+    return (
+        observed,
+        {k: first[k] / n for k in categories},
+        {k: second[k] / n for k in categories},
+    )
+
+
+def cohen_kappa_nominal(pairs: Sequence[tuple[str, str]]) -> float | None:
+    """Cohen's kappa for two raters and any number of categories (``pairs`` of the
+    first and second rater's category); None without pairs or when chance agreement
+    is total (one category only)."""
+    if not pairs:
+        return None
+    observed, first, second = _shares(pairs)
+    expected = sum(first[k] * second[k] for k in first)
+    return None if expected == 1 else (observed - expected) / (1 - expected)
+
+
+def gwet_ac1_nominal(pairs: Sequence[tuple[str, str]]) -> float | None:
+    """Gwet's AC1 for two raters and the categories either of them used (q of them):
+    chance agreement is the sum of pi(1 - pi) over the categories, divided by q - 1,
+    pi being the mean share of a category. None without pairs or with one category."""
+    if not pairs:
+        return None
+    observed, first, second = _shares(pairs)
+    if len(first) < 2:
+        return None
+    pi = {k: (first[k] + second[k]) / 2 for k in first}
+    expected = sum(p * (1 - p) for p in pi.values()) / (len(pi) - 1)
     return None if expected == 1 else (observed - expected) / (1 - expected)
 
 

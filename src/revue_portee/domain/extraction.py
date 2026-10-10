@@ -178,15 +178,18 @@ def quote_summary(values: Iterable[ExtractionValue]) -> Mapping[QuoteCheck, int]
 
 
 def for_synthesis(
-    values: Iterable[ExtractionValue],
+    values: Iterable[ExtractionValue], *, replication: bool = False
 ) -> dict[tuple[str, str], ExtractionValue]:
     """The values that may go into the synthesis (EF-EXT-04): on each field of each
     report, the latest value a person decided (validated, corrected or extracted). A
     value proposed by the AI never goes in, nor a field whose latest human decision
-    rejected the AI's value without giving another."""
+    rejected the AI's value without giving another, except in a replication project,
+    where the AI's values are final (``replication``, D-104)."""
     found: dict[tuple[str, str], ExtractionValue] = {}
     for value in sorted(values, key=lambda v: (v.created_at, v.id)):
         if value.reviewer_kind is not ReviewerKind.HUMAN:
+            if replication and value.status is ValueStatus.PROPOSED:
+                found[value.reference_id, value.field_code] = value
             continue
         key = (value.reference_id, value.field_code)
         if value.status in HUMAN_KEPT:

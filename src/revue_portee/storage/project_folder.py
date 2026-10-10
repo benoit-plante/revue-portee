@@ -2,6 +2,10 @@
 
 ``projet.toml`` holds the metadata and the folder format version; ``revue.sqlite`` is
 the source of truth. No secret is ever written in the folder (ENF-SEC-01).
+
+A project created by the replication benchmark is marked ``replication`` in both
+(D-104); a folder whose two marks disagree is not opened, so the mode can neither be
+added to an ordinary project nor removed from a replication project.
 """
 
 import re
@@ -15,12 +19,19 @@ from pathlib import Path
 
 import tomli_w
 from alembic.util.exc import CommandError
+from pydantic import JsonValue
 from sqlalchemy import Connection, Engine
 
 from revue_portee.ai.settings import AISettings
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
-from revue_portee.domain.project import FORMAT_VERSION, Project, Reviewer, ReviewerKind
+from revue_portee.domain.project import (
+    FORMAT_VERSION,
+    Project,
+    ReplicationMarker,
+    Reviewer,
+    ReviewerKind,
+)
 from revue_portee.i18n import french
 from revue_portee.i18n import gettext as _
 from revue_portee.resources import default_ai_settings
@@ -45,6 +56,7 @@ PROJECT_FILE = "projet.toml"
 DATABASE_FILE = "revue.sqlite"
 SUBDIRECTORIES = ("brut/ia", "brut/sources", "imports", "textes", "etalonnage", "exports")
 SUPPORTED_FORMATS = {FORMAT_VERSION}
+REPLICATION_SECTION = "replication"
 
 
 class ProjectFolderError(Exception):
@@ -59,6 +71,7 @@ class ProjectFolder:
     engine: Engine
     project_id: str
     reviewer_id: str
+    replication: ReplicationMarker | None = None  # a replication project (D-104)
 
     def write(self) -> AbstractContextManager[Connection]:
         """Transaction for a use case that writes (holds the lock from the start)."""
@@ -112,8 +125,12 @@ def create_project_folder(
     now: Callable[[], datetime],
     tool_version: str,
     description: str = "",
+    replication: ReplicationMarker | None = None,
 ) -> ProjectFolder:
     """Create a new project folder (``.revue`` is appended to the name if missing).
+
+    ``replication`` marks a project of the replication benchmark (D-104): only
+    ``banc-replication`` gives it, and only here, when the project is created.
 
     If any step fails, what was created is removed, so that the creation can be
     retried with the same name.
@@ -144,28 +161,34 @@ def create_project_folder(
         folder.mkdir(parents=True, exist_ok=True)
         for sub in SUBDIRECTORIES:
             (folder / sub).mkdir(parents=True, exist_ok=True)
-        (folder / PROJECT_FILE).write_text(
-            tomli_w.dumps(
-                {
-                    "format_version": FORMAT_VERSION,
-                    "project": {
-                        "id": project.id,
-                        "title": project.title,
-                        "language": project.language,
-                        "created_at": project.created_at.isoformat(),
-                        "main_reviewer_id": reviewer.id,
-                    },
-                    "ia": default_ai_settings().model_dump(mode="json", exclude_none=True),
-                }
-            ),
-            encoding="utf-8",
-        )
+        metadata: dict[str, object] = {
+            "format_version": FORMAT_VERSION,
+            "project": {
+                "id": project.id,
+                "title": project.title,
+                "language": project.language,
+                "created_at": project.created_at.isoformat(),
+                "main_reviewer_id": reviewer.id,
+            },
+            "ia": default_ai_settings().model_dump(mode="json", exclude_none=True),
+        }
+        if replication is not None:
+            metadata[REPLICATION_SECTION] = replication.model_dump(mode="json")
+        (folder / PROJECT_FILE).write_text(tomli_w.dumps(metadata), encoding="utf-8")
         engine = create_project_engine(folder / DATABASE_FILE)
         migrate.upgrade(engine)
         with write_transaction(engine) as connection:
             projects.insert_project(connection, project)
             projects.insert_reviewer(connection, reviewer, now=created_at)
-            journal.append_entry(
+            details: dict[str, JsonValue] = {
+                "title": project.title,
+                "language": project.language,
+                "format_version": FORMAT_VERSION,
+                "reviewer": {"id": reviewer.id, "display_name": reviewer.display_name},
+            }
+            if replication is not None:
+                details["replication"] = replication.model_dump(mode="json")
+            entry = journal.append_entry(
                 connection,
                 now=created_at,
                 actor_reviewer_id=reviewer.id,
@@ -174,19 +197,24 @@ def create_project_folder(
                 subject_id=project.id,
                 summary_fr=french("Project created: {title}").format(title=project.title),
                 tool_version=tool_version,
-                payload={
-                    "title": project.title,
-                    "language": project.language,
-                    "format_version": FORMAT_VERSION,
-                    "reviewer": {"id": reviewer.id, "display_name": reviewer.display_name},
-                },
+                payload=details,
             )
+            if replication is not None:
+                projects.insert_replication_marker(
+                    connection, project.id, replication, now=created_at, journal_entry_id=entry.id
+                )
     except BaseException:
         if engine is not None:
             engine.dispose()
         _remove_partial_folder(folder, keep_folder=existed)
         raise
-    return ProjectFolder(path=folder, engine=engine, project_id=project.id, reviewer_id=reviewer.id)
+    return ProjectFolder(
+        path=folder,
+        engine=engine,
+        project_id=project.id,
+        reviewer_id=reviewer.id,
+        replication=replication,
+    )
 
 
 def _remove_partial_folder(folder: Path, *, keep_folder: bool) -> None:
@@ -227,11 +255,24 @@ def _read_metadata(folder: Path) -> dict[str, object]:
         ) from error
 
 
+def _replication_mark(folder: Path, metadata: dict[str, object]) -> ReplicationMarker | None:
+    section = metadata.get(REPLICATION_SECTION)
+    if section is None:
+        return None
+    try:
+        return ReplicationMarker.model_validate(section)
+    except ValueError as error:
+        raise ProjectFolderError(
+            _("The [replication] section of {file} is invalid.").format(file=folder / PROJECT_FILE)
+        ) from error
+
+
 def _open(
     folder: Path,
     engine: Engine,
     project_meta: dict[str, object],
     *,
+    replication: ReplicationMarker | None,
     now: Callable[[], datetime],
     tool_version: str,
     record_opening: bool,
@@ -259,6 +300,13 @@ def _open(
         reviewer_id = str(project_meta.get("main_reviewer_id", ""))
         if projects.get_reviewer(connection, reviewer_id) is None:
             raise ProjectFolderError(_("The main reviewer of the project is missing."))
+        if projects.get_replication_marker(connection) != replication:
+            raise ProjectFolderError(
+                _(
+                    "{file} and the database disagree on the replication mode: the mode is "
+                    "set only when banc-replication creates a project, and never removed."
+                ).format(file=PROJECT_FILE)
+            )
         if not record_opening:
             return project.id, reviewer_id
         journal.append_entry(
@@ -297,13 +345,20 @@ def open_project_folder(
         raise ProjectFolderError(
             _("The file {file} is unreadable.").format(file=folder / PROJECT_FILE)
         )
+    replication = _replication_mark(folder, metadata)
     engine = create_project_engine(folder / DATABASE_FILE)
     try:
         project_id, reviewer_id = _open(
-            folder, engine, project_meta, now=now, tool_version=tool_version,
-            record_opening=record_opening,
+            folder, engine, project_meta, replication=replication, now=now,
+            tool_version=tool_version, record_opening=record_opening,
         )  # fmt: skip
     except BaseException:
         engine.dispose()
         raise
-    return ProjectFolder(path=folder, engine=engine, project_id=project_id, reviewer_id=reviewer_id)
+    return ProjectFolder(
+        path=folder,
+        engine=engine,
+        project_id=project_id,
+        reviewer_id=reviewer_id,
+        replication=replication,
+    )

@@ -38,8 +38,9 @@ from revue_portee.dedup.reports import (
 from revue_portee.domain.fulltext import FulltextDocument, PagedText, QuoteCheck, check_quote
 from revue_portee.domain.ids import new_ulid
 from revue_portee.domain.journal import EntryType
+from revue_portee.domain.project import ReplicationMode
 from revue_portee.domain.references import Reference
-from revue_portee.domain.screening import DecisionValue
+from revue_portee.domain.screening import DecisionContext, DecisionValue, keeps
 from revue_portee.domain.studies import (
     LinkEvidence,
     LinkOutcome,
@@ -102,21 +103,43 @@ class NotIncludedError(ValueError):
 
 
 def included_reports(folder: ProjectFolder) -> dict[str, tuple[Reference, FulltextDocument]]:
-    """Reports whose decision in force at the full text is « include », with their text."""
-    # Imported here: the full-text use cases import the reports, which import this module.
-    from revue_portee.screening import fulltext
+    """Reports whose decision in force at the full text is « include », with their text.
 
+    In a replication project (D-104), the AI's decision is final and a text it keeps
+    (« uncertain » too) goes on, as do the texts it could not screen (unusable answers,
+    scanned texts): they are kept, as a person would keep them. Replayed stepwise, each
+    step gets the published inputs: every included study of the published review whose
+    text is obtained, whatever the AI decided at the full text."""
+    # Imported here: the full-text use cases import the reports, which import this module.
+    from revue_portee.screening import batch_ai, fulltext
+
+    marker = folder.replication
+    if marker is not None and marker.mode is ReplicationMode.STEPWISE:
+        return {
+            row.reference.id: (row.reference, row.document)
+            for row in retrieval.retrieval_report(folder).rows
+            if row.document is not None
+        }
     if fulltext.main_round(folder) is None:
         return {}
     state = fulltext.main_state(folder)
+    kept_by_rule: set[str] = set()
+    if folder.replication is not None:
+        kept_by_rule = set(batch_ai.exhausted(folder, state.round.id)) | set(state.unreadable)
+
+    def included(ref: str) -> bool:
+        decision = state.final.get(ref)
+        if decision is None:
+            return ref in kept_by_rule
+        if decision.context is DecisionContext.REPLICATION:
+            return keeps(decision.value)
+        return decision.value is DecisionValue.INCLUDE
+
     rows = {r.reference.id: r for r in retrieval.retrieval_report(folder).rows}
     return {
         ref: (rows[ref].reference, document)
         for ref in state.members
-        if ref in state.final
-        and state.final[ref].value is DecisionValue.INCLUDE
-        and ref in rows
-        and (document := rows[ref].document) is not None
+        if included(ref) and ref in rows and (document := rows[ref].document) is not None
     }
 
 
@@ -392,12 +415,14 @@ def decide(
     outcome: LinkOutcome,
     *,
     note: str = "",
+    reviewer_id: str | None = None,
     now: Clock,
     tool_version: str,
 ) -> StudyLinkDecision:
     """The person's decision on two included reports: one study, or two; any two
     included reports may be joined, proposed by the rules or not. A new decision on a
-    pair supersedes the previous one."""
+    pair supersedes the previous one. ``reviewer_id`` names another reviewer than the
+    person: the AI, whose verdict is final in a replication project (D-104)."""
     included = included_reports(folder)
     if reference_a_id == reference_b_id or not {reference_a_id, reference_b_id} <= set(included):
         raise NotIncludedError
@@ -411,7 +436,7 @@ def decide(
             outcome=outcome,
             note=note.strip(),
             created_at=moment,
-            reviewer_id=folder.reviewer_id,
+            reviewer_id=reviewer_id or folder.reviewer_id,
         )
         if outcome is LinkOutcome.SAME:
             summary = french("Reports of a same study: two reports joined")

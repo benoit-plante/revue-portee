@@ -38,6 +38,7 @@ from revue_portee.domain.screening import (
     CalibrationRecord,
     CriterionAssessment,
     Decision,
+    DecisionContext,
     DecisionValue,
     PilotRound,
     ReviewerKind,
@@ -72,6 +73,7 @@ __all__ = [
     "UnusableAnswerError",
     "ai_reviewer",
     "check_answer",
+    "decision_context",
     "inputs_for",
     "preview_ai",
     "record_ai_failure",
@@ -87,6 +89,12 @@ MAX_ATTEMPTS = 2
 
 class UnusableAnswerError(ValueError):
     """An answer valid against the schema but not against the criteria of the round."""
+
+
+def decision_context(folder: ProjectFolder) -> DecisionContext:
+    """Context of an AI decision: final in a replication project (D-104), otherwise
+    independent of the person's."""
+    return DecisionContext.REPLICATION if folder.replication else DecisionContext.INDEPENDENT
 
 
 def inputs_for(
@@ -169,6 +177,7 @@ def _ai_decision(
     call_id: str,
     tool_version: str,
     moment: datetime,
+    context: DecisionContext = DecisionContext.INDEPENDENT,
 ) -> Decision:
     """The AI decision derived from an answer: the same answer always gives the same
     decision, which is how a decision is rebuilt without calling the model again."""
@@ -205,6 +214,7 @@ def _ai_decision(
         calibration_id=None if calibration is None else calibration.id,
         criteria_version_id=version.id,
         language=detect_language(reference.language, reference.title, reference.abstract),
+        context=context,
         ai_call_id=call_id,
         tool_version=tool_version,
         created_at=moment,
@@ -438,6 +448,7 @@ def store_ai_decision(
             call_id=stored.id,
             tool_version=tool_version,
             moment=moment,
+            context=decision_context(folder),
         )
         entry = journal.append_entry(
             connection,
@@ -525,6 +536,7 @@ def replay_decision(folder: ProjectFolder, decision_id: str) -> Decision:
         call_id=stored.id,
         tool_version=found.tool_version,
         moment=found.created_at,
+        context=found.context,
     )
 
 

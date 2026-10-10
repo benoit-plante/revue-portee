@@ -18,7 +18,7 @@ from revue_portee.i18n import translator
 from revue_portee.reporting.flow import FlowNumbers, FlowTemplate, StageStatus, pending_items
 from revue_portee.reporting.formats import date, integer, separator
 
-__all__ = ["FlowContext", "render_flow_svg"]
+__all__ = ["FlowContext", "render_flow_svg", "simulation_mention"]
 
 type Translate = Callable[[str], str]
 type BoxLine = tuple[str, bool, int]  # text, bold, indent
@@ -44,6 +44,12 @@ class FlowContext:
     criteria_version: int | None
     tool_version: str
     generated_at: datetime
+    simulation: bool = False  # a replication project (D-104): not a review
+
+
+def simulation_mention(_: Translate) -> str:
+    """Mention of every export of a replication project (D-104)."""
+    return _("Replication simulation — not a review")
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,11 +252,13 @@ def _notes(
     language: str,
 ) -> list[str]:
     notes = []
+    if context.simulation:
+        notes.append(simulation_mention(_))
     if numbers.reassessments:
         notes.append(_reassessment_note(_, numbers, language))
     if numbers.provisional:
         notes.append(_pending_note(_, numbers, language))
-    elif numbers.excluded_by_automation == 0:
+    elif numbers.excluded_by_automation == 0 and not context.simulation:
         notes.append(
             _(
                 "The AI was the second reviewer of every reference; every exclusion was "
@@ -350,5 +358,6 @@ def render_flow_svg(
             band_width=BAND_WIDTH,
             notes=notes,
             provisional=_("PROVISIONAL") if numbers.provisional else "",
+            simulation=simulation_mention(_) if context.simulation else "",
         )
     )
