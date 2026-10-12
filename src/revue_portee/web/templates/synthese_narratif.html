@@ -17,7 +17,7 @@
     <tr>
       <th scope="row"><a href="/synthese/narratif/{{ f.field.code }}">{{ f.field.code }} — {{ f.field.label }}</a></th>
       <td>{{ f.studies | length }}</td>
-      <td>{% if f.to_revise %}{{ _("draft of the AI, to revise") }}{% elif f.revised %}{{ _("revised") }}{% if f.outdated %} — <strong>{{ _("to review: values changed since") }}</strong>{% endif %}{% else %}—{% endif %}</td>
+      <td>{% if f.to_revise %}{{ _("draft of the AI, to revise") }}{% if f.stale %} — <strong>{{ _("to review: values changed since") }}</strong>{% endif %}{% elif f.revised %}{{ _("revised") }}{% if f.outdated %} — <strong>{{ _("to review: values changed since") }}</strong>{% endif %}{% else %}—{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>

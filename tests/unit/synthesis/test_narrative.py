@@ -84,6 +84,7 @@ def test_draft_revised_then_exported(tmp_path: Path) -> None:
     assert proposed.sentences == (NarrativeSentence(text=AI_TEXT, study_ids=(ref,)),)
     assert state.field("D1").to_revise
     assert state.field("D1").revised is None
+    assert not state.field("D1").stale
     assert state.field("D3").studies[0][1].reported is False  # not reported counts too
     # the AI's draft alone is never exported
     text_before = "\n".join(getattr(b, "text", "") for b in before.blocks)
@@ -98,6 +99,7 @@ def test_draft_revised_then_exported(tmp_path: Path) -> None:
     assert "## Études citées" in markdown
     assert [p.name for p in paths] == ["narratif-fr.md", "narratif-fr.docx"]
     assert changed.outdated  # a value changed since the revision
+    assert changed.stale  # and since the latest draft, here the revision
     assert proposals[0].summary_fr == "Synthèse narrative de D1 : ébauche proposée par l'IA"
     assert proposals[0].payload["studies"] == [ref]
     assert revisions[0].payload["from_ai"] is True

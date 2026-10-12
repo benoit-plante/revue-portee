@@ -114,6 +114,7 @@ class FieldNarrative:
     current: NarrativeDraft | None  # the latest draft, the AI's or the person's
     revised: NarrativeDraft | None  # the latest draft the person revised
     outdated: bool  # values or the field changed since the revision
+    stale: bool = False  # values or the field changed since the latest draft
 
     @property
     def to_revise(self) -> bool:
@@ -169,14 +170,16 @@ def narrative_state(folder: ProjectFolder) -> NarrativeState:
             if (study.primary.id, grid_field.code) in kept
         ]
         last = revised.get(grid_field.code)
+        latest = current.get(grid_field.code)
+        values = [v for _s, v in decided]
         fields.append(
             FieldNarrative(
                 field=grid_field,
                 studies=decided,
-                current=current.get(grid_field.code),
+                current=latest,
                 revised=last,
-                outdated=last is not None
-                and _changed_since(last, grid_field, versions, [v for _s, v in decided]),
+                outdated=last is not None and _changed_since(last, grid_field, versions, values),
+                stale=latest is not None and _changed_since(latest, grid_field, versions, values),
             )
         )
     return NarrativeState(grid=state.grid, language=language, studies=state.studies, fields=fields)
