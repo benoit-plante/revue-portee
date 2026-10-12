@@ -10,7 +10,7 @@ published review is the reference by definition (docs/11 §9).
 
 from bisect import bisect_left
 from collections import Counter, defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal
@@ -50,7 +50,7 @@ from revue_portee.domain.replication import (
     screening_loss_descriptors,
     year_descriptors,
 )
-from revue_portee.domain.screening import DecisionValue, keeps, primary_reason
+from revue_portee.domain.screening import Decision, DecisionValue, keeps, primary_reason
 from revue_portee.extraction.prefill import extraction_state
 from revue_portee.fulltext import retrieval
 from revue_portee.i18n import gettext as _
@@ -148,6 +148,12 @@ class ModeMeasures:
     unmatched_ids: tuple[str, ...] = ()  # for the console only, never in the report
     multiple: tuple[MultipleChoiceAgreement, ...] = ()  # multiple choices, choice by choice
     numeric: tuple[NumericAgreement, ...] = ()
+    # « Uncertain » whose model decided « exclude » (kept by the thresholds or the rules)
+    full_text_uncertain_exclude: int = 0
+    screened_uncertain_exclude: int = 0  # chained mode only
+    # Chained mode only: the studies with at least one report the AI included, without
+    # the studies kept only as « uncertain » or by rule.
+    end_to_end_by_ai: EndToEnd | None = None
     # Stepwise only: references of the standard without authors nor abstract, after
     # their completion by Crossref (E-011 of the benchmark); None in chained mode.
     bare_standard: int | None = None
@@ -407,18 +413,40 @@ def _retrieval_counts(folder: ProjectFolder) -> tuple[int, int, int, int, set[st
     return len(rows), open_access, uploaded, not_obtained, obtained
 
 
-def _full_text(folder: ProjectFolder) -> tuple[int, set[str], int, set[str]]:
-    """Texts assessed, texts kept (by the AI or by rule), uncertain, kept by rule."""
+@dataclass(frozen=True, slots=True)
+class _FullText:
+    assessed: int
+    kept: set[str]  # by the AI (« uncertain » included) or by rule
+    uncertain: int
+    uncertain_exclude: int  # « uncertain » whose model decided « exclude »
+    included: set[str]  # included by the AI: neither « uncertain » nor kept by rule
+    by_rule: set[str]
+
+
+def _uncertain_exclude(decisions: Iterable[Decision]) -> int:
+    """The « uncertain » decisions whose model decided « exclude »: kept only by the
+    thresholds or the rules (D-065, EF-SEL-07)."""
+    return sum(
+        1
+        for d in decisions
+        if d.value is DecisionValue.UNCERTAIN and d.model_decision is DecisionValue.EXCLUDE
+    )
+
+
+def _full_text(folder: ProjectFolder) -> _FullText:
     if fulltext.main_round(folder) is None:
-        return 0, set(), 0, set()
+        return _FullText(0, set(), 0, 0, set(), set())
     state = fulltext.main_state(folder)
     by_rule = set(batch_ai.exhausted(folder, state.round.id)) | set(state.unreadable)
-    kept = {r for r in state.members if r in state.final and keeps(state.final[r].value)}
-    uncertain = sum(
-        1 for r in state.members
-        if r in state.final and state.final[r].value is DecisionValue.UNCERTAIN
-    )  # fmt: skip
-    return len(state.members), kept | (by_rule - set(state.final)), uncertain, by_rule
+    final = [state.final[r] for r in state.members if r in state.final]
+    return _FullText(
+        assessed=len(state.members),
+        kept={d.reference_id for d in final if keeps(d.value)} | (by_rule - set(state.final)),
+        uncertain=sum(1 for d in final if d.value is DecisionValue.UNCERTAIN),
+        uncertain_exclude=_uncertain_exclude(final),
+        included={d.reference_id for d in final if d.value is DecisionValue.INCLUDE},
+        by_rule=by_rule,
+    )
 
 
 def measure(
@@ -452,7 +480,7 @@ def measure(
         found_refs if chained else {sid: {ref} for sid, ref in given.items()}
     )
     sought, open_access, uploaded, not_obtained, obtained = _retrieval_counts(folder)
-    assessed, kept_ft, uncertain_ft, by_rule_ft = _full_text(folder)
+    full_text = _full_text(folder)
     tool = _tool(folder)
     matches = {
         study.primary: frozenset(sid for sid, refs in refs_of.items() if refs & set(study.reports))
@@ -491,11 +519,13 @@ def measure(
         open_access=open_access,
         uploaded=uploaded,
         not_obtained=not_obtained,
-        full_text_assessed=assessed,
-        full_text_kept=len(kept_ft),
-        full_text_uncertain=uncertain_ft,
+        full_text_assessed=full_text.assessed,
+        full_text_kept=len(full_text.kept),
+        full_text_uncertain=full_text.uncertain,
+        full_text_uncertain_exclude=full_text.uncertain_exclude,
         full_text_recall=Proportion(
-            sum(1 for sid in published_obtained if refs_of[sid] & kept_ft), len(published_obtained)
+            sum(1 for sid in published_obtained if refs_of[sid] & full_text.kept),
+            len(published_obtained),
         ),
         reports=len(included),
         studies=len(tool.studies),
@@ -507,13 +537,13 @@ def measure(
         costs=costs,
         duration_minutes=sum(runs) if runs else None,
         run_minutes=runs,
-        kept_unusable=len(by_rule_ft),
+        kept_unusable=len(full_text.by_rule),
         config=_config(folder),
     )
     if not chained:
         return measures
     return _chained(folder, measures, sheet, standard, found_refs, retrievable, matches,
-                    obtained, included, tool, now)  # fmt: skip
+                    obtained, included, full_text.included, tool, now)  # fmt: skip
 
 
 def _chained(
@@ -526,6 +556,7 @@ def _chained(
     matches: dict[str, frozenset[str]],
     obtained: set[str],
     included: set[str],
+    included_by_ai: set[str],
     tool: _Tool,
     now: Clock,
 ) -> ModeMeasures:
@@ -574,6 +605,7 @@ def _chained(
         screened=len(final) + len(exhausted),
         screened_excluded=sum(1 for d in final.values() if not keeps(d.value)),
         screened_uncertain=sum(1 for d in final.values() if d.value is DecisionValue.UNCERTAIN),
+        screened_uncertain_exclude=_uncertain_exclude(final.values()),
         kept_unusable=measures.kept_unusable + len(exhausted),
         screening_recall=Proportion(
             sum(1 for sid in collected_published if paths[sid].kept), len(collected_published)
@@ -581,6 +613,11 @@ def _chained(
         flow=tuple(flow_gaps(standard.flow, tool_flow)),
         end_to_end=end_to_end(
             [s.study_id for s in standard.studies], retrievable, list(matches.values())
+        ),
+        end_to_end_by_ai=end_to_end(
+            [s.study_id for s in standard.studies],
+            retrievable,
+            [matches[s.primary] for s in tool.studies if set(s.reports) & included_by_ai],
         ),
         cascade=loss_cascade(paths.values()),
         lost_without_abstract=without_abstract,
@@ -663,7 +700,8 @@ def _section(m: ModeMeasures) -> list[str]:
             "",
             f"- Références triées par l'IA : {m.screened}",
             f"- Exclues par l'IA (charge évitée) : {_prop(avoided)}",
-            f"- « Incertaines » (conservées) : {m.screened_uncertain}",
+            f"- « Incertaines » (conservées) : {m.screened_uncertain}, dont "
+            f"{m.screened_uncertain_exclude} que le modèle excluait",
             f"- Rappel par rapport à la revue publiée (études incluses publiées collectées et "
             f"conservées) : {_prop(m.screening_recall)}",
             "",
@@ -677,7 +715,8 @@ def _section(m: ModeMeasures) -> list[str]:
         "### Étape 5 — tri du texte intégral",
         "",
         f"- Textes évalués : {m.full_text_assessed}; conservés : {m.full_text_kept} "
-        f"(dont « incertains » : {m.full_text_uncertain})",
+        f"(dont « incertains » : {m.full_text_uncertain}, dont "
+        f"{m.full_text_uncertain_exclude} que le modèle excluait)",
         f"- Rappel par rapport à la revue publiée (études incluses publiées dont le texte est "
         f"obtenu, conservées) : {_prop(m.full_text_recall)}",
         "",
@@ -804,21 +843,30 @@ def _chained_section(m: ModeMeasures) -> list[str]:
     else:
         lines += ["Aucun nombre publié du diagramme.", ""]
     if e is not None:
+        a = m.end_to_end_by_ai or e
         lines += [
             "### De bout en bout — concordance avec la revue publiée",
             "",
-            "| Mesure | Toutes les études | Études retrouvables |",
-            "|---|---|---|",
+            "| Mesure | Toutes les études | Études retrouvables | Inclusions de l'IA seulement |",
+            "|---|---|---|---|",
             f"| Rappel par rapport à la revue publiée | {_prop(e.recall)} | "
-            f"{_prop(e.recall_retrievable)} |",
+            f"{_prop(e.recall_retrievable)} | {_prop(a.recall)} |",
             f"| Précision par rapport à la revue publiée | {_prop(e.precision)} | "
-            f"{_prop(e.precision)} |",
-            f"| F1 | {_num(e.f1, 3)} | {_num(e.f1_retrievable, 3)} |",
-            f"| Indice de Jaccard | {_num(e.jaccard, 3)} | {_num(e.jaccard_retrievable, 3)} |",
+            f"{_prop(e.precision)} | {_prop(a.precision)} |",
+            f"| F1 | {_num(e.f1, 3)} | {_num(e.f1_retrievable, 3)} | {_num(a.f1, 3)} |",
+            f"| Indice de Jaccard | {_num(e.jaccard, 3)} | {_num(e.jaccard_retrievable, 3)} | "
+            f"{_num(a.jaccard, 3)} |",
             "",
             f"Études incluses publiées : {e.published} (retrouvables : {e.retrievable}); études "
             f"incluses par l'outil : {e.tool}; études de l'outil correspondant à une étude "
             f"publiée : {e.tool_matched}.",
+            "",
+            f"« Inclusions de l'IA seulement » : les études dont au moins un rapport est inclus "
+            f"par l'IA au texte intégral, sans celles gardées seulement comme « incertaines » ou "
+            f"faute de réponse utilisable, que le mode réplication compte comme incluses "
+            f"(D-104) : {a.tool}, dont {a.tool_matched} correspondant à une étude publiée. "
+            f"Études gardées seulement ainsi : {e.tool - a.tool}, dont "
+            f"{e.tool_matched - a.tool_matched} correspondant à une étude publiée.",
             "",
         ]
     lines += [
