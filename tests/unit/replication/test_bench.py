@@ -195,6 +195,7 @@ def test_chained_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert costs["screen_reference"] == (28, 2, Decimal("0.140"))
     assert sum(c.calls for c in m.costs) == 42
     assert m.kept_unusable == 1
+    assert (m.multiple, m.numeric, m.bare_standard) == ((), (), None)
 
 
 def test_stepwise_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
@@ -226,6 +227,8 @@ def test_stepwise_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert (d2.within.count, d2.same_mode, d2.rank_correlation) == (0, False, None)
     assert sum(c.calls for c in m.costs) == 13
     assert m.kept_unusable == 0
+    # Without Crossref, S5 and S6 keep the title and DOI of incluses.csv only (E-011).
+    assert m.bare_standard == 2
 
 
 def test_report_holds_numbers_only(replayed: Replayed, tmp_path: Path) -> None:

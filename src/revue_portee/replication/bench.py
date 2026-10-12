@@ -21,7 +21,11 @@ the steps with the use cases of the tool, without duplicating their logic:
 9. flow diagram, marked « Simulation de réplication ».
 
 Replayed stepwise, steps 4 to 8 get the included studies of the published review,
-imported from ``norme/incluses.csv`` as references of provenance ``reference_standard``.
+imported from ``norme/incluses.csv`` as references of provenance ``reference_standard``;
+those the search did not collect are completed by Crossref from their DOI (E-011 of the
+benchmark: without authors, the rules on reports of a same study cannot work). When the
+reference standard has a coding grid (``norme/grille-codage.yaml``, D-112), it becomes
+the version in force of the grid before the extraction.
 
 The cost of each AI step is shown before it (``preview``) and confirmed; the ceiling
 is the project budget, checked before each call, retries included (D-069). Running the
@@ -43,6 +47,7 @@ from pydantic import JsonValue
 from revue_portee.ai.providers import ProviderFactory
 from revue_portee.collect import collection as collection_uc
 from revue_portee.collect.deduplication import dedup_state, run_deduplication
+from revue_portee.collect.enrichment import WorkSource, enrich_references
 from revue_portee.collect.imports import AlreadyImportedError, import_ris
 from revue_portee.dedup.standard import match_studies
 from revue_portee.domain.criteria import CriterionKind, PccElement
@@ -146,6 +151,8 @@ class _Run:
     tool_version: str
     wait: Callable[[float], None]
     poll_seconds: float
+    standard: Standard | None = None
+    crossref: Callable[[], WorkSource] | None = None
 
     def spent(self) -> Decimal:
         with self.folder.engine.connect() as connection:
@@ -348,6 +355,62 @@ def _import_standard(run: _Run, standard: Standard) -> None:
     )
 
 
+def _enrich_standard(run: _Run) -> None:
+    """Replayed stepwise: ask Crossref for the fields the references of the reference
+    standard lack (those the search did not collect have a title and a DOI only)."""
+    if run.crossref is None:
+        return
+    with run.folder.engine.connect() as connection:
+        ids = set(
+            references_repo.reference_ids_by_source(connection, SourceKind.REFERENCE_STANDARD)
+        )
+    found = enrich_references(run.folder, now=run.now, tool_version=run.tool_version,
+                              source=run.crossref, reference_ids=ids)  # fmt: skip
+    if found.checked:
+        run.say(
+            _("Crossref: references of the standard checked: {checked}; completed: "
+              "{enriched}").format(checked=found.checked, enriched=found.enriched)
+        )  # fmt: skip
+
+
+def _label(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def _coding_grid(run: _Run) -> None:
+    """D-112: the coding grid of the reference standard becomes the version in force
+    before the extraction. Its fields replace those of the grid with the same label
+    (their code stays), the others are added; the fields it lacks stay. Nothing is
+    written when the grid in force already has them."""
+    standard = run.standard
+    if standard is None or standard.coding_grid is None:
+        return
+    folder, now, version = run.folder, run.now, run.tool_version
+    active = grid_uc.grid_state(folder).active
+    by_label = {} if active is None else {_label(f.label): f for f in active.fields}
+    for label, type_, definition, choices in standard.coding_grid.fields_in(
+        run.inputs.criteria.language
+    ):
+        current = by_label.get(_label(label))
+        if current is None:
+            grid_uc.add_field(folder, label=label, type=type_, definition=definition,
+                              choices=choices, now=now, tool_version=version)  # fmt: skip
+        else:
+            grid_uc.update_field(
+                folder, current.code, label=label, type=type_, definition=definition,
+                guidance=current.guidance, examples=current.examples, choices=choices,
+                now=now, tool_version=version,
+            )  # fmt: skip
+    if grid_uc.grid_state(folder).draft is not None:
+        grid_uc.activate_draft(
+            folder,
+            rationale=french("Replication: coding grid of the reference standard (D-112), "
+                             "SHA-256 {sha}").format(sha=standard.coding_grid_sha256),
+            now=now, tool_version=version,
+        )  # fmt: skip
+        run.say(_("Coding grid of the reference standard in force (D-112)"))
+
+
 # --- AI steps -------------------------------------------------------------------------
 
 
@@ -456,6 +519,7 @@ def _reports(run: _Run) -> Stop:
 
 
 def _extraction(run: _Run) -> Stop:
+    _coding_grid(run)
     preview = prefill.preview_ai(run.folder, factory=run.factory)
     if not run.ask(_("Extraction"), preview):
         return Stop.REFUSED
@@ -527,6 +591,7 @@ def run_bench(
     factory: ProviderFactory = default_provider_factory,
     finder: Callable[[], retrieval.OpenAccessFinder] | None = None,
     collector: collection_uc.CollectorFactory | None = None,
+    crossref: Callable[[], WorkSource] | None = None,
     confirm: Confirm,
     say: Callable[[str], None] = lambda _message: None,
     now: Clock,
@@ -535,15 +600,15 @@ def run_bench(
     poll_seconds: float = batch_ai.POLL_SECONDS,
 ) -> BenchOutcome:
     """Run (or resume) the replay of a review in ``settings.mode``. Replayed stepwise,
-    ``standard`` gives the included studies of the published review."""
+    ``standard`` gives the included studies of the published review; ``crossref``
+    completes their references (none: not completed)."""
     if settings.mode is ReplicationMode.STEPWISE and standard is None:
         raise ReplicationInputError(_("Replayed stepwise, the reference standard is needed."))
     folder = _open_project(inputs, settings.mode, now=now, tool_version=tool_version)
     run = _Run(
         folder=folder, inputs=inputs, settings=settings, factory=factory, finder=finder,
         collector=collector, confirm=confirm, say=say, now=now, tool_version=tool_version,
-        wait=wait,
-        poll_seconds=poll_seconds,
+        wait=wait, poll_seconds=poll_seconds, standard=standard, crossref=crossref,
     )  # fmt: skip
     try:
         _set_up(run)
@@ -552,6 +617,7 @@ def run_bench(
         if settings.mode is ReplicationMode.STEPWISE:
             assert standard is not None  # noqa: S101 - checked above
             _import_standard(run, standard)
+            _enrich_standard(run)
         else:
             stopped = _title_abstract(run)
             if stopped is not Stop.NONE:

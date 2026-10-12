@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from replication_support import Finder, copy_review, factory
+from replication_support import Crossref, Finder, copy_review, factory
 from revue_portee.cli.main import app
 from revue_portee.domain.project import ReplicationMode
 from revue_portee.domain.search import Database
@@ -28,7 +28,8 @@ def offline(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = factory()
 
     def run(*args: Any, **kwargs: Any) -> bench.BenchOutcome:  # noqa: ANN401
-        kwargs |= {"factory": fake, "finder": Finder, "wait": lambda _s: None}
+        kwargs |= {"factory": fake, "finder": Finder, "crossref": Crossref,
+                   "wait": lambda _s: None}  # fmt: skip
         return real(*args, **kwargs)
 
     monkeypatch.setattr(bench, "run_bench", run)

@@ -10,6 +10,7 @@
     ├── GEL.sha256              # SHA-256 of the inputs, written before the run
     ├── norme/                  # reference standard, made after the freeze
     │   ├── incluses.csv
+    │   ├── grille-codage.yaml  # optional: grid with the published categories (D-112)
     │   ├── extraction-publiee.csv
     │   └── resultats-publies.yaml
     └── textes/                 # PDFs obtained by the team, never published
@@ -52,6 +53,7 @@ from revue_portee.i18n import gettext as _
 from revue_portee.screening.benchmark import BenchmarkCriteria, BenchmarkError, read_criteria
 
 __all__ = [
+    "CODING_GRID_FILE",
     "CRITERIA_FILE",
     "FREEZE_FILE",
     "GRID_FILE",
@@ -76,6 +78,7 @@ SEARCH_FOLDER = "recherche"
 STRATEGY_FILE = "strategie.yaml"
 FREEZE_FILE = "GEL.sha256"
 STANDARD_FOLDER = "norme"
+CODING_GRID_FILE = "grille-codage.yaml"
 TEXT_FOLDER = "textes"
 _HASH_LINE = re.compile(r"^(?P<hash>[0-9a-fA-F]{64}) [ *](?P<path>.+)$")
 _FLOW_KEYS = {
@@ -135,6 +138,10 @@ class Standard:
     flow: PublishedFlow
     distributions: tuple[PublishedDistribution, ...]
     sha256: str  # of incluses.csv
+    # D-112: the grid of the protocol with the categories of the published tables, made
+    # after the freeze; the extraction uses it when there is one.
+    coding_grid: GridTemplate | None = None
+    coding_grid_sha256: str = ""
 
 
 def _yaml(path: Path) -> Any:  # noqa: ANN401 - a YAML document
@@ -359,10 +366,14 @@ def read_standard(folder: Path) -> Standard:
         raise ReplicationInputError(
             _("The file {path} is unreadable.").format(path=results_path)
         ) from error
+    coding_path = base / CODING_GRID_FILE
+    coded = coding_path.is_file()
     return Standard(
         studies=studies,
         values=values,
         flow=flow,
         distributions=distributions,
         sha256=_sha256(included),
+        coding_grid=_grid(coding_path) if coded else None,
+        coding_grid_sha256=_sha256(coding_path) if coded else "",
     )

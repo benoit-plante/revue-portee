@@ -12,7 +12,9 @@ The published review is the reference standard by definition: every measure is a
 - **end-to-end** recall, precision, F1 and Jaccard index, on every published study and
   on the retrievable ones (D-103, decision 5);
 - **categorical fields** of the extraction: percentage of agreement, Cohen's kappa and
-  Gwet's AC1, « not reported » being a category of its own;
+  Gwet's AC1, « not reported » being a category of its own; for a multiple choice, the
+  agreement on each choice (present or absent) and the mean Jaccard index of the sets;
+- **number fields** of the extraction: exact agreement, « not reported » counted apart;
 - **distributions**: absolute gap by category in percentage points, share of the
   categories within 5 points, same modal category, rank correlation;
 - **flow diagram**: gap box by box;
@@ -34,10 +36,13 @@ __all__ = [
     "WITHIN_POINTS",
     "CategoricalAgreement",
     "CategoryGap",
+    "ChoiceAgreement",
     "DistributionGap",
     "EndToEnd",
     "FlowGap",
     "LossStage",
+    "MultipleChoiceAgreement",
+    "NumericAgreement",
     "Proportion",
     "PublishedDistribution",
     "PublishedFlow",
@@ -50,6 +55,8 @@ __all__ = [
     "flow_gaps",
     "loss_cascade",
     "lost_at",
+    "multiple_choice_agreement",
+    "numeric_agreement",
     "screening_loss_descriptors",
     "year_descriptors",
 ]
@@ -287,6 +294,95 @@ def categorical_agreement(field: str, pairs: Sequence[tuple[str, str]]) -> Categ
         ac1=gwet_ac1_nominal(pairs),
         not_reported_published=sum(1 for a, _b in pairs if a == NOT_REPORTED),
         not_reported_tool=sum(1 for _a, b in pairs if b == NOT_REPORTED),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ChoiceAgreement:
+    """Agreement on one choice of a multiple choice: present or absent on each side."""
+
+    choice: str
+    compared: int
+    agreed: int
+    kappa: float | None
+    ac1: float | None
+
+    @property
+    def agreement(self) -> Proportion:
+        return Proportion(self.agreed, self.compared)
+
+
+@dataclass(frozen=True, slots=True)
+class MultipleChoiceAgreement:
+    """A multiple choice compared choice by choice, and set by set (Jaccard index)."""
+
+    field: str
+    compared: int
+    choices: tuple[ChoiceAgreement, ...]
+    jaccard: float | None  # mean over the studies both sides report
+    jaccard_n: int  # studies both sides report
+
+
+def multiple_choice_agreement(
+    field: str,
+    choices: Sequence[str],
+    pairs: Sequence[tuple[frozenset[str] | None, frozenset[str] | None]],
+) -> MultipleChoiceAgreement:
+    """``pairs`` of (published choices, tool choices) for the studies compared on
+    ``field``, None when not reported. For each of ``choices``, a value not reported
+    counts as the choice absent; the Jaccard index only compares studies both sides
+    report (two empty sets agree fully)."""
+    found = []
+    for choice in choices:
+        present = [
+            ("oui" if a is not None and choice in a else "non",
+             "oui" if b is not None and choice in b else "non")
+            for a, b in pairs
+        ]  # fmt: skip
+        found.append(
+            ChoiceAgreement(
+                choice=choice,
+                compared=len(present),
+                agreed=sum(1 for a, b in present if a == b),
+                kappa=cohen_kappa_nominal(present),
+                ac1=gwet_ac1_nominal(present),
+            )
+        )
+    both = [(a, b) for a, b in pairs if a is not None and b is not None]
+    indexes = [len(a & b) / len(a | b) if a | b else 1.0 for a, b in both]
+    return MultipleChoiceAgreement(
+        field=field,
+        compared=len(pairs),
+        choices=tuple(found),
+        jaccard=sum(indexes) / len(indexes) if indexes else None,
+        jaccard_n=len(indexes),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NumericAgreement:
+    field: str
+    compared: int
+    agreed: int  # same number, or not reported on both sides
+    not_reported_published: int
+    not_reported_tool: int
+
+    @property
+    def agreement(self) -> Proportion:
+        return Proportion(self.agreed, self.compared)
+
+
+def numeric_agreement(
+    field: str, pairs: Sequence[tuple[float | None, float | None]]
+) -> NumericAgreement:
+    """``pairs`` of (published number, tool number), None when not reported; the
+    numbers must be equal (« not reported » on both sides agrees, as a category)."""
+    return NumericAgreement(
+        field=field,
+        compared=len(pairs),
+        agreed=sum(1 for a, b in pairs if a == b),
+        not_reported_published=sum(1 for a, _b in pairs if a is None),
+        not_reported_tool=sum(1 for _a, b in pairs if b is None),
     )
 
 

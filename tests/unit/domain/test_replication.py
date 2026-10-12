@@ -19,6 +19,8 @@ from revue_portee.domain.replication import (
     flow_gaps,
     loss_cascade,
     lost_at,
+    multiple_choice_agreement,
+    numeric_agreement,
     screening_loss_descriptors,
     year_descriptors,
 )
@@ -70,6 +72,58 @@ def test_categorical_agreement() -> None:
     assert (found.not_reported_published, found.not_reported_tool) == (1, 1)
     assert found.kappa == pytest.approx(0.6875)
     assert found.ac1 == pytest.approx(0.49 / 0.69)
+
+
+# D4 of the coded fictitious review (tests/fixtures/replication/README.md, tranche 3.9):
+# (published, tool) choices for S1, S2, S4, S5, S6; None: not reported.
+WALK, DANCE, SWIM = "Marche", "Danse", "Natation"
+D4 = [
+    (frozenset({WALK}), frozenset({WALK})),
+    (frozenset({WALK, DANCE}), frozenset({WALK})),
+    (frozenset({WALK}), None),
+    (frozenset({SWIM}), frozenset({SWIM, WALK})),
+    (None, frozenset({WALK})),
+]
+
+
+def test_multiple_choice_agreement_by_choice() -> None:
+    found = multiple_choice_agreement("D4", [WALK, DANCE, SWIM], D4)
+    assert found.compared == 5
+    walk, dance, swim = found.choices
+    # Walking: (1, 1), (1, 1), (1, 0), (0, 1), (0, 1): 2/5. Shares of « present »: 3/5
+    # published, 4/5 tool; expected 0.6 x 0.8 + 0.4 x 0.2 = 0.56; (0.4 - 0.56) / 0.44.
+    assert (walk.choice, walk.agreed, walk.compared) == (WALK, 2, 5)
+    assert walk.kappa == pytest.approx(-0.16 / 0.44)
+    # pi = 0.7 and 0.3: 2 x 0.21 = 0.42; (0.4 - 0.42) / 0.58.
+    assert walk.ac1 == pytest.approx(-0.02 / 0.58)
+    # Dance: only S2 published, never the tool: 4/5; expected 0.2 x 0 + 0.8 x 1 = 0.8.
+    assert dance.agreed == 4
+    assert dance.kappa == pytest.approx(0.0)
+    # pi = 0.1 and 0.9: 0.18; (0.8 - 0.18) / 0.82.
+    assert dance.ac1 == pytest.approx(0.62 / 0.82)
+    # Swimming: S5 on both sides, absent elsewhere: 5/5, kappa and AC1 of 1.
+    assert swim.agreed == 5
+    assert swim.kappa == pytest.approx(1.0)
+    assert swim.ac1 == pytest.approx(1.0)
+
+
+def test_multiple_choice_jaccard_on_the_studies_both_sides_report() -> None:
+    found = multiple_choice_agreement("D4", [WALK, DANCE, SWIM], D4)
+    # S1: 1; S2: {Marche} / {Marche, Danse} = 1/2; S5: 1/2; S4 and S6 left out.
+    assert found.jaccard == pytest.approx(2 / 3)
+    assert found.jaccard_n == 3
+    empty = multiple_choice_agreement("D4", [WALK], [(frozenset(), frozenset())])
+    assert (empty.jaccard, empty.jaccard_n) == (1.0, 1)
+    nothing = multiple_choice_agreement("D4", [WALK], [(None, frozenset({WALK}))])
+    assert (nothing.jaccard, nothing.jaccard_n) == (None, 0)
+
+
+def test_numeric_agreement() -> None:
+    # D5 (participants): S1 40/40, S2 25/52, S4 12/—, S5 —/—, S6 30/30.0.
+    found = numeric_agreement("D5", [(40, 40), (25, 52), (12, None), (None, None), (30, 30.0)])
+    assert (found.compared, found.agreed) == (5, 3)
+    assert found.agreement.value == pytest.approx(0.6)
+    assert (found.not_reported_published, found.not_reported_tool) == (1, 2)
 
 
 # --- Cascade --------------------------------------------------------------------------

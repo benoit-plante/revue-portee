@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: revue-portee VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 20:54-0400\n"
+"POT-Creation-Date: 2026-10-11 21:01-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -850,6 +850,9 @@ msgstr "Clarifications were reassessed on a random sample."
 msgid "Code"
 msgstr "Code"
 
+msgid "Coding grid of the reference standard in force (D-112)"
+msgstr "Coding grid of the reference standard in force (D-112)"
+
 msgid "Cohen's kappa"
 msgstr "Cohen's kappa"
 
@@ -1114,6 +1117,10 @@ msgstr "Cross-cutting (source type, language, period, design)"
 #, python-brace-format
 msgid "Crossref: references completed: {enriched} of {checked} checked"
 msgstr "Crossref: references completed: {enriched} of {checked} checked"
+
+#, python-brace-format
+msgid "Crossref: references of the standard checked: {checked}; completed: {enriched}"
+msgstr "Crossref: references of the standard checked: {checked}; completed: {enriched}"
 
 msgid "DOI"
 msgstr "DOI"
@@ -3752,6 +3759,10 @@ msgstr "Replication of {review} ({mode})"
 
 msgid "Replication simulation — not a review"
 msgstr "Replication simulation — not a review"
+
+#, python-brace-format
+msgid "Replication: coding grid of the reference standard (D-112), SHA-256 {sha}"
+msgstr "Replication: coding grid of the reference standard (D-112), SHA-256 {sha}"
 
 msgid "Replication: every step done"
 msgstr "Replication: every step done"

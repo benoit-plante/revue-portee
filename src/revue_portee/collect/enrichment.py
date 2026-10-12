@@ -6,7 +6,7 @@ in an :class:`Enrichment`: the reference itself never changes. A DOI unknown to
 Crossref is recorded too (empty enrichment), so it is not asked again.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -50,14 +50,20 @@ class EnrichmentSummary:
     fields: int  # fields added in total
 
 
-def enrichment_candidates(folder: ProjectFolder) -> list[Reference]:
-    """References with a DOI and missing fields, never checked with Crossref."""
+def enrichment_candidates(
+    folder: ProjectFolder, reference_ids: Collection[str] | None = None
+) -> list[Reference]:
+    """References with a DOI and missing fields, never checked with Crossref (among
+    ``reference_ids`` when given)."""
     with folder.engine.connect() as connection:
         checked = references_repo.list_enrichments(connection)
         return [
             r
             for r in references_repo.list_references(connection)
-            if r.doi and missing_fields(r) and r.id not in checked
+            if r.doi
+            and missing_fields(r)
+            and r.id not in checked
+            and (reference_ids is None or r.id in reference_ids)
         ]
 
 
@@ -134,12 +140,14 @@ def enrich_references(
     limit: int | None = None,
     max_workers: int = MAX_CONCURRENCY,
     batch_size: int = BATCH_SIZE,
+    reference_ids: Collection[str] | None = None,
 ) -> EnrichmentSummary:
-    """Ask Crossref for the missing fields of the candidates (``limit`` at most).
+    """Ask Crossref for the missing fields of the candidates (``limit`` at most; among
+    ``reference_ids`` when given).
 
     Answers are recorded by batches of ``batch_size``, each in its own transaction:
     after a failure, the batches already recorded are kept and are not asked again."""
-    candidates = enrichment_candidates(folder)[:limit]
+    candidates = enrichment_candidates(folder, reference_ids)[:limit]
     total = EnrichmentSummary(checked=0, enriched=0, not_found=0, fields=0)
     if not candidates:
         return total
