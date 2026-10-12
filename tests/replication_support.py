@@ -81,9 +81,9 @@ def copy_review(tmp_path: Path, *, texts: bool = True) -> Path:
 # --- The AI ---------------------------------------------------------------------------
 
 # Title and abstract: probability of inclusion by key; R13 gets unusable answers.
-SCREEN = {"S1": 0.9, "S1b": 0.9, "S2": 0.9, "S3": 0.9, "R10": 0.9, "R11": 0.9, "R12": 0.4}
+SCREEN = {"S1": 0.9, "S1b": 0.9, "S2": 0.9, "S3": 0.9, "R10": 0.9, "R11": 0.9, "R12": 0.2}
 # Full text: probability of inclusion by key (absent: excluded, P1 not met).
-FULL_TEXT = {"S1": 0.9, "S1b": 0.9, "R10": 0.85, "R11": 0.4, "S4": 0.8, "S5": 0.8, "S6": 0.3}
+FULL_TEXT = {"S1": 0.9, "S1b": 0.9, "R10": 0.85, "R11": 0.2, "S4": 0.8, "S5": 0.8, "S6": 0.3}
 # Extraction: D1 (design), D2 (setting), D3 (follow-up; None: not reported).
 EXTRACTED: dict[str, tuple[str, str, str | None]] = {
     "S1": ("Essai randomisé", "Communauté", "oui"),
@@ -108,7 +108,9 @@ CODED: dict[str, tuple[list[str] | None, str | None]] = {
 
 def _screening(item: ScreenReferenceInput | ScreenFulltextInput, probability: float | None,
                page: bool) -> dict[str, Any]:  # fmt: skip
-    """An answer on every criterion: an excluded reference fails P1 (S4: C1)."""
+    """An answer on every criterion: an excluded reference fails P1 (S4: C1). Under 0.35
+    the model decides « exclude », above the exclusion threshold all the same: the
+    reference is « uncertain » (D-065), as in the replays of tranche 3.12."""
     if probability is None:  # R13: an answer on criteria that do not exist
         return {
             "assessments": [{"code": "Z9", "status": "met", "evidence_quote": ""}],
@@ -132,7 +134,9 @@ def _screening(item: ScreenReferenceInput | ScreenFulltextInput, probability: fl
     decisive = [a["code"] for a in assessments if a["status"] == "not_met" and not kept]
     return {
         "assessments": assessments,
-        "decision": "include" if probability >= 0.6 else ("uncertain" if kept else "exclude"),
+        "decision": "include"
+        if probability >= 0.6
+        else ("uncertain" if probability >= 0.35 else "exclude"),
         "inclusion_probability": probability,
         "rationale": "Réponse fictive.",
         "decisive_criteria": decisive or [item.criteria[0].code],

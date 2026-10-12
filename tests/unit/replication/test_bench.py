@@ -165,6 +165,8 @@ def test_chained_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert (m.screening_recall.count, m.screening_recall.total) == (3, 4)
     assert (m.sought, m.open_access, m.uploaded, m.not_obtained) == (8, 1, 6, 1)
     assert (m.full_text_assessed, m.full_text_kept, m.full_text_uncertain) == (7, 4, 1)
+    # Tranche 3.12: R12 and R11, « uncertain » though the model decided « exclude ».
+    assert (m.screened_uncertain_exclude, m.full_text_uncertain_exclude) == (1, 1)
     assert (m.full_text_recall.count, m.full_text_recall.total) == (1, 2)
     assert (m.reports, m.studies) == (4, 3)
     assert [(a.field, a.compared, a.agreed, a.kappa, a.ac1) for a in m.agreement] == [
@@ -189,6 +191,12 @@ def test_chained_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert e.f1_retrievable == pytest.approx(0.25)
     assert e.jaccard == pytest.approx(1 / 8)
     assert e.jaccard_retrievable == pytest.approx(1 / 7)
+    # Tranche 3.12: without R11, kept only as « uncertain »: S1 and R10.
+    a = m.end_to_end_by_ai
+    assert a is not None
+    assert (a.published, a.tool, a.matched, a.tool_matched) == (6, 2, 1, 1)
+    assert a.f1 == pytest.approx(0.25)
+    assert a.jaccard == pytest.approx(1 / 7)
     assert m.cascade == dict.fromkeys(LossStage, 1)
     assert (m.lost_without_abstract, m.lost_by_criterion) == (1, {"C1": 1})
     assert m.extra_years == {"within": 1, "after": 1, "unknown": 0}
@@ -209,6 +217,8 @@ def test_stepwise_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert not m.flow
     assert (m.sought, m.open_access, m.uploaded, m.not_obtained) == (6, 1, 4, 1)
     assert (m.full_text_assessed, m.full_text_kept, m.full_text_uncertain) == (5, 4, 1)
+    assert m.full_text_uncertain_exclude == 1  # S6 (tranche 3.12)
+    assert m.end_to_end_by_ai is None
     assert (m.full_text_recall.count, m.full_text_recall.total) == (4, 5)
     assert (m.reports, m.studies) == (5, 5)
     agreement = {a.field: a for a in m.agreement}
@@ -244,8 +254,15 @@ def test_report_holds_numbers_only(replayed: Replayed, tmp_path: Path) -> None:
     assert "## Mode en chaîne (en-chaine)" in text
     assert "## Mode par étape (par-etape)" in text
     assert "| Rappel par rapport à la revue publiée | 1/6 (16,7%)" in text
-    assert "| F1 | 0,222 | 0,250 |" in text
-    assert "| Indice de Jaccard | 0,125 | 0,143 |" in text
+    assert "| F1 | 0,222 | 0,250 | 0,250 |" in text
+    assert "| Indice de Jaccard | 0,125 | 0,143 | 0,143 |" in text
+    assert "| 1/2 (50,0%)" in text
+    assert (
+        "(D-104) : 2, dont 1 correspondant à une étude publiée. Études gardées seulement "
+        "ainsi : 1, dont 0 correspondant" in text
+    )
+    assert "- « Incertaines » (conservées) : 1, dont 1 que le modèle excluait" in text
+    assert "(dont « incertains » : 1, dont 1 que le modèle excluait)" in text
     assert "| D1 | 5 | 4/5 (80,0%)" in text
     assert "| Études incluses | 6 | 3 | -3 | -50,0% |" in text
     assert "**0.255**" in text
