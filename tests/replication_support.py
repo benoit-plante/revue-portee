@@ -85,6 +85,7 @@ FULL_TEXT = {"S1": 0.9, "S1b": 0.9, "R10": 0.85, "R11": 0.4, "S4": 0.8, "S5": 0.
 # Extraction: D1 (design), D2 (setting), D3 (follow-up; None: not reported).
 EXTRACTED: dict[str, tuple[str, str, str | None]] = {
     "S1": ("Essai randomisé", "Communauté", "oui"),
+    "S1b": ("Essai randomisé", "Communauté", "oui"),
     "S2": ("Quasi expérimental", "Résidence", "non"),
     "S4": ("Qualitatif", "Communauté", None),
     "S5": ("Essai randomisé", "Hôpital", "oui"),

@@ -16,7 +16,8 @@ the steps with the use cases of the tool, without duplicating their logic:
    stops here while texts are missing, with their list; it resumes when run again;
 5. full-text screening by the AI in batches;
 6. reports of a same study: the AI's verdict on each pair proposed is final;
-7. extraction by the AI (``extraction.prefill``);
+7. extraction by the AI (``extraction.prefill``), each included report on its own
+   (D-114), the unit of a published extraction table;
 8. narrative synthesis by the AI, field by field (produced, not compared, docs/11 §7);
 9. flow diagram, marked « Simulation de réplication ».
 

@@ -151,17 +151,22 @@ def extraction_state(folder: ProjectFolder) -> ExtractionState:
     in_pilot = set() if not pilots else set(pilots[-1].reference_ids)
     included = studies.included_reports(folder)
     found = []
-    for study in studies.study_state(folder).studies:
-        reference, document = included[study.primary]
-        current = {code: value for (ref, code), value in values.items() if ref == study.primary}
+    units = [(s.primary, list(s.reports)) for s in studies.study_state(folder).studies]
+    if folder.replication is not None:
+        # D-114: replayed, each included report is extracted on its own, the unit of a
+        # published extraction table (no value taken from another report of its study).
+        units = [(ref, [ref]) for _primary, reports in units for ref in sorted(reports)]
+    for primary, reports in units:
+        reference, document = included[primary]
+        current = {code: value for (ref, code), value in values.items() if ref == primary}
         due: tuple[str, ...] = ()
         to_review: tuple[str, ...] = ()
         if grid is not None:
             due = tuple(
                 f.code
                 for f in fields_due(
-                    grid, versions, by_study.get(study.primary, ()),
-                    pilot=study.primary in in_pilot,
+                    grid, versions, by_study.get(primary, ()),
+                    pilot=primary in in_pilot,
                 )
             )  # fmt: skip
             to_review = tuple(
@@ -172,7 +177,7 @@ def extraction_state(folder: ProjectFolder) -> ExtractionState:
         found.append(
             StudyExtraction(
                 primary=reference,
-                reports=study.reports,
+                reports=reports,
                 readable=not document.needs_ocr,
                 values=current,
                 due=due,

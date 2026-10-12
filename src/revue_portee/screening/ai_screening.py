@@ -46,6 +46,7 @@ from revue_portee.domain.screening import (
     ai_value,
     detect_language,
     must_not_exclude,
+    no_criterion_fails,
 )
 from revue_portee.i18n import french
 from revue_portee.protocol.ai_assist import (
@@ -471,6 +472,7 @@ def store_ai_decision(
                 "criteria_cited": list(decision.criteria_cited),
                 "language": decision.language,
                 "rule_sel_07": must_not_exclude(decision.assessments),
+                "no_criterion_fails": no_criterion_fails(decision.assessments),
             },
         )
         screening_repo.insert_decision(connection, decision, journal_entry_id=entry.id)

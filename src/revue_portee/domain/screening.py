@@ -4,10 +4,10 @@ The AI reviewer assesses each criterion (met / not met / cannot tell), gives its
 decision and the probability that the reference should be included. The value
 recorded for the AI comes from that probability and the thresholds in force (EF-SEL-09),
 then from the rule of EF-SEL-07: a reference with an inclusion criterion that cannot be
-told, and no criterion that fails it, is never excluded. A criterion fails a reference
+told, and no criterion that fails it, is never excluded; D-113 extends it to every
+reference no criterion fails, whatever the probability. A criterion fails a reference
 when it is an inclusion criterion not met, or an exclusion criterion met (its reason
-for exclusion applies). Decisions are only added,
-never changed (ENF-TRA-02).
+for exclusion applies). Decisions are only added, never changed (ENF-TRA-02).
 
 At the full-text stage (tranche 2.2, D-102), each round has a mode: blind double
 screening (the person decides without seeing the AI, disagreements are reconciled) or
@@ -57,6 +57,7 @@ __all__ = [
     "draw_sample",
     "keeps",
     "must_not_exclude",
+    "no_criterion_fails",
     "page_quote_counts",
     "primary_reason",
     "quote_counts",
@@ -170,6 +171,13 @@ def must_not_exclude(assessments: Iterable[CriterionAssessment]) -> bool:
     return unknown and not any(_fails(a) for a in items)
 
 
+def no_criterion_fails(assessments: Iterable[CriterionAssessment]) -> bool:
+    """D-113: no inclusion criterion is not met and no exclusion criterion is met; the
+    AI then never excludes the reference (EF-SEL-07 is the case of a criterion that
+    cannot be told)."""
+    return not any(_fails(a) for a in assessments)
+
+
 class Thresholds(BaseModel):
     """EF-SEL-09: below ``exclude_below`` the AI excludes, from ``include_above`` it
     includes, uncertain in between. Applied to the probability of inclusion."""
@@ -189,14 +197,15 @@ class Thresholds(BaseModel):
 def ai_value(
     probability: float, thresholds: Thresholds, assessments: Iterable[CriterionAssessment]
 ) -> DecisionValue:
-    """Value recorded for the AI: thresholds on the probability, then EF-SEL-07."""
+    """Value recorded for the AI: thresholds on the probability, then EF-SEL-07 and
+    D-113 (an exclusion needs a criterion that fails)."""
     if probability < thresholds.exclude_below:
         value = DecisionValue.EXCLUDE
     elif probability >= thresholds.include_above:
         value = DecisionValue.INCLUDE
     else:
         value = DecisionValue.UNCERTAIN
-    if value is DecisionValue.EXCLUDE and must_not_exclude(assessments):
+    if value is DecisionValue.EXCLUDE and no_criterion_fails(assessments):
         return DecisionValue.UNCERTAIN
     return value
 
