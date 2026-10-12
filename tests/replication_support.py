@@ -7,6 +7,7 @@ reference only, so that every number of the report can be counted by hand.
 
 import shutil
 from collections.abc import Callable
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from revue_portee.ai.tasks.fulltext import ScreenFulltextInput
 from revue_portee.ai.tasks.screening import ScreenReferenceInput
 from revue_portee.ai.tasks.studies import GroupReportsInput
 from revue_portee.ai.tasks.synthesis import DraftSynthesisInput
+from revue_portee.clock import utc_now
 from revue_portee.domain.references import Reference
 from revue_portee.sources.records import OpenAccessLocation
 from support import make_pdf
@@ -174,7 +176,9 @@ def respond(item: TaskInput) -> dict[str, Any]:
     return {"sentences": [{"text": "Synthèse fictive.", "studies": [item.studies[0].key]}]}
 
 
-def factory(batches: FakeBatches | None = None) -> Callable[[AITaskConfig], ModelProvider]:
+def factory(
+    batches: FakeBatches | None = None, clock: Callable[[], datetime] = utc_now
+) -> Callable[[AITaskConfig], ModelProvider]:
     store = batches or FakeBatches()
 
     def build(config: AITaskConfig) -> ModelProvider:
@@ -184,6 +188,7 @@ def factory(batches: FakeBatches | None = None) -> Callable[[AITaskConfig], Mode
             responder=respond,
             cost_per_call=COST,
             batches=store,
+            clock=clock,
         )
 
     return build

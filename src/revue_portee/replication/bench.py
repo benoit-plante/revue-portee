@@ -533,9 +533,10 @@ def _extraction(run: _Run) -> Stop:
 
 
 def _synthesis(run: _Run) -> Stop:
-    """A narrative draft of each field with values (produced, not compared)."""
+    """A narrative draft of each field with values (produced, not compared); drafted
+    again when the field or its values changed since (a coding grid, a resumed run)."""
     for item in narrative.narrative_state(run.folder).fields:
-        if item.current is not None or not item.studies:
+        if (item.current is not None and not item.stale) or not item.studies:
             continue
         code = item.field.code
         preview = narrative.preview_ai(run.folder, code, factory=run.factory)

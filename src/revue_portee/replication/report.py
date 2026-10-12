@@ -8,6 +8,7 @@ configuration only: no title, abstract, URL, quote nor raw response, as the arch
 published review is the reference by definition (docs/11 §9).
 """
 
+from bisect import bisect_left
 from collections import Counter, defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -129,8 +130,9 @@ class ModeMeasures:
     agreement: tuple[CategoricalAgreement, ...]
     distributions: tuple[DistributionGap, ...]
     costs: tuple[TaskCost, ...]
-    duration_minutes: float | None
+    duration_minutes: float | None  # the sum of the runs' durations
     kept_unusable: int  # references kept because the AI gave no usable answer
+    run_minutes: tuple[float, ...] = ()  # first to last call of each run
     # Chained mode only
     screened: int = 0
     screened_excluded: int = 0
@@ -218,14 +220,27 @@ def _completed(folder: ProjectFolder) -> bool:
     return bool(ended) and ended[-1].payload.get("completed") is True
 
 
-def _costs(folder: ProjectFolder) -> tuple[tuple[TaskCost, ...], float | None]:
+def run_minutes(calls: Sequence[datetime], ends: Sequence[datetime]) -> tuple[float, ...]:
+    """Minutes from the first to the last call of each run: a run's calls come after the
+    end of the previous run and before its own; calls after the last end are a run
+    interrupted. Runs without calls are left out."""
+    bounds = sorted(ends)
+    runs: dict[int, list[datetime]] = defaultdict(list)
+    for moment in calls:
+        runs[bisect_left(bounds, moment)].append(moment)
+    return tuple(
+        (max(moments) - min(moments)).total_seconds() / 60 for _i, moments in sorted(runs.items())
+    )
+
+
+def _costs(
+    folder: ProjectFolder,
+) -> tuple[tuple[TaskCost, ...], tuple[float, ...]]:
     with folder.engine.connect() as connection:
         calls = ai_repo.list_calls(connection)
-        unusable = {
-            e.subject_id
-            for e in journal.list_entries(connection)
-            if e.entry_type == EntryType.AI_RESULT_UNUSABLE
-        }
+        entries = journal.list_entries(connection)
+    unusable = {e.subject_id for e in entries if e.entry_type == EntryType.AI_RESULT_UNUSABLE}
+    ends = [e.created_at for e in entries if e.entry_type == EntryType.REPLICATION_RUN_ENDED]
     by_task = defaultdict(list)
     for call in calls:
         by_task[call.task].append(call)
@@ -241,9 +256,7 @@ def _costs(folder: ProjectFolder) -> tuple[tuple[TaskCost, ...], float | None]:
         )
         for task, items in sorted(by_task.items())
     )
-    moments = [c.record.created_at for c in calls]
-    duration = (max(moments) - min(moments)).total_seconds() / 60 if moments else None
-    return costs, duration
+    return costs, run_minutes([c.record.created_at for c in calls], ends)
 
 
 def _config(folder: ProjectFolder) -> dict[str, str]:
@@ -452,7 +465,7 @@ def measure(
         sid: min(refs & included) for sid, refs in sorted(refs_of.items()) if refs & included
     }
     published_obtained = [sid for sid, refs in refs_of.items() if refs & obtained]
-    costs, duration = _costs(folder)
+    costs, runs = _costs(folder)
     agreements = _agreement(tool, standard, report_of)
     bare = None if chained else sum(
         1
@@ -492,7 +505,8 @@ def measure(
         bare_standard=bare,
         distributions=_distributions(tool, standard),
         costs=costs,
-        duration_minutes=duration,
+        duration_minutes=sum(runs) if runs else None,
+        run_minutes=runs,
         kept_unusable=len(by_rule_ft),
         config=_config(folder),
     )
@@ -598,6 +612,12 @@ def measure_review(
 
 def _pct(value: float | None) -> str:
     return "—" if value is None else f"{value:.1%}".replace(".", ",")
+
+
+def _runs(minutes: tuple[float, ...]) -> str:
+    if len(minutes) < 2:
+        return ""
+    return f" ({len(minutes)} exécutions : {' + '.join(_num(m, 1) for m in minutes)})"
 
 
 def _num(value: float | None, digits: int = 2) -> str:
@@ -753,7 +773,8 @@ def _section(m: ModeMeasures) -> list[str]:
         f"**{sum((c.amount for c in m.costs), Decimal(0))}** |",
         "",
         f"- Références ou textes conservés faute de réponse utilisable : {m.kept_unusable}",
-        f"- Durée, du premier au dernier appel : {_num(m.duration_minutes, 1)} min",
+        f"- Durée des appels, du premier au dernier de chaque exécution : "
+        f"{_num(m.duration_minutes, 1)} min{_runs(m.run_minutes)}",
         "",
         "### Configuration",
         "",

@@ -159,3 +159,11 @@ Le test `tests/unit/replication/test_coding_grid.py` rejoue le mode par étape s
   - Natation : S5 des deux côtés, absente ailleurs → **5/5**, kappa et AC1 **1**.
 - **D4, indice de Jaccard** sur les études rapportées des deux côtés (S1, S2, S5) : 1, 1/2, 1/2 → moyenne **0,67** sur **3** études.
 - **D5** (même nombre; ∅ des deux côtés compte comme un accord, comme pour une catégorie) : S1, S5, S6 → **3/5**; non rapporté **1 / 2**.
+
+## Tranche 3.11 — grille ajoutée après une exécution complète, durée par exécution
+
+`tests/unit/replication/test_resumed_runs.py` : une exécution par étape complète sans grille de codage, puis la grille de codage de la tranche 3.9 ajoutée et une seconde exécution, avec une même horloge.
+
+- **Extraction** : 5 appels à la première exécution (études avec texte), puis 5 à la seconde, pour les seuls champs que la grille change (D2 redéfini, D4 et D5 ajoutés) → **10**.
+- **Synthèse narrative** : D1, D2, D3 à la première exécution; à la seconde, D2 de nouveau (champ et valeurs changés depuis l'ébauche), D4 et D5 pour la première fois; D1 et D3 inchangés → **6** appels, D2 a **2** ébauches.
+- **Durée** (`run_minutes`, cas à la main) : appels à 0, 30, 90 s (fin d'exécution à 100 s), 200 et 260 s (fin à 300 s), aucune exécution entre 300 et 350 s, puis 400 et 430 s sans fin consignée (exécution interrompue) → **1,5 + 1,0 + 0,5** min; l'exécution sans appel est laissée de côté.
