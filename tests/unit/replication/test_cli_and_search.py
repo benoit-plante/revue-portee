@@ -45,7 +45,7 @@ def test_command_stops_for_texts_then_writes_the_report(tmp_path: Path, offline:
     assert "- 10.5555/FICT.0004 — A walking prescription" in first.output
     second = runner.invoke(app, [*args, "--poursuivre"])
     assert second.exit_code == 0, second.output
-    assert "dépensé : 0.245 $ US sur 5." in second.output
+    assert "dépensé : 0.255 $ US sur 5." in second.output
     report = sortie / "replication-Fictive_2026_marche_anxiete.md"
     assert f"Rapport écrit : {report}" in second.output
     assert "référence appariée : S5, S6" in second.output

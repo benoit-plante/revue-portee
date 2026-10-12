@@ -63,6 +63,7 @@ from revue_portee.domain.screening import (
     draw_sample,
     keeps,
     must_not_exclude,
+    no_criterion_fails,
     primary_reason,
 )
 from revue_portee.fulltext import retrieval
@@ -591,6 +592,7 @@ def _store_ai_decision(
                 "criteria_cited": list(decision.criteria_cited),
                 "quote_checks": checks,
                 "rule_sel_07": must_not_exclude(decision.assessments),
+                "no_criterion_fails": no_criterion_fails(decision.assessments),
             },
         )
         screening_repo.insert_decision(connection, decision, journal_entry_id=entry.id)

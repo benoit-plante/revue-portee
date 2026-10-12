@@ -34,6 +34,7 @@ from revue_portee.domain.screening import (
     detect_language,
     draw_sample,
     must_not_exclude,
+    no_criterion_fails,
 )
 
 IN, EX, UN = DecisionValue.INCLUDE, DecisionValue.EXCLUDE, DecisionValue.UNCERTAIN
@@ -68,7 +69,22 @@ def test_rule_sel_07_never_excludes_what_cannot_be_told() -> None:
 
 @pytest.mark.parametrize(("probability", "value"), [(0.09, EX), (0.1, UN), (0.59, UN), (0.6, IN)])
 def test_thresholds(probability: float, value: DecisionValue) -> None:
-    assert ai_value(probability, DEFAULT, assess(("P1", INC, MET))) is value
+    failing = assess(("P1", INC, MET), ("C1", INC, NOT_MET))
+    assert ai_value(probability, DEFAULT, failing) is value
+
+
+def test_d113_never_excludes_when_no_criterion_fails() -> None:
+    # Every criterion met (exclusion criteria not met): thresholds say exclude, D-113 no.
+    met = assess(("P1", INC, MET), ("C1", INC, MET), ("X1", EXC, NOT_MET))
+    assert no_criterion_fails(met)
+    assert not must_not_exclude(met)  # no criterion that cannot be told: not EF-SEL-07
+    assert ai_value(0.05, DEFAULT, met) is UN
+    # One inclusion criterion not met, or one exclusion criterion met: excluded.
+    assert ai_value(0.05, DEFAULT, assess(("P1", INC, MET), ("C1", INC, NOT_MET))) is EX
+    assert ai_value(0.05, DEFAULT, assess(("P1", INC, MET), ("X1", EXC, MET))) is EX
+    assert not no_criterion_fails(assess(("P1", INC, MET), ("X1", EXC, MET)))
+    # Above the threshold, the rule changes nothing.
+    assert ai_value(0.7, DEFAULT, met) is IN
 
 
 def test_threshold_order_is_checked() -> None:

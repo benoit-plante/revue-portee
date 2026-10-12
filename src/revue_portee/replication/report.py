@@ -300,10 +300,10 @@ class _Agreements:
     numeric: tuple[NumericAgreement, ...] = ()
 
 
-def _agreement(
-    tool: _Tool, standard: Standard, study_of: Mapping[str, studies.Study]
-) -> _Agreements:
-    """Categorical fields (multiple choices also choice by choice) and number fields."""
+def _agreement(tool: _Tool, standard: Standard, report_of: Mapping[str, str]) -> _Agreements:
+    """Categorical fields (multiple choices also choice by choice) and number fields;
+    ``report_of`` gives the included report whose values stand for each published
+    study (D-114: each report is extracted on its own)."""
     if tool.grid is None:
         return _Agreements()
     pairs: dict[str, list[tuple[str, str]]] = defaultdict(list)
@@ -312,12 +312,12 @@ def _agreement(
     fields: dict[str, GridField] = {}
     for row in standard.values:
         field_ = _field(tool.grid, row.field)
-        study = study_of.get(row.study_id)
-        if field_ is None or study is None:
+        report = report_of.get(row.study_id)
+        if field_ is None or report is None:
             continue
         if field_.type not in CATEGORICAL and field_.type is not FieldType.NUMBER:
             continue
-        value = tool.values.get((study.primary, field_.code))
+        value = tool.values.get((report, field_.code))
         if value is None:
             continue  # not extracted (text not readable, ceiling)
         fields[field_.code] = field_
@@ -349,8 +349,11 @@ def _agreement(
 
 
 def _distributions(tool: _Tool, standard: Standard) -> tuple[DistributionGap, ...]:
+    """The tool's distribution over its included reports, each extracted on its own
+    (D-114), the unit of a published table."""
     if tool.grid is None:
         return ()
+    reports = sorted({ref for study in tool.studies for ref in study.reports})
     found = []
     for published in standard.distributions:
         field_ = _field(tool.grid, published.field)
@@ -362,8 +365,8 @@ def _distributions(tool: _Tool, standard: Standard) -> tuple[DistributionGap, ..
             )
         counts: Counter[str] = Counter()
         studied = 0
-        for study in tool.studies:
-            value = tool.values.get((study.primary, field_.code))
+        for report in reports:
+            value = tool.values.get((report, field_.code))
             if value is None or not value[1]:
                 continue
             studied += 1
@@ -442,14 +445,15 @@ def measure(
         study.primary: frozenset(sid for sid, refs in refs_of.items() if refs & set(study.reports))
         for study in tool.studies
     }
-    study_of: dict[str, studies.Study] = {}
-    for study in sorted(tool.studies, key=lambda s: s.primary):
-        for sid in matches[study.primary]:
-            study_of.setdefault(sid, study)
     included = {ref for study in tool.studies for ref in study.reports}
+    # The included report that stands for each published study: the first of its
+    # references among the reports the tool includes.
+    report_of = {
+        sid: min(refs & included) for sid, refs in sorted(refs_of.items()) if refs & included
+    }
     published_obtained = [sid for sid, refs in refs_of.items() if refs & obtained]
     costs, duration = _costs(folder)
-    agreements = _agreement(tool, standard, study_of)
+    agreements = _agreement(tool, standard, report_of)
     bare = None if chained else sum(
         1
         for ref in given.values()

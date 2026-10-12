@@ -83,17 +83,17 @@ Répartitions publiées : D1 sur 6 études (Essai randomisé 1, Quasi expérimen
 - **Obtention** : cherchées 8 (S1, S1b, S2, S3, R10, R11, R12, R13); libre accès **1** (S2); téléversées **6**; non obtenue **1** (S3).
 - **Texte intégral** : **7** textes; conservés S1, S1b, R10, R11 → **4**, dont incertain **1** (R11). Rappel : études publiées dont le texte est obtenu S1, S2 → conservée S1 → **1/2**.
 - **Rapports** : 4 rapports inclus; S1 + S1b = une étude → **3 études** (S1, R10, R11).
-- **Extraction** : seule S1 correspond à une étude publiée → 1 comparaison par champ, accord **1/1**; kappa et AC1 indéfinis (une seule catégorie) → « — »; « non rapporté » 0 / 0.
-- **Répartition D1** (outil sur 3 études : Essai randomisé 2 (S1, R11), Quasi expérimental 1 (R10), Qualitatif 0) :
+- **Extraction** (D-114 : chaque rapport inclus est extrait à part : S1, S1b, R10, R11 → **4** appels) : seule S1 correspond à une étude publiée → 1 comparaison par champ (valeurs du rapport S1), accord **1/1**; kappa et AC1 indéfinis (une seule catégorie) → « — »; « non rapporté » 0 / 0.
+- **Répartition D1** (outil sur les 4 rapports inclus : Essai randomisé 3 (S1, S1b, R11), Quasi expérimental 1 (R10), Qualitatif 0) :
 
   | Catégorie | Publiée | Outil | Écart |
   |---|---|---|---|
-  | Essai randomisé | 1/6 = 16,7 % | 2/3 = 66,7 % | 50,0 |
-  | Quasi expérimental | 3/6 = 50,0 % | 1/3 = 33,3 % | 16,7 |
+  | Essai randomisé | 1/6 = 16,7 % | 3/4 = 75,0 % | 58,3 |
+  | Quasi expérimental | 3/6 = 50,0 % | 1/4 = 25,0 % | 25,0 |
   | Qualitatif | 2/6 = 33,3 % | 0 % | 33,3 |
 
   Moins de 5 points : **0/3**; mode publié {Quasi expérimental}, mode de l'outil {Essai randomisé} → **non**. Rangs (Spearman) : publiée (1, 3, 2), outil (3, 2, 1); covariance des écarts aux moyennes = −1, variances 2 et 2 → **−0,5**.
-- **Répartition D2** (outil : Communauté 1, Résidence 1, Hôpital 1 sur 3) : 33,3 % partout de chaque côté → écarts 0 → **3/3** à moins de 5 points; modes identiques (les trois catégories) → **oui**; rangs tous égaux → corrélation **indéfinie** (« — »).
+- **Répartition D2** (outil : Communauté 2 (S1, S1b), Résidence 1, Hôpital 1 sur 4 → 50 %, 25 %, 25 %; publiée 33,3 % partout) : écarts 16,7, 8,3, 8,3 → **0/3** à moins de 5 points; modes {les trois} et {Communauté} → **non**; rangs publiés tous égaux → corrélation **indéfinie** (« — »).
 - **Diagramme** (outil / publié) : identifiées 29 / 30 (−1, −3,3 %); après doublons 27 / 27 (0); triées 27 / 27 (0); textes évalués 7 / 8 (−1, −12,5 %); rapports inclus 4 / 7 (−3, −42,9 %); études incluses 3 / 6 (−3, −50,0 %).
 - **De bout en bout** : publiées 6, retrouvables 5 (S1 à S5), études de l'outil 3, dont 1 (S1) correspond à une étude publiée.
   - Rappel : **1/6** (16,7 %); sur les retrouvables : **1/5** (20,0 %).
@@ -102,7 +102,7 @@ Répartitions publiées : D1 sur 6 études (Essai randomisé 1, Quasi expérimen
   - Jaccard = 1 / (6 + 3 − 1) = **0,125**; sur les retrouvables : 1 / (5 + 3 − 1) = **0,143**.
 - **Cascade** : S6 hors de toute base, S5 recherche, S4 tri des résumés, S3 obtention, S2 texte intégral → **1 à chaque étape**; S1 retrouvée.
 - **Descripteurs** : étude perdue au tri des résumés sans résumé : **1** (S4); premier critère cité pour l'exclure : **C1 : 1**. Inclusions de l'outil absentes de la revue publiée : R10 (2022, dans la période de la recherche, qui finit en 2025) et R11 (2026, après) → **1** et **1**, année inconnue 0.
-- **Appels** : titres et résumés 27 + 1 (R13 de nouveau) = **28** (2 réponses inutilisables); texte intégral **7**; paire de rapports **1**; extraction **3**; synthèse narrative **3** (D1, D2, D3) → **42** appels. Coût : 28 × 0,005 + 7 × 0,005 + 1 × 0,01 + 3 × 0,01 + 3 × 0,01 = **0,245 $**. Conservées faute de réponse utilisable : **1**.
+- **Appels** : titres et résumés 27 + 1 (R13 de nouveau) = **28** (2 réponses inutilisables); texte intégral **7**; paire de rapports **1**; extraction **4**; synthèse narrative **3** (D1, D2, D3) → **43** appels. Coût : 28 × 0,005 + 7 × 0,005 + 1 × 0,01 + 4 × 0,01 + 3 × 0,01 = **0,255 $**. Conservées faute de réponse utilisable : **1**.
 
 ## Mode par étape
 

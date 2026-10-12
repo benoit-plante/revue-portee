@@ -115,13 +115,13 @@ def test_resumes_without_calling_again(replayed: Replayed) -> None:
         assert isinstance(second, bench.BenchOutcome)
         assert second.stopped is bench.Stop.NONE
     assert seen["chained-calls"] == Counter(
-        {"screen_reference": 28, "screen_fulltext": 7, "group_reports": 1, "extract_fields": 3,
+        {"screen_reference": 28, "screen_fulltext": 7, "group_reports": 1, "extract_fields": 4,
          "draft_synthesis": 3}
     )  # fmt: skip
     assert seen["stepwise-calls"] == Counter(
         {"screen_fulltext": 5, "extract_fields": 5, "draft_synthesis": 3}
     )
-    assert seen["chained-second"].spent == Decimal("0.245")
+    assert seen["chained-second"].spent == Decimal("0.255")
     assert seen["stepwise-second"].spent == Decimal("0.105")
     # A third run finds everything done: no call, no question.
     asked = len(replay.asked)
@@ -171,12 +171,13 @@ def test_chained_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
         ("D1", 1, 1, None, None), ("D2", 1, 1, None, None), ("D3", 1, 1, None, None)
     ]  # fmt: skip
     d1, d2 = m.distributions
-    assert [c.gap for c in d1.categories] == pytest.approx([50.0, 50 / 3, 100 / 3])
+    # D-114: over the 4 included reports (S1, S1b, R10, R11), each extracted on its own.
+    assert [c.gap for c in d1.categories] == pytest.approx([175 / 3, 25.0, 100 / 3])
     assert (d1.within.count, d1.same_mode) == (0, False)
     assert d1.rank_correlation == pytest.approx(-0.5)
     assert d2.field == "D2"
-    assert [c.gap for c in d2.categories] == pytest.approx([0, 0, 0])
-    assert (d2.within.count, d2.same_mode, d2.rank_correlation) == (3, True, None)
+    assert [c.gap for c in d2.categories] == pytest.approx([50 / 3, 25 / 3, 25 / 3])
+    assert (d2.within.count, d2.same_mode, d2.rank_correlation) == (0, False, None)
     assert [(g.box, g.published, g.tool) for g in m.flow] == [
         ("identified", 30, 29), ("after_duplicates", 27, 27), ("screened", 27, 27),
         ("full_texts_assessed", 8, 7), ("included_reports", 7, 4), ("included_studies", 6, 3),
@@ -193,7 +194,7 @@ def test_chained_measures_equal_the_count_by_hand(replayed: Replayed) -> None:
     assert m.extra_years == {"within": 1, "after": 1, "unknown": 0}
     costs = {c.task: (c.calls, c.unusable, c.amount) for c in m.costs}
     assert costs["screen_reference"] == (28, 2, Decimal("0.140"))
-    assert sum(c.calls for c in m.costs) == 42
+    assert sum(c.calls for c in m.costs) == 43
     assert m.kept_unusable == 1
     assert (m.multiple, m.numeric, m.bare_standard) == ((), (), None)
 
@@ -247,7 +248,7 @@ def test_report_holds_numbers_only(replayed: Replayed, tmp_path: Path) -> None:
     assert "| Indice de Jaccard | 0,125 | 0,143 |" in text
     assert "| D1 | 5 | 4/5 (80,0%)" in text
     assert "| Études incluses | 6 | 3 | -3 | -50,0% |" in text
-    assert "**0.245**" in text
+    assert "**0.255**" in text
     assert "**0.105**" in text
     # No title, abstract, URL nor raw response (as the public archive, D-092).
     ris = (replay.review / "recherche" / "export-base-fictive.ris").read_text(encoding="utf-8")
@@ -280,7 +281,7 @@ def test_ceiling_stops_before_the_next_call_without_loss(tmp_path: Path) -> None
     resumed = replay.run(CHAINED, ceiling="5", go_on=True)
     assert resumed.stopped is bench.Stop.NONE
     assert replay.calls(CHAINED)["screen_reference"] == 28
-    assert resumed.spent == Decimal("0.245")
+    assert resumed.spent == Decimal("0.255")
 
 
 def test_ceiling_reached_by_the_other_steps(tmp_path: Path) -> None:
