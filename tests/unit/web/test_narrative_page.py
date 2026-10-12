@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from demo import build, build_extracted
+from revue_portee.extraction import validation
 from revue_portee.jobs.runner import BackgroundJobs
 from revue_portee.web.app import NARRATIVE_JOB, create_app
 from support import TOOL_VERSION
@@ -62,6 +63,14 @@ def test_draft_then_revision(tmp_path: Path) -> None:
         assert "Ébauche de l'IA non révisée" in page
         assert AI_TEXT in page
         assert "ébauche de l'IA, à réviser" in text(client.get("/synthese/narratif"))
+        assert "depuis cette ébauche" not in page
+        # A value changed since the AI's draft: the draft is to review (tranche 3.11).
+        validation.record_value(demo.folder, ref, "D1", reported=True, value="Mixte",
+                                now=demo.clock, tool_version=TOOL_VERSION)  # fmt: skip
+        assert ("ébauche de l'IA, à réviser — <strong>à revoir : des valeurs ont changé depuis"
+                in text(client.get("/synthese/narratif")))  # fmt: skip
+        assert ("À revoir : des valeurs de ce champ, ou le champ lui-même, ont changé depuis "
+                "cette ébauche" in text(client.get("/synthese/narratif/D1")))  # fmt: skip
         form = {"csrf_token": token(client), "nombre": "3", "phrase-0": "Une étude qualitative.",
                 "etudes-0": ref, "phrase-1": "", "phrase-2": "Sans étude."}  # fmt: skip
         refused = client.post("/synthese/narratif/D1", data=form)

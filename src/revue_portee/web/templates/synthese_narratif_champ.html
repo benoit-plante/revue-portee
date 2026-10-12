@@ -43,6 +43,9 @@
   {% endif %}
   {% if target.to_revise %}
   <p class="message info">{{ _("Draft of the AI, not revised: it is not used anywhere until you revise it below.") }}</p>
+  {% if target.stale %}
+  <p class="message info">{{ _("To review: values of this field, or the field itself, changed since this draft; ask the AI for a new draft or revise it with the values above.") }}</p>
+  {% endif %}
   {% endif %}
   {% if target.revised and target.outdated %}
   <p class="message info">{{ _("To review: values of this field, or the field itself, changed since your revision.") }}</p>
