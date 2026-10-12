@@ -34,6 +34,8 @@ from revue_portee.domain.replication import (
     EndToEnd,
     FlowGap,
     LossStage,
+    MultipleChoiceAgreement,
+    NumericAgreement,
     Proportion,
     StudyPath,
     categorical_agreement,
@@ -42,6 +44,8 @@ from revue_portee.domain.replication import (
     flow_gaps,
     loss_cascade,
     lost_at,
+    multiple_choice_agreement,
+    numeric_agreement,
     screening_loss_descriptors,
     year_descriptors,
 )
@@ -140,6 +144,11 @@ class ModeMeasures:
     extra_years: dict[str, int] = field(default_factory=dict)
     config: dict[str, str] = field(default_factory=dict)
     unmatched_ids: tuple[str, ...] = ()  # for the console only, never in the report
+    multiple: tuple[MultipleChoiceAgreement, ...] = ()  # multiple choices, choice by choice
+    numeric: tuple[NumericAgreement, ...] = ()
+    # Stepwise only: references of the standard without authors nor abstract, after
+    # their completion by Crossref (E-011 of the benchmark); None in chained mode.
+    bare_standard: int | None = None
 
 
 # --- Helpers --------------------------------------------------------------------------
@@ -157,16 +166,18 @@ def _category(field_: GridField, value: JsonValue, reported: bool) -> str:
     return str(value)
 
 
-def _published_category(field_: GridField, study_id: str, raw: str) -> str:
+def _published_value(field_: GridField, study_id: str, raw: str) -> JsonValue:
+    """A value of ``norme/extraction-publiee.csv`` read as the AI's are (multiple
+    choices joined by `` | ``); None when not reported."""
     if not raw:
-        return NOT_REPORTED
+        return None
     item: JsonValue = (
         [part.strip() for part in raw.split("|")]
         if field_.type is FieldType.MULTIPLE_CHOICE
         else raw
     )
     try:
-        return _category(field_, parse_value(field_, item), True)
+        return parse_value(field_, item)
     except InvalidValueError as error:
         raise ReplicationInputError(
             _(
@@ -174,6 +185,23 @@ def _published_category(field_: GridField, study_id: str, raw: str) -> str:
                 "the categories of the grid."
             ).format(field=field_.code, study=study_id)
         ) from error
+
+
+def _published_category(field_: GridField, study_id: str, raw: str) -> str:
+    value = _published_value(field_, study_id, raw)
+    return NOT_REPORTED if value is None else _category(field_, value, True)
+
+
+def _choices(value: JsonValue) -> frozenset[str] | None:
+    if value is None:
+        return None
+    return frozenset(str(v) for v in (value if isinstance(value, list) else [value]))
+
+
+def _number(value: JsonValue) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value)
 
 
 def _field(grid: GridVersion, name: str) -> GridField | None:
@@ -261,26 +289,62 @@ def _tool(folder: ProjectFolder) -> _Tool:
     )
 
 
+def _by_code(code: str) -> tuple[int, str]:
+    return len(code), code
+
+
+@dataclass(frozen=True, slots=True)
+class _Agreements:
+    categorical: tuple[CategoricalAgreement, ...] = ()
+    multiple: tuple[MultipleChoiceAgreement, ...] = ()
+    numeric: tuple[NumericAgreement, ...] = ()
+
+
 def _agreement(
     tool: _Tool, standard: Standard, study_of: Mapping[str, studies.Study]
-) -> tuple[CategoricalAgreement, ...]:
+) -> _Agreements:
+    """Categorical fields (multiple choices also choice by choice) and number fields."""
     if tool.grid is None:
-        return ()
+        return _Agreements()
     pairs: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    sets: dict[str, list[tuple[frozenset[str] | None, frozenset[str] | None]]] = defaultdict(list)
+    numbers: dict[str, list[tuple[float | None, float | None]]] = defaultdict(list)
+    fields: dict[str, GridField] = {}
     for row in standard.values:
         field_ = _field(tool.grid, row.field)
         study = study_of.get(row.study_id)
-        if field_ is None or field_.type not in CATEGORICAL or study is None:
+        if field_ is None or study is None:
+            continue
+        if field_.type not in CATEGORICAL and field_.type is not FieldType.NUMBER:
             continue
         value = tool.values.get((study.primary, field_.code))
         if value is None:
             continue  # not extracted (text not readable, ceiling)
+        fields[field_.code] = field_
+        extracted = value[0] if value[1] else None
+        if field_.type is FieldType.NUMBER:
+            published = _published_value(field_, row.study_id, row.value)
+            numbers[field_.code].append((_number(published), _number(extracted)))
+            continue
         pairs[field_.code].append(
             (_published_category(field_, row.study_id, row.value), _category(field_, *value))
         )
-    return tuple(
-        categorical_agreement(code, found)
-        for code, found in sorted(pairs.items(), key=lambda kv: (len(kv[0]), kv[0]))
+        if field_.type is FieldType.MULTIPLE_CHOICE:
+            published = _published_value(field_, row.study_id, row.value)
+            sets[field_.code].append((_choices(published), _choices(extracted)))
+    return _Agreements(
+        categorical=tuple(
+            categorical_agreement(code, found)
+            for code, found in sorted(pairs.items(), key=lambda kv: _by_code(kv[0]))
+        ),
+        multiple=tuple(
+            multiple_choice_agreement(code, fields[code].choices, found)
+            for code, found in sorted(sets.items(), key=lambda kv: _by_code(kv[0]))
+        ),
+        numeric=tuple(
+            numeric_agreement(code, found)
+            for code, found in sorted(numbers.items(), key=lambda kv: _by_code(kv[0]))
+        ),
     )
 
 
@@ -385,6 +449,14 @@ def measure(
     included = {ref for study in tool.studies for ref in study.reports}
     published_obtained = [sid for sid, refs in refs_of.items() if refs & obtained]
     costs, duration = _costs(folder)
+    agreements = _agreement(tool, standard, study_of)
+    bare = None if chained else sum(
+        1
+        for ref in given.values()
+        if ref in dedup.references
+        and not dedup.references[ref].authors
+        and not dedup.references[ref].abstract.strip()
+    )  # fmt: skip
     measures = ModeMeasures(
         mode=marker.mode,
         completed=_completed(folder),
@@ -410,7 +482,10 @@ def measure(
         ),
         reports=len(included),
         studies=len(tool.studies),
-        agreement=_agreement(tool, standard, study_of),
+        agreement=agreements.categorical,
+        multiple=agreements.multiple,
+        numeric=agreements.numeric,
+        bare_standard=bare,
         distributions=_distributions(tool, standard),
         costs=costs,
         duration_minutes=duration,
@@ -547,6 +622,14 @@ def _section(m: ModeMeasures) -> list[str]:
         f"- Retrouvabilité parmi les études d'une base interrogée : "
         f"{_prop(m.retrievability_in_search)}",
         f"- Études de la norme sans référence appariée : {m.unmatched}",
+        *(
+            []
+            if m.bare_standard is None
+            else [
+                f"- Références de la norme sans auteurs ni résumé, après Crossref : "
+                f"{m.bare_standard}"
+            ]
+        ),
         "",
     ]
     if m.mode is ReplicationMode.CHAINED:
@@ -578,7 +661,7 @@ def _section(m: ModeMeasures) -> list[str]:
         "",
         f"- Rapports inclus : {m.reports}; études après regroupement : {m.studies}",
         "",
-        "### Étape 7 — extraction (champs catégoriels)",
+        "### Étape 7 — extraction (champs catégoriels et numériques)",
         "",
     ]
     if m.agreement:
@@ -595,7 +678,42 @@ def _section(m: ModeMeasures) -> list[str]:
         ]
     else:
         lines += ["Aucun champ catégoriel comparé.", ""]
-    lines += ["### Étape 8 — synthèse (répartitions publiées)", ""]
+    for c in m.multiple:
+        lines += [
+            f"**{c.field}** (choix multiple), choix par choix (présent ou absent; « non "
+            f"rapporté » compte comme absent); indice de Jaccard moyen sur les {c.jaccard_n} "
+            f"études rapportées des deux côtés : {_num(c.jaccard)}",
+            "",
+            "| Choix | Comparées | Accord | Kappa de Cohen | AC1 de Gwet |",
+            "|---|---|---|---|---|",
+            *(
+                f"| {a.choice} | {a.compared} | {_prop(a.agreement)} | {_num(a.kappa)} | "
+                f"{_num(a.ac1)} |"
+                for a in c.choices
+            ),
+            "",
+        ]
+    if m.numeric:
+        lines += [
+            "Champs numériques (même nombre; « non rapporté » des deux côtés compte comme un "
+            "accord) :",
+            "",
+            "| Champ | Comparées | Accord | « Non rapporté » (publiée / outil) |",
+            "|---|---|---|---|",
+            *(
+                f"| {n.field} | {n.compared} | {_prop(n.agreement)} | "
+                f"{n.not_reported_published} / {n.not_reported_tool} |"
+                for n in m.numeric
+            ),
+            "",
+        ]
+    lines += [
+        "### Étape 8 — synthèse (répartitions publiées)",
+        "",
+        "La synthèse narrative est rédigée à partir des valeurs extraites par l'IA, sans "
+        "vérification humaine ici : elle reprend ces valeurs telles quelles.",
+        "",
+    ]
     for d in m.distributions:
         lines += [
             f"**{d.field}** — publiée : {d.published_n} études; outil : {d.tool_n} études; "
@@ -727,6 +845,14 @@ def report_markdown(
         f"- Norme de référence : {len(standard.studies)} études incluses publiées, dont "
         f"{out_of_search} hors de toute base interrogée; SHA-256 de incluses.csv : "
         f"{standard.sha256[:16]}…",
+        *(
+            [
+                f"- Grille de codage (D-112) : SHA-256 de grille-codage.yaml : "
+                f"{standard.coding_grid_sha256[:16]}…"
+            ]
+            if standard.coding_grid is not None
+            else []
+        ),
         "- Intervalles : Wilson à 95 %.",
         "",
     ]

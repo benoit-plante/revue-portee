@@ -129,3 +129,33 @@ Le tri des titres et résumés n'est pas rejoué : il est le même dans les deux
 ## Plafond
 
 Avec un plafond de 0,10 $, le premier lot de tri ne peut pas tout envoyer : 0,10 / 0,005 = **20** références partent, puis le lot s'arrête avant l'appel suivant (« plafond atteint »), sans rien perdre : les 20 décisions sont enregistrées et la dépense est de **0,10 $**. Relancée avec un plafond plus élevé, la commande envoie les 7 autres références et la seconde tentative pour R13 : **28** appels de tri en tout, comme sans plafond.
+
+## Tranche 3.9 — grille de codage, références complétées, choix multiples et nombres
+
+Le test `tests/unit/replication/test_coding_grid.py` rejoue le mode par étape sur une copie de la revue fictive, à laquelle il ajoute :
+
+- `norme/grille-codage.yaml` (D-112) : les trois champs de la grille, D2 avec une définition plus précise, plus **D4 Activités** (choix multiple : Marche, Danse, Natation) et **D5 Participants** (nombre);
+- dans `norme/extraction-publiee.csv`, les valeurs publiées de D4 et D5;
+- une source Crossref simulée (`Crossref` de `tests/replication_support.py`) qui ne connaît que S5.
+
+**Grille.** Les champs de la grille de codage remplacent ceux de même libellé (le code reste) et les autres s'ajoutent : version 1 (grille transcrite), version 2 (grille de codage, D1 à D5). La troisième exécution n'ajoute aucune version. L'extraction se fait une seule fois, avec la version 2 : **5** appels (une étude par texte).
+
+**Références de la norme sans auteurs ni résumé.** S1 à S4 ont les champs de leur notice collectée (auteurs dans le RIS). S5 et S6 n'ont que le titre et le DOI de `incluses.csv` : **2** sans Crossref (test du mode par étape ordinaire). Crossref complète S5 (auteurs, année, revue); S6 n'a pas de DOI : **1**.
+
+**Valeurs comparées** (S3 sans texte; ∅ = non rapporté) :
+
+| Étude | D4 publiée | D4 outil | D5 publiée | D5 outil |
+|---|---|---|---|---|
+| S1 | Marche | Marche | 40 | 40 |
+| S2 | Marche, Danse | Marche | 25 | 52 |
+| S4 | Marche | ∅ | 12 | ∅ |
+| S5 | Natation | Natation, Marche | ∅ | ∅ |
+| S6 | ∅ | Marche | 30 | 30 |
+
+- **D4, accord exact** (l'ensemble des choix identique) : seule S1 → **1/5**.
+- **D4, choix par choix** (présent ou absent; ∅ compte comme absent) :
+  - Marche : (1, 1), (1, 1), (1, 0), (0, 1), (0, 1) → **2/5**. Parts « présent » : 3/5 publiée, 4/5 outil; kappa : attendu 0,6 × 0,8 + 0,4 × 0,2 = 0,56; (0,4 − 0,56) / 0,44 = **−0,364**; AC1 : π = 0,7 et 0,3; 2 × 0,21 = 0,42; (0,4 − 0,42) / 0,58 = **−0,034**.
+  - Danse : présente seulement pour S2 publiée → **4/5**; kappa : attendu 0,2 × 0 + 0,8 × 1 = 0,8 → **0**; AC1 : π = 0,1 et 0,9; 0,18; 0,62 / 0,82 = **0,756**.
+  - Natation : S5 des deux côtés, absente ailleurs → **5/5**, kappa et AC1 **1**.
+- **D4, indice de Jaccard** sur les études rapportées des deux côtés (S1, S2, S5) : 1, 1/2, 1/2 → moyenne **0,67** sur **3** études.
+- **D5** (même nombre; ∅ des deux côtés compte comme un accord, comme pour une catégorie) : S1, S5, S6 → **3/5**; non rapporté **1 / 2**.

@@ -92,6 +92,15 @@ EXTRACTED: dict[str, tuple[str, str, str | None]] = {
     "R10": ("Quasi expérimental", "Résidence", "non"),
     "R11": ("Essai randomisé", "Hôpital", None),
 }
+# Fields of the coding grid (tests/unit/replication/test_coding_grid.py, D-112): D4
+# (activities, multiple choice; None: not reported) and D5 (participants, number).
+CODED: dict[str, tuple[list[str] | None, str | None]] = {
+    "S1": (["Marche"], "40"),
+    "S2": (["Marche"], "52"),
+    "S4": (None, None),
+    "S5": (["Natation", "Marche"], None),
+    "S6": (["Marche"], "30"),
+}
 
 
 def _screening(item: ScreenReferenceInput | ScreenFulltextInput, probability: float | None,
@@ -147,15 +156,19 @@ def respond(item: TaskInput) -> dict[str, Any]:
             "rationale": "Réponse fictive.",
         }
     if isinstance(item, ExtractFieldsInput):
-        design, setting, follow_up = EXTRACTED[key_of(item.report.title)]
-        given = {"D1": design, "D2": setting, "D3": follow_up}
-        return {
-            "values": [
-                {"code": f.code, "reported": given[f.code] is not None,
-                 "value": given[f.code] or ""}
-                for f in item.fields
-            ]
-        }  # fmt: skip
+        key = key_of(item.report.title)
+        design, setting, follow_up = EXTRACTED[key]
+        activities, participants = CODED.get(key, (None, None))
+        given = {"D1": design, "D2": setting, "D3": follow_up, "D5": participants}
+        values = []
+        for f in item.fields:
+            if f.code == "D4":
+                values.append({"code": "D4", "reported": activities is not None, "value": "",
+                               "selected": activities or []})  # fmt: skip
+            else:
+                values.append({"code": f.code, "reported": given[f.code] is not None,
+                               "value": given[f.code] or ""})  # fmt: skip
+        return {"values": values}
     assert isinstance(item, DraftSynthesisInput)
     return {"sentences": [{"text": "Synthèse fictive.", "studies": [item.studies[0].key]}]}
 
@@ -190,3 +203,17 @@ class Finder:
     def download(self, url: str) -> bytes:
         assert url == OPEN_ACCESS_URL
         return make_pdf(["Nordic walking in long-term care residents" + FILLER, "Results" + FILLER])
+
+
+class Crossref:
+    """Crossref: only the aquatic walking study (S5, not collected) is known."""
+
+    def work(self, doi: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+        if doi.lower() == "10.5555/fict.0006":
+            work = {
+                "author": [{"family": "Simard", "given": "Marie"}],
+                "issued": {"date-parts": [[2021]]},
+                "container-title": ["Fict Aquat Health"],
+            }
+            return work, {"status": "ok", "message": work}
+        return None, {"status": "not found", "doi": doi}

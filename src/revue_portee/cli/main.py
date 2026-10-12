@@ -1036,7 +1036,7 @@ def replication_benchmark(
     from revue_portee.protocol.ai_assist import CostPreview
     from revue_portee.replication import bench, inputs, report
     from revue_portee.screening.batch_ai import NotBatchCapableError
-    from revue_portee.sources import OpenAccessSources, SourceError
+    from revue_portee.sources import OpenAccessSources, SourceError, default_crossref
 
     modes = {slug: value for value, slug in bench.MODE_SLUGS.items()}
     if mode not in modes:
@@ -1071,7 +1071,8 @@ def replication_benchmark(
                 mode=chosen, ceiling=ceiling, go_on_without_texts=poursuivre,
                 open_access=not sans_libre_acces,
             ),
-            standard=standard, finder=OpenAccessSources, confirm=confirm,
+            standard=standard, finder=OpenAccessSources, crossref=default_crossref,
+            confirm=confirm,
             say=typer.echo, now=utc_now, tool_version=tool_version(),
         )  # fmt: skip
     except (
