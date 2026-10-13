@@ -171,3 +171,35 @@ def test_single_choice_answered_in_selected() -> None:
         prefill.check_answer(output(selected=["Adherence", "Non-adherence"]), fields)
     with pytest.raises(UnusableAnswerError):
         prefill.check_answer(output(value="Other"), fields)
+
+
+def test_multiple_choice_split_in_several_entries_is_merged() -> None:
+    """Tuning of version 3: the model split a multiple choice whose choices rested on
+    different passages; the entries become one, any other repeat is still refused."""
+    from revue_portee.ai.tasks.extraction import ExtractFieldsOutput
+    from revue_portee.domain.grid import GridField
+    from revue_portee.screening.ai_screening import UnusableAnswerError
+
+    concepts = GridField(
+        code="D13", label="Concepts", type=FieldType.MULTIPLE_CHOICE, choices=("A", "B", "C")
+    )
+    year = GridField(code="D1", label="Year", type=FieldType.NUMBER)
+    output = ExtractFieldsOutput.model_validate(
+        {"values": [
+            {"code": "D1", "reported": True, "value": "2020", "quote": "2020", "page": 1},
+            {"code": "D13", "reported": True, "selected": ["B"], "quote": "", "page": None},
+            {"code": "D13", "reported": True, "selected": ["A", "B"], "quote": "q", "page": 3},
+            {"code": "D13", "reported": False},
+        ]}
+    )  # fmt: skip
+    merged = prefill.merge_repeated(output, [year, concepts])
+    assert [v.code for v in merged.values] == ["D1", "D13"]
+    d13 = merged.values[1]
+    assert (d13.selected, d13.quote, d13.page, d13.reported) == (("B", "A"), "q", 3, True)
+    assert prefill.check_answer(merged, [year, concepts]) == {"D1": 2020, "D13": ["A", "B"]}
+    twice = ExtractFieldsOutput.model_validate(
+        {"values": [{"code": "D1", "reported": True, "value": "2020"},
+                    {"code": "D1", "reported": True, "value": "2021"}]}
+    )  # fmt: skip
+    with pytest.raises(UnusableAnswerError):
+        prefill.check_answer(prefill.merge_repeated(twice, [year]), [year])

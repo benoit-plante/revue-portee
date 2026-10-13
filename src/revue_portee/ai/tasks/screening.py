@@ -65,25 +65,38 @@ class ScreenReferenceInput(TaskInput):
 
 
 class AssessmentOutput(TaskOutput):
+    """Fields in the order the model writes them (version 2): the quote and what it
+    shows come before the status, so that the status follows from them."""
+
     code: str
-    status: Literal["met", "not_met", "cannot_tell"]
     evidence_quote: str = Field(
         description="Exact words of the title or abstract the assessment rests on; "
         "empty when the reference says nothing about the criterion."
     )
+    finding: str = Field(
+        default="",
+        description="One short sentence: what the reference shows about this criterion; "
+        "for an exclusion criterion, whether the reason for exclusion is true of it.",
+    )
+    status: Literal["met", "not_met", "cannot_tell"] = Field(
+        description="Inclusion criterion: met when the reference satisfies it. Exclusion "
+        "criterion: met when the reason for exclusion is true of the reference."
+    )
 
 
 class ScreenReferenceOutput(TaskOutput):
+    """The rationale comes before the decision and the probability (version 2)."""
+
     assessments: tuple[AssessmentOutput, ...] = Field(min_length=1)
+    rationale: str = Field(min_length=1)
     decision: Literal["include", "exclude", "uncertain"]
     inclusion_probability: float = Field(ge=0.0, le=1.0)
-    rationale: str = Field(min_length=1)
     decisive_criteria: tuple[str, ...] = Field(min_length=1)
 
 
 SCREEN_REFERENCE: TaskSpec[ScreenReferenceInput, ScreenReferenceOutput] = TaskSpec(
     name="screen_reference",
-    version="1",
+    version="2",
     input_model=ScreenReferenceInput,
     output_model=ScreenReferenceOutput,
     prompt=prompt_ref("screen_reference"),

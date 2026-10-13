@@ -1,5 +1,5 @@
 id: extract_fields
-version: "2"
+version: "3"
 task: extract_fields
 changelog:
   - version: "1"
@@ -8,3 +8,6 @@ changelog:
   - version: "2"
     date: "2026-10-09"
     change: A single choice goes in "value", never in "selected"; when several choices seem to apply, the one that covers them, otherwise the closest (real trial, 4 answers of 11 unusable).
+  - version: "3"
+    date: "2026-10-12"
+    change: Classifying into the choices is expected (not reported only when nothing can be classified); a multiple choice selects what the study examines, not its background; participant values for the population of the review question (development review, tranche 3.13).

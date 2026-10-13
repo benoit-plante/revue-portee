@@ -23,7 +23,7 @@ def test_demonstration_counted_by_hand(tmp_path: Path) -> None:
     # five references screened by the AI in the main screening, two reassessed
     (model,) = data.models
     assert (model.model_returned, model.calls) == ("fake-model-2026-10-07", 7)
-    assert data.templates == (("screen_reference", "1", 7),)
+    assert data.templates == (("screen_reference", "2", 7),)
     assert data.human_reviewers == 1
     assert data.pilot is None
     assert not data.thresholds.set_by_person
@@ -196,7 +196,7 @@ def test_extraction_counted_by_hand(tmp_path: Path) -> None:
     assert summary is not None
     # D1 proposed, not checked; D2 validated; D3 corrected. D2's quote is on page 2, not 3.
     assert (summary.grid_version, summary.fields, summary.studies) == (1, 3, 1)
-    assert (summary.ai_studies, summary.template_version) == (1, "2")
+    assert (summary.ai_studies, summary.template_version) == (1, "3")
     assert (summary.validated, summary.corrected, summary.rejected) == (1, 1, 0)
     assert (summary.extracted, summary.pending) == (0, 1)
     assert (summary.quotes_at_page, summary.quotes_other_page, summary.quotes_not_found) == (
