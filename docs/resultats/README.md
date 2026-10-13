@@ -16,6 +16,18 @@ Configuration par défaut : `screen_reference` v1, Haiku 5.5 (`effort: low`), se
 
 Inclusions manquées (4 sur 130) : un programme de 12 semaines alors que le critère en exige 16 (Oud_2018); un échantillon recruté en centres de traitement des brûlés, exclu par le critère « échantillons cliniques » déduit pour van_de_Schoot_2018; deux essais dont le résumé ne décrit qu'un bras non TCC (pharmacothérapie, psychothérapie centrée sur les émotions) pour van_Dis_2020. Dans les quatre cas, l'IA applique les critères écrits; les auteurs les ont appliqués plus largement au texte intégral. Deux réponses sur 14 624 sont restées inutilisables après une nouvelle tentative (aucune ne portait sur une référence incluse) : le modèle omettait parfois un critère d'exclusion quand un critère d'inclusion suffisait à exclure.
 
+## Banc SYNERGY, `screen_reference` v2 (tranche 3.13) — exécuté le 2026-10-13
+
+Même configuration et mêmes critères que ci-dessus, sauf le gabarit : `screen_reference` v2, mis au point sur la revue de développement n° 3 du plan de réplication ([08](../08-journal-des-gabarits.md)), distincte de ces jeux. Pour tenir dans le plafond de 7 $ US fixé par Benoit, van_Dis_2020 est mesuré sur un échantillon : ses 72 inclusions et 2 918 exclusions tirées avec la graine 2026. Sa spécificité ne se compare donc qu'approximativement à celle du jeu complet.
+
+| Jeu | Références | Incluses | Sensibilité (IC 95 %) | Spécificité (v1) | Coût pour 1 000 | Rapport |
+|---|---|---|---|---|---|---|
+| Oud_2018 | 952 | 20 | 100,0 % (83,9 – 100,0) | 68,5 % (78,7 %) | 0,50 $ | [rapport](banc-synergy-Oud_2018-screen_reference-v2.md) |
+| van_de_Schoot_2018 | 4 544 | 38 | 100,0 % (90,8 – 100,0) | 61,6 % (84,2 %) | 0,48 $ | [rapport](banc-synergy-van_de_Schoot_2018-screen_reference-v2.md) |
+| van_Dis_2020 (échantillon) | 2 990 | 72 | 97,2 % (90,4 – 99,2) | 71,2 % (80,0 %) | 0,69 $ | [rapport](banc-synergy-van_Dis_2020-screen_reference-v2.md) |
+
+**Critère d'acceptation toujours atteint** : sensibilité d'au moins 0,95 sur les trois jeux, coût bien sous 5 $ US pour 1 000 références. Coût total : 4,70 $ US. La v2 ne perd plus d'inclusion sur Oud_2018 ni sur van_de_Schoot_2018, mais sa spécificité baisse de 9 à 23 points : elle conserve plus de références que la v1 (1 728 faux positifs contre 713 sur van_de_Schoot_2018). Réponses inutilisables : 10 sur 8 486 (aucune sur une référence incluse), contre 2 sur 14 624 en v1. Les seuils n'ont pas été revus.
+
 ### Préparer un jeu
 
 1. Exporter le jeu SYNERGY (licence CC0) en CSV avec au moins les colonnes `title`, `abstract` et `label_included` (1 = inclus au texte intégral, 0 = exclu). Le fichier reste **hors du dépôt**.
