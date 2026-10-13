@@ -1,7 +1,10 @@
 id: screen_fulltext
-version: "1"
+version: "2"
 task: screen_fulltext
 changelog:
   - version: "1"
     date: "2026-10-09"
     change: First version (tranche 2.2), one call per report, quotes with their page.
+  - version: "2"
+    date: "2026-10-12"
+    change: Same reading of exclusion criteria, decision and probability in agreement with the assessments; publication judged on first appearance, not on data collection or submission dates; criteria judged on what the report studies (development review, tranche 3.13).

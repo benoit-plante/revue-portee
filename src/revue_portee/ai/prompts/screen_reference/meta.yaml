@@ -1,7 +1,10 @@
 id: screen_reference
-version: "1"
+version: "2"
 task: screen_reference
 changelog:
   - version: "1"
     date: "2026-10-08"
     change: First version (tranche 1.6), one call per reference.
+  - version: "2"
+    date: "2026-10-12"
+    change: Exclusion criteria read as reasons to exclude ("met" when the reason applies, negative wording included), every criterion assessed, decision and probability in agreement with the assessments, date limits and print years (development review, tranche 3.13).

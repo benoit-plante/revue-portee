@@ -48,8 +48,10 @@ class ScreenFulltextInput(TaskInput):
 
 
 class FulltextAssessmentOutput(TaskOutput):
+    """Fields in the order the model writes them (version 2): the quote and what it
+    shows come before the status, so that the status follows from them."""
+
     code: str
-    status: Literal["met", "not_met", "cannot_tell"]
     evidence_quote: str = Field(
         description="Exact words of the text the assessment rests on (at most about 40 "
         "words); empty when the report says nothing about the criterion."
@@ -57,19 +59,30 @@ class FulltextAssessmentOutput(TaskOutput):
     page: int | None = Field(
         default=None, ge=1, description="Page number of the quote, as marked [p. N]."
     )
+    finding: str = Field(
+        default="",
+        description="One short sentence: what the report shows about this criterion; for "
+        "an exclusion criterion, whether the reason for exclusion is true of the report.",
+    )
+    status: Literal["met", "not_met", "cannot_tell"] = Field(
+        description="Inclusion criterion: met when the report satisfies it. Exclusion "
+        "criterion: met when the reason for exclusion is true of the report."
+    )
 
 
 class ScreenFulltextOutput(TaskOutput):
+    """The rationale comes before the decision and the probability (version 2)."""
+
     assessments: tuple[FulltextAssessmentOutput, ...] = Field(min_length=1)
+    rationale: str = Field(min_length=1)
     decision: Literal["include", "exclude", "uncertain"]
     inclusion_probability: float = Field(ge=0.0, le=1.0)
-    rationale: str = Field(min_length=1)
     decisive_criteria: tuple[str, ...] = Field(min_length=1)
 
 
 SCREEN_FULLTEXT: TaskSpec[ScreenFulltextInput, ScreenFulltextOutput] = TaskSpec(
     name="screen_fulltext",
-    version="1",
+    version="2",
     input_model=ScreenFulltextInput,
     output_model=ScreenFulltextOutput,
     prompt=prompt_ref("screen_fulltext"),

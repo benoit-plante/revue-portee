@@ -23,6 +23,7 @@ from revue_portee.ai.providers import ProviderFactory
 from revue_portee.ai.runner import run_task
 from revue_portee.ai.tasks.extraction import (
     EXTRACT_FIELDS,
+    ExtractedValueOutput,
     ExtractFieldsInput,
     ExtractFieldsOutput,
     FieldText,
@@ -78,6 +79,7 @@ __all__ = [
     "StudyExtraction",
     "check_answer",
     "extraction_state",
+    "merge_repeated",
     "preview_ai",
     "run_ai",
 ]
@@ -245,6 +247,33 @@ def preview_ai(
     return preview(folder, EXTRACT_FIELDS, items, factory=factory)
 
 
+def merge_repeated(output: ExtractFieldsOutput, fields: Sequence[GridField]) -> ExtractFieldsOutput:
+    """A multiple choice answered in several entries becomes one entry: the choices of
+    all of them, in order and without repeats, with the quote and page of the first entry
+    that gives a quote. Any other field answered twice stays as it is (refused by
+    ``check_answer``). Seen in real calls (tuning of version 3): the model split a
+    multiple choice whose choices rested on different passages."""
+    multiple = {f.code for f in fields if f.type is FieldType.MULTIPLE_CHOICE}
+    merged: list[ExtractedValueOutput] = []
+    first: dict[str, int] = {}
+    for answer in output.values:
+        if answer.code not in multiple or answer.code not in first:
+            first.setdefault(answer.code, len(merged))
+            merged.append(answer)
+            continue
+        kept = merged[first[answer.code]]
+        quoted = kept if kept.quote.strip() else answer
+        merged[first[answer.code]] = kept.model_copy(
+            update={
+                "reported": kept.reported or answer.reported,
+                "selected": tuple(dict.fromkeys(kept.selected + answer.selected)),
+                "quote": quoted.quote,
+                "page": quoted.page,
+            }
+        )
+    return output.model_copy(update={"values": tuple(merged)})
+
+
 def check_answer(output: ExtractFieldsOutput, fields: Sequence[GridField]) -> dict[str, JsonValue]:
     """The value of each field asked, checked against its type (None: not reported).
     UnusableAnswerError unless each field is answered exactly once with a valid value.
@@ -394,12 +423,13 @@ def run_ai(
             spent += stored.record.cost_estimate
             try:
                 asked = [f for f in grid.sorted_fields() if f.code in {x.code for x in item.fields}]
-                values = check_answer(result.output, asked)
+                output = merge_repeated(result.output, asked)
+                values = check_answer(output, asked)
             except UnusableAnswerError as error:
                 record_unusable(folder, stored, error, now=now, tool_version=tool_version)
                 continue
             _store(
-                folder, grid, item.item_id, text, stored, result.output, values, now=now,
+                folder, grid, item.item_id, text, stored, output, values, now=now,
                 tool_version=tool_version,
             )  # fmt: skip
             done = True

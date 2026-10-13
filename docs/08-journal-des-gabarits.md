@@ -151,6 +151,45 @@ Un test (`tests/unit/test_prompt_journal.py`) échoue si une version de gabarit 
 | Données de test | Aucune à ce jour |
 | Résultats | Aucun |
 
+### screen_reference v2
+
+| Élément | Description |
+|---|---|
+| Date | 2026-10-12, tranche 3.13 |
+| Motif | Banc de réplication de la revue de développement n° 3 (mode en chaîne, v1) : 4 des 39 études publiées collectées perdues au tri des titres et résumés. Trois parce que l'année du numéro imprimé tombait juste après la borne d'un critère de date, une parce que le modèle inversait le sens d'un critère d'exclusion formulé par la négative (« n'aborde pas X » jugé « non rempli » pour une étude qui n'aborde pas X). Le modèle choisissait aussi le statut avant de raisonner, et ses justifications contredisaient parfois ses évaluations |
+| Changement | Invite système : chaque critère est présenté selon son type (« Exclure la référence si : … », « La référence doit satisfaire : … »); pour chaque critère, dans l'ordre, la citation, un constat d'une phrase (nouvelle clé `finding`), puis le statut, avec le sens de « rempli » pour un critère d'exclusion et un exemple de formulation négative; tous les critères sont évalués; une année imprimée juste hors d'une borne donne « indéterminable », et une année dans les bornes, bornes comprises, satisfait le critère; justification, décision et probabilité viennent après les évaluations et doivent s'accorder avec elles (probabilité sous 0,5 seulement si un critère échoue). Schéma de sortie réordonné dans le même sens : évaluations d'abord, puis justification, décision, probabilité, critères décisifs (version de la tâche 2) |
+| Données de mise au point | Revue de développement n° 3 du plan de réplication ([11](11-plan-de-replication.md)) : ses 671 références dédoublonnées et sa norme de référence (41 études incluses). Cette revue ne peut plus servir à mesurer cette version. Elle est distincte des jeux SYNERGY et des revues de réplication |
+| Versions essayées | v1 (point de départ, banc en chaîne) : 468 exclusions par l'outil, 35 études publiées gardées sur 39. **v2 retenue** (une passe) : 430 exclusions, 39 sur 39 gardées; aucune exclusion du modèle sans critère qui échoue; le sens du critère d'exclusion négatif est correct dans les constats; 1 réponse inutilisable sur 671 |
+| Appels réels | 2026-10-12, avec l'accord de Benoit (plafond de 3 $ US pour toute la mise au point des trois gabarits) : 671 appels, 0,44 $ US |
+| Données de test | Aucune mesurée à ce jour. Le gabarit est gelé à cette version; il sera mesuré sur les cinq revues de réplication ([11](11-plan-de-replication.md)). Le banc SYNERGY doit être relancé avant la fusion (règle du gabarit `screen_reference`); un contrôle de développement sur la revue de développement n° 2 est proposé |
+| Résultats | Résultats de développement seulement, consignés dans le dossier privé de la revue de développement n° 3 |
+
+### screen_fulltext v2
+
+| Élément | Description |
+|---|---|
+| Date | 2026-10-12, tranche 3.13 |
+| Motif | Banc de réplication de la revue de développement n° 3 (mode par étape, v1), sur les 41 textes des études incluses : le modèle excluait 29 études publiées, dont 35 restaient « incertaines » pour l'outil; il inversait le sens du critère d'exclusion formulé par la négative, se trompait sur les dates (date de réception ou de collecte prise pour la date de publication) et ses justifications contredisaient ses évaluations |
+| Changement | Même structure que `screen_reference` v2 (critères selon leur type, citation et page, constat, statut, puis justification, décision, probabilité; version de la tâche 2). En plus : un rapport est publié à sa première parution, en ligne ou imprimée, et les dates de collecte, de réception ou d'acceptation ne comptent pas; un critère se juge sur ce que le rapport étudie, pas sur ses mots; un sujet traité en partie donne « indéterminable » si l'on ne peut trancher |
+| Données de mise au point | Les 41 textes des études incluses par la revue de développement n° 3 (même revue que pour `screen_reference` v2). Ils ne peuvent plus servir à mesurer cette version |
+| Versions essayées | v1 : 29 exclusions du modèle sur 41. **v2a** (formulation des critères et des statuts seulement, schéma inchangé) : pas mieux, 21 exclusions du modèle dont 9 sans critère qui échoue, 3 études publiées perdues, raisonnement incohérent sur les dates; abandonnée. **v2b** (évaluations raisonnées avant le statut et la décision, schéma réordonné) : 24 inclusions et 3 « incertaines » du modèle, 9 exclusions, aucune sans critère qui échoue; 39 études gardées sur 41. **v2 retenue** (v2b et les deux paragraphes sur la date de publication et la couverture partielle), passe finale : 25 inclusions, 1 exclusion par l'outil, 40 études gardées sur 41 (la perdue est rédigée en portugais, critère de langue) |
+| Appels réels | 2026-10-12, avec l'accord de Benoit (même plafond de 3 $ US) : 3 passes de 41 appels, environ 0,27 $ US |
+| Données de test | Aucune mesurée à ce jour : les cinq revues de réplication ([11](11-plan-de-replication.md)) |
+| Résultats | Résultats de développement seulement, consignés dans le dossier privé de la revue de développement n° 3 |
+
+### extract_fields v3
+
+| Élément | Description |
+|---|---|
+| Date | 2026-10-12, tranche 3.13 |
+| Motif | Banc de réplication de la revue de développement n° 3 (mode par étape, v2), comparé à l'extraction publiée sur 41 études : concordance de 5 sur 41 pour un champ à choix multiple (les composantes du modèle théorique étudiées), où le modèle cochait aussi des choix cités seulement dans le cadre théorique ou la discussion; 20 sur 41 pour un champ de classement de l'orientation de l'étude, dont 12 « non rapporté », le modèle cherchant une phrase qui nomme le choix au lieu de classer l'étude |
+| Changement | Invite système : ne rien compléter de ses connaissances; une seule entrée par champ (un choix multiple donne tous ses choix dans une même entrée, avec une citation); classer l'étude dans les choix de la grille est attendu, « non rapporté » seulement quand le texte ne donne rien à classer; pour un choix multiple, ne cocher que ce que l'étude elle-même examine; valeurs des participants pour la population de la question quand le rapport les donne à part. Outil : un choix multiple réparti sur plusieurs entrées est fusionné en une seule (union des choix, première citation), les autres répétitions restent refusées |
+| Données de mise au point | Les 41 textes des études incluses par la revue de développement n° 3 et son extraction publiée. Ils ne peuvent plus servir à mesurer cette version |
+| Versions essayées | v2 (point de départ) : orientation 20/41 (12 non rapportés), composantes 5/41. **v3a** : orientation 23/39 (aucun non rapporté), composantes 6/39 (indice de Jaccard moyen 0,47); 2 réponses inutilisables (champ donné deux fois). **v3b** (retouches de rédaction) : orientation 19/37, 4 réponses inutilisables pour la même raison; forte variation d'une passe à l'autre. **v3 retenue** (v3c : consigne d'une seule entrée par champ et d'une seule citation, fusion par l'outil) : orientation 21/40, composantes 8/40 (Jaccard 0,50), 1 réponse inutilisable; les autres champs comparés restent stables (pays 38/40, devis 37/40) |
+| Appels réels | 2026-10-12, avec l'accord de Benoit (même plafond de 3 $ US) : 3 passes de 41 appels, environ 0,27 $ US |
+| Données de test | Aucune mesurée à ce jour : les cinq revues de réplication ([11](11-plan-de-replication.md)) |
+| Résultats | Résultats de développement seulement, consignés dans le dossier privé de la revue de développement n° 3. Le modèle coche encore souvent l'adaptation individuelle (« coping ») comme composante familiale, ce que la définition du champ permet; ce n'est pas corrigé dans le gabarit |
+
 ## Bilan
 
 Aucun des sept gabarits n'a fait l'objet d'une mise au point sur des données. C'est une faiblesse au regard de RAISE 2, qui s'attend à une mise au point documentée. C'est aussi une protection : il n'y a pas de fuite entre des données de mise au point et des données de mesure.

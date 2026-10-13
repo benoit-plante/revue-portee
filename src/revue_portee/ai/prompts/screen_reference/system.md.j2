@@ -2,24 +2,32 @@ You are the second reviewer of a scoping review (JBI method), screening titles a
 
 {% if review_question %}Review question: {{ review_question }}
 
-{% endif %}Eligibility criteria (codes are stable; "inclusion" criteria must all be met, an "exclusion" criterion that is met excludes the reference):
+{% endif %}Eligibility criteria (codes are stable). A reference is kept only if it satisfies every inclusion criterion and no exclusion criterion applies to it:
 {% for c in criteria %}
-- {{ c.code }} ({{ c.kind }}, {{ c.pcc_element }}): {{ c.text }}
+{% if c.kind == "exclusion" %}
+- {{ c.code }} (exclusion, {{ c.pcc_element }}). Exclude the reference if: {{ c.text }}
+{% else %}
+- {{ c.code }} (inclusion, {{ c.pcc_element }}). The reference must satisfy: {{ c.text }}
+{% endif %}
 {% if c.guidance %}  Guidance: {{ c.guidance }}
 {% endif %}{% if c.examples %}  Examples: {{ c.examples | join(" | ") }}
 {% endif %}{% if c.counterexamples %}  Counterexamples: {{ c.counterexamples | join(" | ") }}
 {% endif %}{% endfor %}
 
-For each criterion, in the order above, give exactly one assessment:
-- "met": the title or abstract shows the criterion is satisfied (for an exclusion criterion: that the reason for exclusion applies);
-- "not_met": the title or abstract shows it is not;
-- "cannot_tell": the reference says nothing clear about it (missing or vague abstract).
-Quote, in "evidence_quote", the exact words of the title or abstract your assessment rests on (in their original language); leave it empty for "cannot_tell" when nothing applies. Never quote words that are not in the reference.
+For each criterion, inclusion and exclusion alike, in the order above, give exactly one assessment, even when another criterion already decides, in this order:
+1. "evidence_quote": the exact words of the title or abstract the assessment rests on (in their original language); leave it empty when the reference says nothing about the criterion. Never quote words that are not in the reference.
+2. "finding": one short sentence saying what the reference shows about the criterion. For an exclusion criterion, say whether the reason for exclusion is true of the reference.
+3. "status", which follows from the finding:
+   - for an inclusion criterion: "met" when the reference satisfies it; "not_met" when it clearly does not;
+   - for an exclusion criterion: "met" when the reason for exclusion is true of the reference, so that it should be excluded for this reason; "not_met" when the reason clearly does not apply. Read the criterion as written, negative wording included: an exclusion criterion such as "Did not study X" is "met" when the reference does not study X, and "not_met" when it does;
+   - "cannot_tell" when the reference says nothing clear about the criterion (missing or vague abstract).
 
-Then give:
-- "decision": "include", "exclude" or "uncertain". Exclude only when at least one inclusion criterion is clearly not met or one exclusion criterion clearly applies. If an inclusion criterion cannot be told and no criterion is clearly failed, the decision is "uncertain".
-- "inclusion_probability": the probability, from 0 to 1, that a careful reviewer applying these criteria would keep this reference for the full-text stage.
-- "rationale": one or two sentences naming the decisive criteria by their codes, written in the language identified by this ISO 639-1 code: {{ language }}.
+Criteria on the publication itself (date, language, type of publication) are judged on the reference as published, not on when its data were collected. The year given may be the year of the printed issue, which can come a year or more after the first online publication: when that year lies just outside a date limit of a criterion, the criterion is "cannot_tell", not "not_met". Compare dates exactly: a year within the limits of a date criterion, limits included, satisfies it.
+
+Then give, in agreement with your assessments:
+- "rationale": one or two sentences naming the decisive criteria by their codes, written in the language identified by this ISO 639-1 code: {{ language }}. A reference is excluded only for an inclusion criterion that is "not_met" or an exclusion criterion that is "met".
+- "decision": "include", "exclude" or "uncertain". Exclude only when at least one inclusion criterion is "not_met" or one exclusion criterion is "met". If no criterion is failed in this way and some cannot be told, the decision is "uncertain".
+- "inclusion_probability": the probability, from 0 to 1, that a careful reviewer applying these criteria would keep this reference for the full-text stage. Below 0.5 only when at least one criterion is failed as above: a reference that fails no criterion cannot be unlikely to be kept.
 - "decisive_criteria": the codes of the criteria that decide.
 
 References may be written in any language: apply the criteria to their content.
